@@ -1,0 +1,66 @@
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: #ddd;
+    font-family: sans-serif;
+}
+
+h1 {
+    text-align: center;
+}
+
+.wrapper {
+    background: #fff;
+    padding: 10px; 
+
+    max-width: 800px;
+
+    margin: 0 auto;
+}
+
+#logo {
+    max-width: 400px;
+    display: block;
+    margin: 0 auto;
+}
+
+$button-color:  #235ade;
+.cta-button {
+    display: block;
+    text-align: center;
+    padding: 20px 15px;
+    font-size:1.4em;
+
+    background: $button-color;
+    color:#fff;
+    text-decoration: none;
+    font-weight: bold;
+    
+    max-width: 500px;
+    
+    margin: 0 auto;
+    
+    text-shadow: rgba(0,0,200,.3) 0px 3px 4px;
+
+    border-radius: 15px;
+    border: 2px solid $button-color - #333;
+    
+    &:hover {
+        background: $button-color - #111;
+    }
+}
+
+@media only screen and (max-width:320px) {
+    .wrapper {
+        width: 100%;
+        padding: 10vh 0;
+    }
+
+    #logo {
+        width: 100%;
+    }
+}
+  
