@@ -1,5 +1,21 @@
 {% extends "base.html" %}
 
 {% block content %}
-{{ page.content | safe }}
+<nav class="breadcrumb is-large" aria-label="breadcrumbs">
+    <ul>
+      <li><a href="#">Bulma</a></li>
+      <li><a href="#">Documentation</a></li>
+      <li><a href="#">Components</a></li>
+      <li class="is-active"><a href="#" aria-current="page">Breadcrumb</a></li>
+    </ul>
+  </nav>
+<div class="columns">
+    <div class="column">
+        {% include "partials/events.overview-card.html" %}    
+        Lorem, ipsum dolor sit amet consectetur adipisicing elit. Atque aliquam labore fugiat nihil. Cum nulla magni asperiores, tenetur, iure enim molestiae impedit, aliquam adipisci obcaecati sunt repellat eaque iusto illo.
+    </div>
+    <div class="column is-one-third">
+        {% include "partials/events.rsvp-card.html" %}
+    </div>
+</div>
 {% endblock content %}

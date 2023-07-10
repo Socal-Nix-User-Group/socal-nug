@@ -5,10 +5,11 @@
   <meta charset="utf-8">
   <title>MyBlog</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <link rel="stylesheet" href="/style.css">
 </head>
 
 <body>
-  {% include "partials/navigation.html" %} 
+  {% include "partials/base.navigation.html" %} 
   <section class="section">
    
     <div class="container">
@@ -17,7 +18,7 @@
       {% endblock %}
     </div>
   </section>
-  {% include "partials/footer.html" %}
+  {% include "partials/base.footer.html" %}
 </body>
 
 </html>
