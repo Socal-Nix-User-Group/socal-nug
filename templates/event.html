@@ -2,13 +2,14 @@
 
 {% block content %}
 <div class="columns">
-    <div class="column">
-        {% include "partials/events.overview-card.html" %}    
-        {{ page.content | safe }}
-        {% include "partials/events.comments.html" %}    
-      </div>
-    <div class="column is-one-third">
-        {% include "partials/events.rsvp-card.html" %}
-    </div>
+  <div class="column">
+    {% include "partials/events.overview-card.html" %}
+    <h3 class="title is-4 mt-3">Event Description</h3>
+    {{ page.content | safe }}
+    {% include "partials/events.comments.html" %}
+  </div>
+  <div class="column is-one-third">
+    {% include "partials/events.rsvp-card.html" %}
+  </div>
 </div>
 {% endblock content %}
