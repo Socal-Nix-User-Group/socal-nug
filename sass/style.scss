@@ -32,3 +32,23 @@
     font-weight: 400 !important;
     text-transform: uppercase;
 }
+
+.main-nav {
+    border-bottom:2px solid #ccc;
+    height: 75px;
+
+    .navbar-item img {
+        max-height: none;
+
+    }
+}
+
+.subnav-wrapper {
+    border-bottom:2px solid #ccc;
+    padding: .5em 0;
+    box-shadow: rgba(0,0,0,.1) 0px 0px 4px;
+}
+
+footer {
+    border-top:2px solid #ccc;
+}
