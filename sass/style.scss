@@ -1,3 +1,5 @@
+@import url(https://fonts.bunny.net/css?family=braah-one:400);
+
 .front-page-hero {
     font-size: 1.6em;
     background: none;
@@ -22,4 +24,11 @@
             content: ']';
         }
     }
+}
+
+.title, 
+.content h1,h2,h3,h4 {
+    font-family: 'Braah One', sans-serif;
+    font-weight: 400 !important;
+    text-transform: uppercase;
 }
