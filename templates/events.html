@@ -2,16 +2,27 @@
 
 {% block content %}
 
-<div class="columns">
-    <div class="column">
-      <h1 class="title is-1 mb-3">Events</h1>
-      {% for page in section.pages %}
-      <h2 class="title is-2 mb-3"><a href="{{ page.permalink }}">
-        {{ page.title }}
-      </a></h2>
-      {% endfor %}
-    </div>
-    <div class="column is-one-third">
-    </div>
-</div>
+  <h1 class="title is-1 mb-3">Events</h1>
+  <div class="columns is-multiline is-8">
+    {% for page in section.pages | reverse %}
+      <div class="column is-one-third">
+        <a href="{{ page.permalink }}">
+          <div class="card">
+            <div class="card-image">
+              <figure class="image is-4by2">
+                <img src="https://picsum.photos/400/200" alt="Placeholder image">
+              </figure>
+            </div>
+            <div class="card-content">
+              <div class="content">
+                <h2>
+                  {{ page.title }}
+                </h2>
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+    {% endfor %}
+  </div>
 {% endblock content %}
