@@ -1,28 +1,16 @@
 @import url(https://fonts.bunny.net/css?family=braah-one:400);
+@import "components/ui-date.scss";
+@import "components/ui-specialhero.scss";
+@import "components/ui-frontpage-event-card.scss";
 
-.front-page-hero {
-    font-size: 1.6em;
-    background: none;
+.socalnug-hero {
+    background: rgb(9,9,121);
+    background: linear-gradient(0deg, rgba(9,9,121,1) 0%, rgba(7,58,154,1) 14%, rgba(0,212,255,1) 100%);
 
-    h1, h2, h3 {
-        display: inline;
-        margin: 0;
-        padding:0;
+    text-shadow: rgba(0,0,0,.3) 0px 2px 3px;
 
-        font-weight: bold;
-        text-decoration: underline;
-    }
-    
-    a {
-        font-weight: bold;
-
-        &::before {
-            content: '[';
-        }
-
-        &::after {
-            content: ']';
-        }
+    .title {
+        color: #fff !important;
     }
 }
 
