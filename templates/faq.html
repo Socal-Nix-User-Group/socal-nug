@@ -5,12 +5,9 @@
 <div class="columns">
     <div class="column">
       <h1 class="title is-1 mb-3">Frequently Asked Questions</h1>
-      {% for page in section.pages %}
-      <h2 class="title is-2 mb-3"><a href="{{ page.permalink }}">
-        {{ page.title }}
-        {{ page.title }}
-      </a></h2>
-      {% endfor %}
+      <div class="content">
+        {{ page.content | safe }}
+      </div>
     </div>
     <div class="column is-one-third">
     </div>

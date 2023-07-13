@@ -1,5 +1,5 @@
 +++
-template = "child.for-markdown.html"
+template = "child.markdown.html"
 title = "About Us"
 +++
 

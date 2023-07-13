@@ -1,11 +1,11 @@
-<section class="hero is-primary">
+<section class="hero has-background-light">
   <div class="hero-body">
     <div class="container has-text-centered">
       <h1 class="title">
         Join us for our next event!
       </h1>
 
-      <div class="frontpage-event-card">
+      <div class="frontpage-event-card box">
         <div class="media">
           <div class="media-left">
             {{ date_macros::date_chip(month=2, day=21) }}
@@ -13,11 +13,23 @@
           <div class="media-content">
             <div class="content">
               <h2 style="margin:0;padding:0;">NUG #3 - Hello</h2>
-              <h3 style="margin:0;padding:0;">August 21st, 2023</h3>
-              Lorem ipsum, dolor sit amet consectetur adipisicing elit. Soluta repellendus provident quaerat? Modi minima
-              at deserunt delectus! Nulla id quod ipsum hic dolores nihil odit tempore amet, similique in facere.
+              <h4 style="margin:0;padding:0;">
+                <span class="icon">
+                  &#128205;
+                </span>
+                El Dorado Park, Long Beach
+              </h4>
+              <h4 style="margin:0;padding:0;">
+                <span class="icon">
+                  &#128100;
+                </span>
+                Steven Stevenson
+              </h4>
             </div>
-            <a class="button" href="#">Find out more</a>
+            <div class="buttons">
+              <a class="button" href="#">Find out more</a>
+              <a class="button" href="#">RSVP</a>
+            </div>
           </div>
         </div>
       </div>

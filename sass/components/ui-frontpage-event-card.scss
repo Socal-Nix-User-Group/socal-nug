@@ -3,8 +3,16 @@
     color: black;
     padding: 1.2rem;
     border-radius: 5px;
-    max-width: 50vw;
+    width: 50vw;
+    max-width: 600px;
 
     margin: 0 auto;
     text-align: left;
 }
+
+@media screen and (max-width: 900px) {
+    .frontpage-event-card {
+      max-width: none;
+      width: auto;
+    }
+  }

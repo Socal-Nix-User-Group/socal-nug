@@ -1,4 +1,5 @@
-@import url(https://fonts.bunny.net/css?family=braah-one:400);
+@import url(https://fonts.bunny.net/css?family=albert-sans:100,400,500,500i,600,600i,700,800i|barlow:400,400i,500,500i,600,600i);
+
 @import "components/ui-date.scss";
 @import "components/ui-specialhero.scss";
 @import "components/ui-frontpage-event-card.scss";
@@ -16,12 +17,17 @@
 
 .title, 
 .content h1,h2,h3,h4 {
-    font-family: 'Braah One', sans-serif;
-    font-weight: 400 !important;
-    text-transform: uppercase;
+    font-family: 'Albert Sans', sans-serif;
+}
+
+p, ul, a, span, div {
+    font-family: 'Barlow', sans-serif;
 }
 
 .main-nav {
+    .navbar-item, a.button {
+        font-family: 'Albert Sans', sans-serif !important;
+    }
     border-bottom:2px solid #ccc;
     height: 75px;
 
