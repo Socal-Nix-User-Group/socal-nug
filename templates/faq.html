@@ -1,0 +1,15 @@
+{% extends "child.html" %}
+
+{% block content %}
+
+<div class="columns">
+    <div class="column">
+      <h1 class="title is-1 mb-3">Frequently Asked Questions</h1>
+      <div class="content">
+        {{ page.content | safe }}
+      </div>
+    </div>
+    <div class="column is-one-third">
+    </div>
+</div>
+{% endblock content %}

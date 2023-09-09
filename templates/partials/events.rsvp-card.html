@@ -1,0 +1,24 @@
+<div class="card rsvp-card">
+    <header class="card-header">
+        <p class="card-header-title">
+            Event Overview
+        </p>
+    </header>
+    <div class="card-content">
+        <div class="content">
+            <ul>
+                <li>{{ page.extra['organizer']}}</li>
+                <li>{{ page.extra['location']}}</li>
+                <li>{{ page.extra['event_date']}}</li>
+            </ul>
+        </div>
+    </div>
+    <footer class="card-footer">
+        <a 
+            href="https://matrix.to/#/#socal-nug:matrix.org"
+            class="card-footer-item"
+            target="_blank"
+            >RSVP on Matrix</a>
+        <!-- <a href="#" class="card-footer-item">Download to calendar</a> -->
+    </footer>
+</div>

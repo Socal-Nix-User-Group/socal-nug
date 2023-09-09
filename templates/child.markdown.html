@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block subnav %}
+{% include "partials/child.breadcrumb.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="content">
+  {{ page.content | safe }}
+</div>
+{% endblock %}

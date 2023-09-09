@@ -1,0 +1,26 @@
+// Styles for the pretty nix definition
+.front-page-hero {
+    font-size: 1.6em;
+    background: none;
+
+    h1, h2, h3 {
+        display: inline;
+        margin: 0;
+        padding:0;
+
+        font-weight: bold;
+        text-decoration: underline;
+    }
+    
+    a {
+        font-weight: bold;
+
+        &::before {
+            content: '[';
+        }
+
+        &::after {
+            content: ']';
+        }
+    }
+}

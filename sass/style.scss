@@ -1,82 +1,42 @@
-html,
-body {
-    margin: 0;
-    padding: 0;
-}
+@import url(https://fonts.bunny.net/css?family=albert-sans:100,400,500,500i,600,600i,700,800i|barlow:400,400i,500,500i,600,600i);
 
-body {
-    background: #ddd;
-    font-family: sans-serif;
-}
+@import "components/ui-date.scss";
+@import "components/ui-specialhero.scss";
+@import "components/ui-frontpage-event-card.scss";
 
-h1 {
-    text-align: center;
-}
+.socalnug-hero {
+    background: rgb(9,9,121);
+    background: linear-gradient(0deg, rgba(9,9,121,1) 0%, rgba(7,58,154,1) 14%, rgba(0,212,255,1) 100%);
 
-.wrapper {
-    background: #fff;
-    padding: 10px;
+    text-shadow: rgba(0,0,0,.3) 0px 2px 3px;
 
-    max-width: 800px;
-
-    margin: 0 auto;
-}
-
-#logo {
-    max-width: 400px;
-    display: block;
-    margin: 0 auto;
-}
-
-$button-color: #235ade;
-
-.cta-button {
-    display: block;
-    text-align: center;
-    padding: 20px 15px;
-    font-size: 1.4em;
-
-    background: $button-color;
-    color: #fff;
-    text-decoration: none;
-    font-weight: bold;
-
-    max-width: 500px;
-
-    margin: 0 auto;
-
-    text-shadow: rgba(0, 0, 200, .3) 0px 3px 4px;
-
-    border-radius: 15px;
-    border: 2px solid $button-color - #333;
-
-    &:hover {
-        background: $button-color - #111;
-    }
-
-    hr {
-        color: #fff;
+    .title {
+        color: #fff !important;
     }
 }
 
-@media only screen and (max-width:320px) {
-    body {
-        background: #fff;
-    }
-
-    .wrapper {
-        width: 100%;
-        padding: 10vh 0;
-    }
-
-    #logo {
-        width: 100%;
-    }
+.title, 
+.content h1,h2,h3,h4 {
+    font-family: 'Albert Sans', sans-serif;
 }
 
-.footer-message {
-    text-align: center;
-    font-style: italic;
-    padding: 10px 0;
-    font-size: 1.4em;
+p, ul, a, span, div {
+    font-family: 'Barlow', sans-serif;
+}
+
+.main-nav {
+    .navbar-item, a.button {
+        font-family: 'Albert Sans', sans-serif !important;
+    }
+    border-bottom:2px solid #ccc;
+}
+
+.subnav-wrapper {
+    border-bottom:2px solid #ccc;
+    padding: .5em 0;
+    box-shadow: rgba(0,0,0,.1) 0px 0px 4px;
+}
+
+footer {
+    border-top:2px solid #ccc;
 }
