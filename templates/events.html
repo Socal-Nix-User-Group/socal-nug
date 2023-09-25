@@ -7,6 +7,8 @@
     {% for page in section.pages | reverse %}
       <div class="event column is-one-third" 
         data-event-date="{{ page.extra['event_date'] }}"
+        data-event-name="{{ page.title }}"
+        data-event-location="{{ page.extra['location'] }}"
         >
         <a href="{{ page.permalink }}">
           <div class="card">
@@ -18,7 +20,6 @@
             <div class="card-content">
               <div class="content">
                 <h2>
-                  {{ page.extra['event_date'] }}
                   {{ page.title }}
                 </h2>
               </div>

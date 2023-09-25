@@ -11,11 +11,20 @@
           <div class="media">
             <div class="media-content">
               <div class="content">
-                <h3>
-                  We currently don't have any upcoming events planned.
+                <p>
+                  We currently don't have any new events scheduled.
                   <br>
                   Join us on Matrix to keep up with the latest updates.
-                </h3>
+                </p>
+              </div>
+              <div class="level is-mobile">
+                <div class="level-left">
+                  <div class="buttons mt-3">
+                    <a class="button" href="#">Matrix Chat</a>
+                    <a class="button" href="/events/">Past Events</a>
+                    <!-- <a class="button" href="#">RSVP</a> -->
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -26,6 +35,22 @@
 </section>
 
 <script>
+  function displayEventBadge(event) {
+    const eventBadgeClone = document.getElementById('event-highlight').content.cloneNode(true);
+    const eventContainer = document.getElementById('event-card');
+    const eventBadgeMonth = eventBadgeClone.querySelector('.calendar-date-chip .month');
+    const eventBadgeDay = eventBadgeClone.querySelector('.calendar-date-chip .day');
+    const eventBadgeName = eventBadgeClone.querySelector('.event-name');
+    const eventBadgeLocation = eventBadgeClone.querySelector('.event-location');
+
+    eventBadgeMonth.innerHTML = event.eventDate.toLocaleString('default', { month: 'short' });;
+    eventBadgeDay.innerHTML = event.eventDate.getDate();
+    eventBadgeName.innerHTML = event.name;
+    eventBadgeLocation.innerHTML = event.location;
+    
+    eventContainer.replaceWith(eventBadgeClone);
+  } 
+
   (async function () {
     // Grab event page html
     const eventPageHTML = await fetch('/events').then(e => e.text());
@@ -33,13 +58,15 @@
     const eventElements = Array.from(fragment.querySelectorAll('.event'));
     const events = eventElements.map(e => {
       return {
-        eventDate: new Date(e.dataset['eventDate'])
+        eventDate: new Date(e.dataset.eventDate),
+        name: e.dataset.eventName,
+        location: e.dataset.eventLocation
       }
     });
 
-    const eventBadge = document.getElementById('event-highlight');
-    const eventContainer = document.getElementById('event-card');
-
-    // eventContainer.replaceWith(eventBadge.content.cloneNode(true));
+    const upcomingEvents = events.filter( e => e.eventDate > new Date())
+    if (upcomingEvents.length > 0) {
+      displayEventBadge(upcomingEvents[0]);
+    } 
   }());
 </script>
