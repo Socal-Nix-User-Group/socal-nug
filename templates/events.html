@@ -5,7 +5,9 @@
   <h1 class="title is-1 mb-3">Events</h1>
   <div class="columns is-multiline is-8">
     {% for page in section.pages | reverse %}
-      <div class="column is-one-third">
+      <div class="event column is-one-third" 
+        data-event-date="{{ page.extra['event_date'] }}"
+        >
         <a href="{{ page.permalink }}">
           <div class="card">
             <div class="card-image">
@@ -16,6 +18,7 @@
             <div class="card-content">
               <div class="content">
                 <h2>
+                  {{ page.extra['event_date'] }}
                   {{ page.title }}
                 </h2>
               </div>
