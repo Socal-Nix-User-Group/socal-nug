@@ -55,7 +55,7 @@
     // Grab event page html
     const eventPageHTML = await fetch('/events').then(e => e.text());
     const fragment = document.createRange().createContextualFragment(eventPageHTML);
-    const eventElements = Array.from(fragment.querySelectorAll('.event'));
+    const eventElements = Array.from(fragment.querySelectorAll('.event-listing-item'));
     const events = eventElements.map(e => {
       return {
         eventDate: new Date(e.dataset.eventDate),
