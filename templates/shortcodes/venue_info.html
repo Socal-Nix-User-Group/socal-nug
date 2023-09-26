@@ -1,0 +1,6 @@
+<div class="event-venue-info">
+    {{ name }} <br>
+    {{ street }}{% if unit %}, {{ unit }}{% endif %} <br>
+    {{ city }}, {{ state | default(value='CA') }} <br> 
+    {{ zip }}
+</div>

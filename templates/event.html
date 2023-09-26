@@ -1,9 +1,17 @@
+{% import "macros/date.html" as date_macros %}
 {% extends "child.html" %}
 
 {% block content %}
-<div class="columns">
+<h1 class="title is-1 my-4">
+  {{ page.title }}
+</h1>
+
+<div class="columns event-details">
   <div class="column">
-    {% include "partials/events.overview-card.html" %}
+    <div class="content">
+      <h3 class="title is-4 mt-3">Description</h3>
+      {{ page.content | safe }}
+    </div>
   </div>
   <div class="column is-one-third">
     {% include "partials/events.rsvp-card.html" %}
@@ -12,10 +20,6 @@
 
 <div class="columns">
   <div class="column is-two-thirds">
-    <div class="content">
-      <h3 class="title is-4 mt-3">Event Description</h3>
-      {{ page.content | safe }}
-    </div>
     <!-- {% include "partials/events.comments.html" %} -->
   </div>  
 </div>
