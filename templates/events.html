@@ -13,36 +13,37 @@
   {% endfor %}
 
   {% for current_year in years %}
-    <h2 class="title is-3 mb-3">{{ current_year }}</h2>
-    {% for page in section.pages | sort(attribute="extra.event_date") | reverse %}
-      
-      {% set date_parts = page.extra['event_date'] | split(pat="-")%}
-      {% set event_month = date_parts[1] | int %}
-      {% set event_day = date_parts[2] | int %}
-      
-      {% if current_year != date_parts[0] %}
-        {% continue %}
-      {% endif %}
-      <div class="event-listing-item" 
-        data-event-date="{{ page.extra['event_date'] }}" 
-        data-event-name="{{ page.title }}"
-        data-event-location="{{ page.extra['venue_name'] }}">
-        <a href="{{ page.permalink }}">
-          <div class="media">
-            <div class="media-left">
-              {{ date_macros::date_chip(month=event_month, day=event_day) }}
-            </div>
-            <div class="media-right">
-              <h2 class="title" style="margin:0">
-                {{ page.title }}
-              </h2>
-              <h3>{{ page.extra.event_date }}</h3>
-              <h3>{{ page.extra.venue_name }}</h3>
-            </div>
-          </div>
-        </a>
+  <h2 class="title is-3 mb-3">{{ current_year }}</h2>
+  {% for page in section.pages | sort(attribute="extra.event_date") | reverse %}
+
+  {% set date_parts = page.extra['event_date'] | split(pat="-")%}
+  {% set event_year = date_parts[0] | int %}
+  {% set event_month = date_parts[1] | int %}
+  {% set event_day = date_parts[2] | int %}
+
+  {% if current_year != date_parts[0] %}
+  {% continue %}
+  {% endif %}
+  <div class="event-listing-item" data-event-date="{{ page.extra['event_date'] }}" data-event-name="{{ page.title }}"
+    data-event-location="{{ page.extra['venue_name'] }}">
+    <a href="{{ page.permalink }}">
+      <div class="media">
+        <div class="media-left">
+          {{ date_macros::date_chip(month=event_month, day=event_day) }}
+        </div>
+        <div class="media-right">
+          <h2 class="title" style="margin:0">
+            {{ page.title }}
+          </h2>
+          <h3>
+            {{ date_macros::date_full(month=event_month, day=event_day, year=event_year)}}
+          </h3>
+          <h3>{{ page.extra.venue_name }}</h3>
+        </div>
       </div>
-    {% endfor %}
+    </a>
+  </div>
+  {% endfor %}
   {% endfor %}
 </div>
 {% endblock content %}
