@@ -6,7 +6,7 @@
 <h1 class="title is-1 mb-3">Events</h1>
 <div class="is-multiline event-listing">
   {% set_global years = [] %}
-  {% set slugs = section.pages | map(attribute="slug") %}
+  {% set slugs = section.pages | map(attribute="extra.event_date") %}
   {% for year in slugs %}
   {% set current_year = year | split(pat='-') %}
   {% set_global years = years | concat(with= current_year[0]) | unique %}
