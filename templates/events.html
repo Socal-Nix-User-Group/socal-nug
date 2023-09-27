@@ -4,46 +4,58 @@
 {% block content %}
 
 <h1 class="title is-1 mb-3">Events</h1>
-<div class="is-multiline event-listing">
-  {% set_global years = [] %}
-  {% set slugs = section.pages | map(attribute="extra.event.date") %}
-  {% for year in slugs %}
-  {% set current_year = year | split(pat='-') %}
-  {% set_global years = years | concat(with= current_year[0]) | unique %}
-  {% endfor %}
 
-  {% for current_year in years %}
-  <h2 class="title is-3 mb-3">{{ current_year }}</h2>
-  {% for page in section.pages | sort(attribute="extra.event.date") | reverse %}
+<div class="columns">
+  <div class="column is-two-thirds">
+    <div class="is-multiline event-listing">
+      {% set_global years = [] %}
+      {% set slugs = section.pages | map(attribute="extra.event.date") %}
+      {% for year in slugs %}
+      {% set current_year = year | split(pat='-') %}
+      {% set_global years = years | concat(with= current_year[0]) | unique %}
+      {% endfor %}
 
-  {% set date_parts = page.extra.event.date | split(pat="-")%}
-  {% set event_year = date_parts[0] | int %}
-  {% set event_month = date_parts[1] | int %}
-  {% set event_day = date_parts[2] | int %}
+      {% for current_year in years %}
+      <h2 class="title is-3 mb-3">{{ current_year }}</h2>
+      {% for page in section.pages | sort(attribute="extra.event.date") | reverse %}
 
-  {% if current_year != date_parts[0] %}
-  {% continue %}
-  {% endif %}
-  <div class="event-listing-item" data-event-date="{{ page.extra.event.date }}" data-event-name="{{ page.title }}"
-    data-event-location="{{ page.extra.venue.name }}">
-    <a href="{{ page.permalink }}">
-      <div class="media">
-        <div class="media-left">
-          {{ date_macros::date_chip(month=event_month, day=event_day) }}
-        </div>
-        <div class="media-right">
-          <h2 class="title" style="margin:0">
-            {{ page.title }}
-          </h2>
-          <h3>
-            {{ date_macros::date_full(month=event_month, day=event_day, year=event_year)}}
-          </h3>
-          <h3>{{ page.extra.venue.name }}</h3>
-        </div>
+      {% set date_parts = page.extra.event.date | split(pat="-")%}
+      {% set event_year = date_parts[0] | int %}
+      {% set event_month = date_parts[1] | int %}
+      {% set event_day = date_parts[2] | int %}
+
+      {% if current_year != date_parts[0] %}
+      {% continue %}
+      {% endif %}
+      <div class="event-listing-item" data-event-date="{{ page.extra.event.date }}" data-event-name="{{ page.title }}"
+        data-event-location="{{ page.extra.venue.name }}">
+        <a href="{{ page.permalink }}">
+          <div class="media">
+            <div class="media-left">
+              {{ date_macros::date_chip(month=event_month, day=event_day) }}
+            </div>
+            <div class="media-right">
+              <h2 class="title" style="margin:0">
+                {{ page.title }}
+              </h2>
+              <h3>
+                {{ date_macros::date_full(month=event_month, day=event_day, year=event_year)}}
+              </h3>
+              <h3>{{ page.extra.venue.name }}</h3>
+            </div>
+          </div>
+        </a>
       </div>
-    </a>
+      {% endfor %}
+      {% endfor %}
+    </div>
+
   </div>
-  {% endfor %}
-  {% endfor %}
+  <div class="column is-third content">
+    <h2>What happens as a NUG meetup?</h2>
+    Lorem ipsum dolor sit, amet consectetur adipisicing elit. Laudantium cumque consequuntur alias, deleniti quos
+    expedita molestiae quis illum aperiam sit libero aut beatae modi reiciendis, voluptatibus reprehenderit natus non
+    obcaecati.
+  </div>
 </div>
 {% endblock content %}
