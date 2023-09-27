@@ -9,7 +9,7 @@
                     🕗
                 </div>
                 <div class="media-content">
-                    {% set date_parts = page.extra['event_date'] | split(pat="-") %}
+                    {% set date_parts = page.extra.event.date | split(pat="-") %}
                     <time>
                         {{ 
                             date_macros::date_full(
@@ -33,25 +33,25 @@
 
             <div class="media-content">
                 <address class="event-address">
-                    <span class="p-name">{{ page.extra['venue_name']}}</span>
-                    <span class="p-street-address">{{ page.extra['venue_address_street']}}</span>
+                    <span class="p-name">{{ page.extra.venue.name }}</span>
+                    <span class="p-street-address">{{ page.extra.venue.address_street }}</span>
                     
                     {% if 'venue_address_unit' in page.extra %}
-                    <span class="p-unit">{{ page.extra['venue_address_unit']}}</span>
+                    <span class="p-unit">{{ page.extra.venue.address_unit }}</span>
                     {% endif %}
                     
                     <span>
-                        <span class="p-locality p-city">{{ page.extra['venue_address_city']}}</span>, <span class="p-zip-code">{{ page.extra['venue_address_zip']}}</span>
+                        <span class="p-locality p-city">{{ page.extra.venue.address_city}}</span>, <span class="p-zip-code">{{ page.extra.venue.address_zip }}</span>
                     </span>
 
-                    {% if 'venue_website' in page.extra %}
+                    {% if 'website' in page.extra.venue %}
                     <br>
-                    <a href="{{ page.extra['venue_website'] }}">Website<a/>
+                    <a href="{{ page.extra.venue.website }}">Website<a/>
                     {% endif %}
 
                     {% if 'venue_google_maps' in page.extra %}
                     <br>
-                    <a href="{{ page.extra['venue_google_maps'] }}">Google Maps<a/>
+                    <a href="{{ page.extra.venue.google_maps }}">Google Maps<a/>
                     {% endif %}
                 </address>
             </div>
