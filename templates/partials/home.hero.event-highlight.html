@@ -1,29 +1,29 @@
+{% include "partials/home.hero.event-highlight.jstemplate.html" %}
+
 <section class="hero has-background-light">
   <div class="hero-body">
-    <div class="container has-text-centered">
-      <h1 class="title">
-        Our next event
-      </h1>
-      <div class="frontpage-event-card box">
-        <div class="media">
-          <div class="media-left">
-            {{ date_macros::date_chip(month=9, day=19) }}
-          </div>
-          <div class="media-content">
-            <div class="content">
-              <h2 style="margin:0;padding:0;">NUG #3</h2>
-              <h4 style="margin:0;padding:0;">
-                <span class="icon">
-                  &#128205;
-                </span>
-                23/b Shop
-              </h4>
-            </div>
-            <div class="level is-mobile">
-              <div class="level-left">
-                <div class="buttons mt-3">
-                  <a class="button" href="/events/2023-09-19/">Find out more</a>
-                  <!-- <a class="button" href="#">RSVP</a> -->
+    <div id="event-container">
+      <div class="container has-text-centered">
+        <h1 class="title">
+          Our next event
+        </h1>
+        <div id="event-card" class="frontpage-event-card box">
+          <div class="media">
+            <div class="media-content">
+              <div class="content">
+                <p>
+                  We currently don't have any new events scheduled.
+                  <br>
+                  Join us on Matrix to keep up with the latest updates.
+                </p>
+              </div>
+              <div class="level is-mobile">
+                <div class="level-left">
+                  <div class="buttons mt-3">
+                    <a class="button" href="{{ config.extra.matrix_url }}">Matrix Chat</a>
+                    <a class="button" href="/events/">Past Events</a>
+                    <!-- <a class="button" href="#">RSVP</a> -->
+                  </div>
                 </div>
               </div>
             </div>
@@ -31,6 +31,42 @@
         </div>
       </div>
     </div>
-
   </div>
 </section>
+
+<script>
+  function displayEventBadge(event) {
+    const eventBadgeClone = document.getElementById('event-highlight').content.cloneNode(true);
+    const eventContainer = document.getElementById('event-card');
+    const eventBadgeMonth = eventBadgeClone.querySelector('.calendar-date-chip .month');
+    const eventBadgeDay = eventBadgeClone.querySelector('.calendar-date-chip .day');
+    const eventBadgeName = eventBadgeClone.querySelector('.event-name');
+    const eventBadgeLocation = eventBadgeClone.querySelector('.event-location');
+
+    eventBadgeMonth.innerHTML = event.eventDate.toLocaleString('default', { month: 'short' });;
+    eventBadgeDay.innerHTML = event.eventDate.getDate();
+    eventBadgeName.innerHTML = event.name;
+    eventBadgeLocation.innerHTML = event.location;
+    
+    eventContainer.replaceWith(eventBadgeClone);
+  } 
+
+  (async function () {
+    // Grab event page html
+    const eventPageHTML = await fetch('/events').then(e => e.text());
+    const fragment = document.createRange().createContextualFragment(eventPageHTML);
+    const eventElements = Array.from(fragment.querySelectorAll('.event-listing-item'));
+    const events = eventElements.map(e => {
+      return {
+        eventDate: new Date(e.dataset.eventDate),
+        name: e.dataset.eventName,
+        location: e.dataset.eventLocation
+      }
+    });
+
+    const upcomingEvents = events.filter( e => e.eventDate > new Date())
+    if (upcomingEvents.length > 0) {
+      displayEventBadge(upcomingEvents[0]);
+    } 
+  }());
+</script>

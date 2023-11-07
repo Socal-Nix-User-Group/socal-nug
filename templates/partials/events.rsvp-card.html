@@ -1,24 +1,61 @@
-<div class="card rsvp-card">
-    <header class="card-header">
-        <p class="card-header-title">
-            Event Overview
-        </p>
-    </header>
-    <div class="card-content">
-        <div class="content">
-            <ul>
-                <li>{{ page.extra['organizer']}}</li>
-                <li>{{ page.extra['location']}}</li>
-                <li>{{ page.extra['event_date']}}</li>
-            </ul>
+<div class="event-info">
+    <div class="card">
+        <header class="card-header">
+            <h2 class="card-header-title">Event Details</h2>
+        </header>
+        <div class="card-content">
+            <div class="media">
+                <div class="media-left">
+                    🕗
+                </div>
+                <div class="media-content">
+                    {% set date_parts = page.extra.event.date | split(pat="-") %}
+                    <time>
+                        {{ 
+                            date_macros::date_full(
+                            year=date_parts[0] | int,
+                            month=date_parts[1] | int,
+                            day=date_parts[2] | int)
+                        }}
+                        <br>
+                        {% if 'event_start_time' in page.extra %}
+                            {{ page.extra['event_start_time'] }}
+                        {% endif %}
+                    </time>
+                </div>
+            </div>
         </div>
+        <div class="card-content">
+          <div class="media">
+            <div class="media-left">
+                📍
+            </div>
+
+            <div class="media-content">
+                <address class="event-address">
+                    <span class="p-name">{{ page.extra.venue.name }}</span>
+                    <span class="p-street-address">{{ page.extra.venue.address_street }}</span>
+                    
+                    {% if 'venue_address_unit' in page.extra %}
+                    <span class="p-unit">{{ page.extra.venue.address_unit }}</span>
+                    {% endif %}
+                    
+                    <span>
+                        <span class="p-locality p-city">{{ page.extra.venue.address_city}}</span>, <span class="p-zip-code">{{ page.extra.venue.address_zip }}</span>
+                    </span>
+
+                    {% if 'website' in page.extra.venue %}
+                    <br>
+                    <a href="{{ page.extra.venue.website }}">Website<a/>
+                    {% endif %}
+
+                    {% if 'venue_google_maps' in page.extra %}
+                    <br>
+                    <a href="{{ page.extra.venue.google_maps }}">Google Maps<a/>
+                    {% endif %}
+                </address>
+            </div>
+          </div>
+        </div>   
     </div>
-    <footer class="card-footer">
-        <a 
-            href="https://matrix.to/#/#socal-nug:matrix.org"
-            class="card-footer-item"
-            target="_blank"
-            >RSVP on Matrix</a>
-        <!-- <a href="#" class="card-footer-item">Download to calendar</a> -->
-    </footer>
 </div>

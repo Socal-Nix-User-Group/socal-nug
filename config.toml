@@ -13,4 +13,4 @@ build_search_index = false
 highlight_code = true
 
 [extra]
-# Put all your custom variables here
+matrix_url = "https://matrix.to/#/#socal-nug:matrix.org"

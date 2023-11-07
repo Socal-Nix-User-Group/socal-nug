@@ -1,0 +1,36 @@
+.event-listing {
+    .event-listing-item {
+        margin-bottom: 2ch;
+    }
+
+    .calendar-date-chip {
+        min-width: 100px;
+    }
+}
+
+@media(max-width: 767px) { /* <== You can change this break point as per your  needs */
+    .event-details.columns {
+      flex-direction: column-reverse;
+      display: flex;
+    }
+  }
+
+.event-info {
+    address.event-address {
+        .p-name {
+            font-weight: bold;
+        }
+
+        &>span {
+            display: block;
+        }
+    }
+
+    time {
+        font-weight: bold;
+
+        span {
+            display: block;
+        }
+    }
+}

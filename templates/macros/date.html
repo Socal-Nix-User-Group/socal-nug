@@ -17,6 +17,13 @@
   ] 
 %}
 
+<div class="calendar-date-chip">
+    <div class="month">{{ months_short[month] }}</div>
+    <div class="day">{{ day }}</div>
+  </div>
+{% endmacro date_chip %}
+
+{% macro date_full(month, day, year) %}
 {% set months_long = [
   "Error",
   "January",
@@ -31,10 +38,7 @@
   "October",
   "November",
   "December"
-] 
-%}
-<div class="calendar-date-chip">
-    <div class="month">{{ months_short[month] }}</div>
-    <div class="day">{{ day }}</div>
-  </div>
-{% endmacro date_chip %}
+] %}
+
+{{ months_long[month] }} {{ day }}, {{ year }}
+{% endmacro date_full %}
