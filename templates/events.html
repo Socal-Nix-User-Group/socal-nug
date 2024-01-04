@@ -15,7 +15,7 @@
       {% set_global years = years | concat(with= current_year[0]) | unique %}
       {% endfor %}
 
-      {% for current_year in years %}
+      {% for current_year in years | reverse %}
       <h2 class="title is-3 mb-3">{{ current_year }}</h2>
       {% for page in section.pages | sort(attribute="extra.event.date") | reverse %}
 
