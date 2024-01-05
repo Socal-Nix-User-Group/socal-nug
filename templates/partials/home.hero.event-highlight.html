@@ -57,8 +57,9 @@
     const fragment = document.createRange().createContextualFragment(eventPageHTML);
     const eventElements = Array.from(fragment.querySelectorAll('.event-listing-item'));
     const events = eventElements.map(e => {
+      const [year, month, day] = e.dataset.eventDate.split('-');
       return {
-        eventDate: new Date(e.dataset.eventDate),
+        eventDate: new Date(year, month - 1, day),
         name: e.dataset.eventName,
         location: e.dataset.eventLocation
       }
