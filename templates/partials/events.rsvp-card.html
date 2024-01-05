@@ -18,8 +18,11 @@
                             day=date_parts[2] | int)
                         }}
                         <br>
-                        {% if 'event_start_time' in page.extra %}
-                            {{ page.extra['event_start_time'] }}
+                        {% if 'start_time' in page.extra.event %}
+                            {{ page.extra.event['start_time'] }}
+                        {% endif %}
+                        {% if 'stop_time' in page.extra.event %}
+                            - {{ page.extra.event['stop_time'] }}
                         {% endif %}
                     </time>
                 </div>
