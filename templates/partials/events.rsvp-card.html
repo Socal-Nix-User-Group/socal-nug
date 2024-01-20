@@ -39,7 +39,7 @@
                     <span class="p-name">{{ page.extra.venue.name }}</span>
                     <span class="p-street-address">{{ page.extra.venue.address_street }}</span>
                     
-                    {% if 'venue_address_unit' in page.extra %}
+                    {% if page.extra.venue.address_unit %}
                     <span class="p-unit">{{ page.extra.venue.address_unit }}</span>
                     {% endif %}
                     
@@ -47,12 +47,12 @@
                         <span class="p-locality p-city">{{ page.extra.venue.address_city}}</span>, <span class="p-zip-code">{{ page.extra.venue.address_zip }}</span>
                     </span>
 
-                    {% if 'website' in page.extra.venue %}
+                    {% if page.extra.venue.website %}
                     <br>
                     <a href="{{ page.extra.venue.website }}">Website<a/>
                     {% endif %}
 
-                    {% if 'venue_google_maps' in page.extra %}
+                    {% if page.extra.venue.google_maps %}
                     <br>
                     <a href="{{ page.extra.venue.google_maps }}">Google Maps<a/>
                     {% endif %}

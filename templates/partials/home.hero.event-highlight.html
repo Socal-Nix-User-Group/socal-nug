@@ -42,11 +42,27 @@
     const eventBadgeDay = eventBadgeClone.querySelector('.calendar-date-chip .day');
     const eventBadgeName = eventBadgeClone.querySelector('.event-name');
     const eventBadgeLocation = eventBadgeClone.querySelector('.event-location');
+    const eventGoogleMapsLink = eventBadgeClone.querySelector('.event-google-maps-link');
+    const eventStartTime = eventBadgeClone.querySelector('.event-start-time');
+    const eventStopTime = eventBadgeClone.querySelector('.event-stop-time');
 
     eventBadgeMonth.innerHTML = event.eventDate.toLocaleString('default', { month: 'short' });;
     eventBadgeDay.innerHTML = event.eventDate.getDate();
     eventBadgeName.innerHTML = event.name;
     eventBadgeLocation.innerHTML = event.location;
+    eventGoogleMapsLink.href = event.googleMapsLink;
+
+    if (event.startTime) {
+      eventStartTime.innerHTML = event.startTime;
+    } else {
+      eventStartTime.remove();
+    }
+
+    if (event.stopTime) {
+      eventStopTime.innerHTML = event.stopTime;
+    } else {
+      eventStopTime.remove();
+    }
     
     eventContainer.replaceWith(eventBadgeClone);
   } 
@@ -61,7 +77,10 @@
       return {
         eventDate: new Date(year, month - 1, day),
         name: e.dataset.eventName,
-        location: e.dataset.eventLocation
+        location: e.dataset.eventLocation,
+        googleMapsLink: e.dataset.eventGoogleMaps,
+        startTime: e.dataset.eventStartTime,
+        stopTime: e.dataset.eventStopTime
       }
     });
 
