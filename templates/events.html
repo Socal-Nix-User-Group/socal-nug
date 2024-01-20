@@ -27,8 +27,29 @@
       {% if current_year != date_parts[0] %}
       {% continue %}
       {% endif %}
-      <div class="event-listing-item" data-event-date="{{ page.extra.event.date }}" data-event-name="{{ page.title }}"
-        data-event-location="{{ page.extra.venue.name }}">
+      <div class="event-listing-item" 
+        data-event-date="{{ page.extra.event.date }}" 
+        data-event-name="{{ page.title }}"
+        data-event-location="{{ page.extra.venue.name }}"
+        {% if page.extra.venue.google_maps %}
+          data-event-google-maps="{{ page.extra.venue.google_maps }}"
+        {% endif %}
+
+        {% if page.extra.event.start_time %}
+          data-event-start-time="{{ page.extra.event.start_time }}"
+        {% endif %}
+
+        {% if page.extra.event.stop_time %}
+          data-event-stop-time="{{ page.extra.event.stop_time }}"
+        {% endif %}
+        
+        {% if page.extra.event.start_time %}
+          data-event-start-time="{{ page.extra.event.start_time }}"
+        {% endif %}
+        {% if page.extra.event.stop_time %}
+          data-event-stop-time="{{ page.extra.event.stop_time }}"
+        {% endif %}
+        >
         <a href="{{ page.permalink }}">
           <div class="media">
             <div class="media-left">
