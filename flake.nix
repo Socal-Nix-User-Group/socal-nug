@@ -40,7 +40,6 @@
             zola
             alejandra
             python311
-            neofetch
           ];
         };
       }
