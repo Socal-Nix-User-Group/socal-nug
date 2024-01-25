@@ -75,7 +75,7 @@
     const events = eventElements.map(e => {
       const [year, month, day] = e.dataset.eventDate.split('-');
       return {
-        eventDate: new Date(year, month - 1, day),
+        eventDate: new Date(year, month - 1, day, 11, 59, 59),
         name: e.dataset.eventName,
         location: e.dataset.eventLocation,
         googleMapsLink: e.dataset.eventGoogleMaps,
