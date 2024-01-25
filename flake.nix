@@ -33,6 +33,21 @@
             '';
           };
 
+          eventSchemaValidtor = stdenv.mkDerivation {
+            name = "event-schema-validator";
+            src = ./.;
+            buildInputs = with pkgs; [
+              python311
+              python311Packages.jsonschema
+            ];
+            buildCommand = ''
+              cd $src
+              mkdir -p $out/bin
+              cp event-schema-validator.py $out/bin/event-schema-validator
+              chmod +x $out/bin/event-schema-validator
+            '';
+          };
+
           default = socalNixSite;
         };
         devShells.default = pkgs.mkShell {
@@ -40,6 +55,7 @@
             zola
             alejandra
             python311
+            python311Packages.jsonschema
           ];
         };
       }
