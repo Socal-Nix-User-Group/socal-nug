@@ -86,7 +86,7 @@
 
     const upcomingEvents = events.filter( e => e.eventDate > new Date())
     if (upcomingEvents.length > 0) {
-      displayEventBadge(upcomingEvents[0]);
+      displayEventBadge(upcomingEvents.pop());
     } 
   }());
 </script>
