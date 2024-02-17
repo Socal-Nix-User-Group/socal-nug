@@ -45,12 +45,14 @@
     const eventGoogleMapsLink = eventBadgeClone.querySelector('.event-google-maps-link');
     const eventStartTime = eventBadgeClone.querySelector('.event-start-time');
     const eventStopTime = eventBadgeClone.querySelector('.event-stop-time');
+    const eventDetailsLink = eventBadgeClone.querySelector('.event-details');
 
     eventBadgeMonth.innerHTML = event.eventDate.toLocaleString('default', { month: 'short' });;
     eventBadgeDay.innerHTML = event.eventDate.getDate();
     eventBadgeName.innerHTML = event.name;
     eventBadgeLocation.innerHTML = event.location;
     eventGoogleMapsLink.href = event.googleMapsLink;
+    eventDetailsLink.href = event.eventUrl;
 
     if (event.startTime) {
       eventStartTime.innerHTML = event.startTime;
@@ -74,8 +76,10 @@
     const eventElements = Array.from(fragment.querySelectorAll('.event-listing-item'));
     const events = eventElements.map(e => {
       const [year, month, day] = e.dataset.eventDate.split('-');
+      const eventDetailsUrl = e.querySelector('a').href;
       return {
         eventDate: new Date(year, month - 1, day, 23, 59, 59),
+        eventUrl: eventDetailsUrl,
         name: e.dataset.eventName,
         location: e.dataset.eventLocation,
         googleMapsLink: e.dataset.eventGoogleMaps,
