@@ -10,9 +10,19 @@
     text-align: left;
 }
 
-@media screen and (max-width: 900px) {
+@media screen and (max-width: 800px) {
     .frontpage-event-card {
       max-width: none;
       width: auto;
+    }
+    .event-container-wrapper {
+      max-width: none;
+
+      .hero-body {
+        padding-left: 0;
+        padding-right: 0;
+        padding-bottom: 0;
+        max-width: none;
+      }
     }
   }
