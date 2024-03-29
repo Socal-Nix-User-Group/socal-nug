@@ -1,24 +1,28 @@
+#!/usr/bin/env python
+
 import tomllib
 import json
+import click
+from jsonschema import validate
 
-toml_text = """[data]
-template = "event.html"
-title = "NUG #1"
-[extra]
-organizer = "Socal NUG Organizers"
-[extra.event]
-date = "2023-05-30"
-start_time = "19:00"
-[extra.venue]
-name = "23/b Shop"
-address_street="418 E Commonwealth Ave"
-address_unit="Unit #1"
-address_city="Fullerton"
-address_zip="92832"
-website="https://www.23bshop.org/"
-google_maps="https://goo.gl/maps/YHNFDsjGkqbjqsCj7"
-"""
+@click.command()
+@click.option('--post', help='Path to the Markdown file')
+@click.option('--schema', help='Path to the Event JSON Schema file')
+def validate_post(post, schema):
+    with open(post, 'r') as f:
+        post_content = f.read().strip()
+    
+    with open(schema, 'r') as f:
+        schema_content = f.read().strip()
+        schema = json.loads(schema_content)
 
-foo = """"""
-data = json.dumps(tomllib.loads(toml_text))
-print(data)
+    separator = '+++'
+    front_matter = post_content.split(separator)[1].strip()
+    data = tomllib.loads(front_matter)
+    try:
+        validate(instance=data, schema=schema)
+    except:
+        raise
+
+if __name__ == '__main__':
+    validate_post()
