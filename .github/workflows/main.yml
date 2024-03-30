@@ -19,4 +19,4 @@ jobs:
           pip install jsonschema
           pip install click
       - name: Run the test script
-        run: python ./scripts/verify_post.py --schema ./scripts/schemas/event.json content/events/202*.md
+        run: python ./scripts/verify_post.py --schema ./scripts/schemas/event.json content/events/20*.md
