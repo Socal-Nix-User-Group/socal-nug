@@ -18,13 +18,19 @@
             "type": "object",
             "properties": {
               "date": {
-                "type": "string"
+                "type": "string",
+                "format": "date"
               },
               "start_time": {
-                "type": "string"
+                "type": "string",
+                "format": "time"
+              },
+              "stop_time": {
+                "type": "string",
+                "format": "time"
               }
             },
-            "required": ["date", "start_time"]
+            "required": ["date", "start_time", "stop_time"]
           },
           "venue": {
             "type": "object",
