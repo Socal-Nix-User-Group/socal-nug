@@ -41,6 +41,7 @@
             python311
             python311Packages.click
             python311Packages.jsonschema
+            act
           ];
         };
       }
