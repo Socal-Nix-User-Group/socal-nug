@@ -1,4 +1,4 @@
-name: Python Script Test
+name: Verify Event Post Schema
 
 on:
   workflow_dispatch:
