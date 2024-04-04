@@ -1,5 +1,5 @@
 +++
-title = "Socal NUG"
+title = "Homepage"
 description = "Come join the SoCal NUG!"
 +++
 
