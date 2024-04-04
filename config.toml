@@ -14,3 +14,4 @@ highlight_code = true
 
 [extra]
 matrix_url = "https://matrix.to/#/#socal-nug:matrix.org"
+og_preview_img = "/logo.png"
