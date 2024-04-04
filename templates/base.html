@@ -1,8 +1,16 @@
+{% import "macros/social.html" as social -%}
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="utf-8">
+  {%- block og_preview -%}
+      {{ social::og_preview() }}
+  {%- endblock og_preview -%}
+
+  {%- block twitter_preview -%}
+      {{ social::twitter_preview() }}
+  {%- endblock twitter_preview -%}
   <title>Socal NUG</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
