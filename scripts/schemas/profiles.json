@@ -34,7 +34,8 @@
                 "name",
                 "alias",
                 "description",
-                "image_url"
+                "image_url",
+                "profile_url"
             ],
             "description": "The user profile information."
         }
