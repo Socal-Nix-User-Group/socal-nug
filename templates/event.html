@@ -1,4 +1,5 @@
 {% import "macros/date.html" as date_macros %}
+{% import "macros/gallery.html" as gallery_macros %}
 {% extends "child.html" %}
 
 {% block content %}
@@ -18,9 +19,8 @@
   </div>
 </div>
 
-<div class="columns">
-  <div class="column is-two-thirds">
-    <!-- {% include "partials/events.comments.html" %} -->
-  </div>  
-</div>
+{% if page.extra.gallery %}
+{{ gallery_macros::gallery() }}
+{% endif %}
+
 {% endblock content %}
