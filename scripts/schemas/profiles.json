@@ -23,7 +23,12 @@
                     "type": "string",
                     "description": "The URL to the user's profile image.",
                     "format": "uri"
-                }
+                },
+                "profile_url": {
+                    "type": "string",
+                    "description": "The URL to the user's profile.",
+                    "format": "uri"
+                },
             },
             "required": [
                 "name",

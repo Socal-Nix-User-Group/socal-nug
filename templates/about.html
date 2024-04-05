@@ -28,8 +28,10 @@
           </figure>
         </div>
             <div class="media-content content">
-              <p class="title is-4">{{ profile.extra.name }}</p>
-              <p class="subtitle is-6">{{ profile.extra.alias }}</p>
+              <h4 class="title is-4">{{ profile.extra.name }}</h4>
+              <h6 class="subtitle is-6">
+                <a href="{{ profile.extra.profile_url }}">{{ profile.extra.alias }}</a>
+              </h6>
       
               {{ profile.extra.description }}
         </div>
