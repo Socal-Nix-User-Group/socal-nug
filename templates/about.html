@@ -1,0 +1,43 @@
+{% extends "child.html" %}
+
+{% block content %}
+
+  <div class="content">
+    {{ section.content | safe }}
+  </div>
+
+  <div class="columns">
+    <div class="column">
+      <h2 class="title is-3">Members</h2>
+    </div>
+  </div>
+
+  <div class="columns is-flex-wrap-wrap is-mobile">
+    {% set profiles = section.pages %}
+    {% for profile in profiles %}
+    <div class="column is-one-halfvv-tablet is-full-mobile">
+      <div class="media">
+        <div class="media-left">
+          <figure>
+            <img
+            class="image"
+              width="128"
+              src="{{ profile.extra.image_url }}"
+              alt="{{ profile.extra.name | lower | split(pat=" ") | join(sep="-") }}"
+            />
+          </figure>
+        </div>
+            <div class="media-content content">
+              <h4 class="title is-4">{{ profile.extra.name }}</h4>
+              <h6 class="subtitle is-6">
+                <a href="{{ profile.extra.profile_url }}">{{ profile.extra.alias }}</a>
+              </h6>
+      
+              {{ profile.extra.description }}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+{% endblock content %}
