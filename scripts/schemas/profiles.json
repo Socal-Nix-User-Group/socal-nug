@@ -28,7 +28,7 @@
                     "type": "string",
                     "description": "The URL to the user's profile.",
                     "format": "uri"
-                },
+                }
             },
             "required": [
                 "name",

@@ -1,4 +1,4 @@
-name: Verify Event Post Schema
+name: Verify content frontmatter
 
 on:
   workflow_dispatch:
