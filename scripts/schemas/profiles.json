@@ -1,0 +1,46 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "User Profile Wrapper",
+    "description": "A wrapper object containing a user profile.",
+    "type": "object",
+    "properties": {
+        "extra": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "The full name of the user."
+                },
+                "alias": {
+                    "type": "string",
+                    "description": "The user's alias or username."
+                },
+                "description": {
+                    "type": "string",
+                    "description": "A brief description of the user, including affiliations and interests."
+                },
+                "image_url": {
+                    "type": "string",
+                    "description": "The URL to the user's profile image.",
+                    "format": "uri"
+                },
+                "profile_url": {
+                    "type": "string",
+                    "description": "The URL to the user's profile.",
+                    "format": "uri"
+                }
+            },
+            "required": [
+                "name",
+                "alias",
+                "description",
+                "image_url",
+                "profile_url"
+            ],
+            "description": "The user profile information."
+        }
+    },
+    "required": [
+        "extra"
+    ]
+}

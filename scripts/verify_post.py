@@ -29,7 +29,9 @@ def validate_post(post, schema):
         schema = json.loads(schema_content)
 
     for post in post:
-
+        if '_index.md' in post:
+            continue
+        
         with open(post, 'r') as f:
             post_content = f.read().strip()
         
