@@ -18,5 +18,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install jsonschema
           pip install click
-      - name: Run the test script
+      - name: Verify Event Post Schema
         run: python ./scripts/verify_post.py --schema ./scripts/schemas/event.json content/events/20*.md
+      - name: Verify Profile Post Schema
+        run: python ./scripts/verify_post.py --schema ./scripts/schemas/profiles.json content/about/*.md
+        env:
+          GLOBIGNORE="_index.md"
