@@ -1,7 +1,37 @@
 {% extends "child.html" %}
 
 {% block content %}
+
   <div class="content">
     {{ section.content | safe }}
   </div>
+
+  <div class="columns is-flex-wrap-wrap is-mobile">
+    {% set profiles = section.pages %}
+    {% for profile in profiles %}
+    <div class="column is-one-third-tablet is-full-mobile">
+      <div class="card">
+        <div class="card-image">
+          <figure class="image">
+            <img
+              src={{ profile.extra.image_url }}
+              alt={{ profile.extra.name | lower | split(pat=" ") | join(sep="-") }}
+            />
+          </figure>
+        </div>
+        <div class="card-content">
+          <div class="media">
+            <div class="media-content">
+              <p class="title is-4">{{ profile.extra.name }}</p>
+              <p class="subtitle is-6">{{ profile.extra.alias }}</p>
+            </div>
+          </div>
+      
+          <div class="content">{{ profile.extra.description }}</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
 {% endblock content %}
