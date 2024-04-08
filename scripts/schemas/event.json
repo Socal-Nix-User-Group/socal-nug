@@ -58,6 +58,21 @@
               }
             },
             "required": ["name", "address_street", "address_city", "address_zip", "google_maps"]
+          },
+          "gallery": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "image_url": {
+                  "type": "string"
+                },
+                "caption": {
+                  "type": "string"
+                }
+              },
+              "required": ["image_url", "caption"]
+            }
           }
         },
         "required": ["organizer", "event", "venue"]

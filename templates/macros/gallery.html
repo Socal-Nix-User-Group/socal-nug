@@ -1,0 +1,18 @@
+{% macro gallery() %}
+<div class="columns">
+    <div class="column">
+        <h2 class="title">Gallery</h2>
+    </div>
+</div>
+<div class="columns gallery is-flex-wrap-wrap">
+    {% for image in page.extra.gallery %}
+    <div class="column is-one-quarter">        
+        <a class="gallery-item column" data-fslightbox="gallery" href="{{ image.image_url }}">
+            <img src="{{ image.image_url }}" alt="Group Photo" />
+        </a>
+    </div>  
+    {% endfor %}
+</div>
+
+<script src="/js/fslightbox.js"></script>
+{% endmacro gallery %}
