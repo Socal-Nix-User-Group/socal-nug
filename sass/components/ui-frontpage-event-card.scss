@@ -1,6 +1,4 @@
 .frontpage-event-card {
-    background: white;
-    color: black;
     padding: 1.2rem;
     border-radius: 5px;
     width: 50vw;
@@ -8,6 +6,14 @@
 
     margin: 0 auto;
     text-align: left;
+}
+
+// Darkmode media query
+@media screen and (prefers-color-scheme: dark) {
+    .frontpage-event-card {
+      box-shadow: none;
+      border: 1px solid #333;
+    }
 }
 
 @media screen and (max-width: 800px) {
