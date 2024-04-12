@@ -11,11 +11,13 @@
   {%- block twitter_preview -%}
       {{ social::twitter_preview() }}
   {%- endblock twitter_preview -%}
-  <title>Socal NUG</title>
+  <title>{{ social::og_title() }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="{{ social::og_description() }}">
+  <meta name="keywords" content="nixos, nix package manager, linux, southern california, socal">
+  <meta name="author" content="SoCal Nix Users Group">
+  <link rel="icon" href="/logo.png" type="image/x-icon">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-  <!-- <link rel="stylesheet" href="https://jenil.github.io/bulmaswatch/darkly/bulmaswatch.min.css"> -->
-  <!-- <link rel="stylesheet" href="https://jenil.github.io/bulmaswatch/superhero/bulmaswatch.min.css"> -->
   <link rel="stylesheet" href="/style.css">
 </head>
 

@@ -4,11 +4,12 @@
 @import "components/ui-breadcrumb.scss";
 @import "components/ui-specialhero.scss";
 @import "components/ui-frontpage-event-card.scss";
-
+@import "components/ui-frontpage-hero-cta.scss";
 @import "pages/events.scss";
 
 body, html {
     font-size: 20px;
+    height: 100%;
 }
 
 .socalnug-hero {
@@ -35,15 +36,12 @@ p, ul, a, span, div {
     .navbar-item, a.button {
         font-family: 'Albert Sans', sans-serif !important;
     }
-    border-bottom:2px solid #ccc;
 }
 
 .subnav-wrapper {
-    border-bottom:2px solid #ccc;
     padding: .5em 0;
     box-shadow: rgba(0,0,0,.1) 0px 0px 4px;
 }
 
 footer {
-    border-top:2px solid #ccc;
 }

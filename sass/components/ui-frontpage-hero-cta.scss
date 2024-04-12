@@ -1,0 +1,32 @@
+.home-hero-cta {
+    .buttons {
+        margin-top: 1.5rem;
+    }
+}
+
+.home-hero-cta.reversed {
+    flex-direction: row-reverse;
+
+    .text {
+        text-align: right;
+    }
+
+    .buttons {
+        justify-content: flex-end;
+    }
+}
+
+@media screen and (max-width: 800px) {
+    .home-hero-cta {
+        display: flex;
+        flex-direction: column-reverse !important;
+    }
+    .home-hero-cta, .home-hero-cta.reversed {
+        .text {
+            text-align: center;
+        }
+    }
+    .buttons a{
+        margin: 0 auto;
+    }
+}
