@@ -26,11 +26,8 @@
   {% block subnav %}{% endblock %}
   {% block body %}
   <section class="section">
-    <div class="container">
       {% block content %}
-        {{ page.content | safe }}
       {% endblock %}
-    </div>
   </section>
   {% endblock %}
   {% include "partials/base.footer.html" %}
