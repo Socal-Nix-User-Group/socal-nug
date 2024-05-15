@@ -7,7 +7,7 @@ description = "Looking back and the NUG that could"
 <figure style="text-align: center;">
 <img src="/blog/one-year-snug/banner.png">
 
-<h2 class="title is-2">Looking back on the little NUG that could</h2>
+<h2 class="title is-2 font-preston-one">Looking back on the little NUG that could</h2>
 </figure>
 
 <br>
@@ -15,7 +15,6 @@ description = "Looking back and the NUG that could"
 <br>
 
 <div class="timeline">
-<div class="timeline-line"></div>
 <div class="timeline-content content">
 {{ blog_oneyearsnug_timeline_heading(heading="In the beginning...")}}
 
@@ -27,7 +26,7 @@ description = "Looking back and the NUG that could"
 {{ blog_oneyearsnug_timeline_heading(heading="May 2023")}}
 
 {{ blog_oneyearsnug_timeline_event(
-    title="Scale 20x", 
+    title="The First NUG", 
     content="lorem ipsum dolor image"
 )}}
 

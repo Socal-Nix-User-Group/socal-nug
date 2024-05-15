@@ -2,9 +2,14 @@
 
 {% block custom_css %}
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Archivo+Narrow:ital,wght@0,400..700;1,400..700&family=Poetsen+One&display=swap');
+
+      
     .main-wrapper {
         min-height: 100vh;
-        background-color: #48b3d8;
+        background: linear-gradient(0deg, rgba(0,166,255,0.9066001400560224) 0%, rgba(0,212,255,0) 33%),
+        linear-gradient(180deg, rgba(0,166,255,0.9066001400560224) 0%, rgba(0,212,255,0) 33%),
+        #48b3d8;
     }
 
     .timeline {
@@ -13,11 +18,11 @@
         grid-template-rows: 1fr;
     }
 
-    .timeline-line {
+    .timeline::before {
         background-color: #187c96;
         display: block;
         content: ' ';
-        height: 100%;
+        height: calc(100% - 4ch);
         width: 1ch;
         grid-column: 2;
         grid-row: 1;
@@ -31,11 +36,18 @@
         color: #fff;
         font-weight: bold;
         display: inline-block;
-        max-width: 50%;
+        max-width: 90%;
+
 
         border-radius: 1ch;
     }
 
+    h1,h2,h3,h4,.timeline-heading, .font-preston-one {
+        font-family: "Poetsen One", sans-serif;
+        font-weight: 400 !important;
+        font-style: normal;
+    }
+      
     .timeline-content {
         grid-column: 1 /4;
         grid-row: 1;
@@ -45,6 +57,8 @@
         flex-direction: column;
         gap: 2ch;
 
+        margin: 0 2ch 2ch 2ch;
+
         align-items: center;
 
         font-size: 1.5rem;
@@ -53,14 +67,17 @@
     .timeline-event {
         width: 100%;
         padding: 3ch;
+        border-radius: 2ch;
+        border: .6ch solid #187c96;
     }
 
     .timeline-event:nth-child(odd of div.timeline-event) {
         background-color: #f8f8f8;
     }
-
+    
     .timeline-event:nth-child(even of div.timeline-event) {
-        background-color: #ccc;
+        background-color: #f8f8f8;
+        text-align: right;
     }
 </style>
 {% endblock %}
