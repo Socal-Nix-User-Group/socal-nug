@@ -1,18 +1,14 @@
 +++
 template = "blog_templates/oneyearsnug.html"
 title = "One Year of SNUG"
-description = "Looking back and the NUG that could"
+description = "Looking back and the Nix Users Group that could"
 +++
 
-<figure style="text-align: center;">
+<figure class="snug-oneyear-banner">
 <img src="/blog/one-year-snug/banner.png">
 
-<h2 class="title is-2 font-preston-one">Looking back on the little NUG that could</h2>
+<h2 class="title font-preston-one">Looking back on the little NUG that could</h2>
 </figure>
-
-<br>
-<br>
-<br>
 
 <div class="timeline">
 <div class="timeline-content content">
@@ -22,6 +18,8 @@ description = "Looking back and the NUG that could"
 
 > David becomes Nix-curious
 
+{{ blog_oneyearsnug_timeline_heading(heading="March 2023")}}
+
 {{ blog_oneyearsnug_timeline_event(
     title="Scale 20x", 
     content="Dan, Dan and Ben got roped into boothing at SCALE for the Nix booth. "
@@ -29,9 +27,9 @@ description = "Looking back and the NUG that could"
 
 > SCALE Network runs on Nix! 
 
-> Dan then said,
-> Yo, David and Rob  wanna start a NUG??
+{{ blog_oneyearsnug_timeline_heading(heading="April 2023")}}
 
+{{ blog_oneyearsnug_founder_chat() }}
 
 {{ blog_oneyearsnug_timeline_heading(heading="May 2023")}}
 
