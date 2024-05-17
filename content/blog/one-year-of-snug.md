@@ -22,7 +22,7 @@ description = "Looking back and the Nix Users Group that could"
 
 {{ blog_oneyearsnug_timeline_event(
     title="Scale 20x", 
-    content="Dan, Dan and Ben got roped into boothing at SCALE for the Nix booth. "
+    content="Dan, Daniel and Ben got roped into boothing at SCALE for the Nix booth. "
 )}}
 
 > SCALE Network runs on Nix! 
