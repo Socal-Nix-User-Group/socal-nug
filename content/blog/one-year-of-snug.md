@@ -12,11 +12,6 @@ description = "Looking back and the Nix Users Group that could"
 
 <div class="timeline">
 <div class="timeline-content content">
-{{ blog_oneyearsnug_timeline_heading(heading="In the beginning...")}}
-
-> Dan christens the Nixosmobile
-
-> David tires of Ansible, [finds Nix](https://nixcamp.tardyscholar.dev/)
 
 {{ blog_oneyearsnug_timeline_heading(heading="March 2023")}}
 
@@ -24,8 +19,6 @@ description = "Looking back and the Nix Users Group that could"
     title="Southern California Linux Expo 20x", 
     content="Dan, Daniel and Ben got roped into boothing at SCALE for the Nix booth. There many Nix users from all around Southern Califoria and beyond came by and shared their stories. We realized that we had a community here and we wanted to keep it going."
 )}}
-
-> SCALE Network runs on Nix! 
 
 {{ blog_oneyearsnug_timeline_heading(heading="April 2023")}}
 
@@ -41,14 +34,24 @@ description = "Looking back and the Nix Users Group that could"
     We also introduced everyone to Dan's Nixosmobile!"
 )}}
 
-> socal-nug.com registered  
+{% blog_oneyearsnug_timeline_special(class_name="members-milestone") %}
+<img src="/blog/one-year-snug/internet.jpg">
 
-> Many SNUGs in between
+<p>socal-nug.com registered</p>
+{% end %}
 
+{{ blog_oneyearsnug_timeline_heading(heading="Months later...")}}
+
+{% blog_oneyearsnug_timeline_special(class_name="members-milestone") %}
+<img src="/blog/one-year-snug/snug-memories.jpg">
+<p>A Year of SNUGs</p>
+{% end %}
 
 {{ blog_oneyearsnug_timeline_heading(heading="March 2024")}}
 
-> Dan and David make a banner for NixCon NA
+{% blog_oneyearsnug_timeline_special(class_name="members-milestone") %}
+David and Dan make a banner for NixCon NA
+{% end %}
 
 {{ blog_oneyearsnug_timeline_event(
     title="SCaLE 21x and NixCon NA 2024", 
@@ -59,6 +62,11 @@ description = "Looking back and the Nix Users Group that could"
 
 
 {{ blog_oneyearsnug_timeline_heading(heading="April 2024")}}
+
+{% blog_oneyearsnug_timeline_special(class_name="members-milestone") %}
+    <span class="count">40</span>
+    <span class="word">members in Matrix</span>
+{% end %}
 
 {{ blog_oneyearsnug_timeline_event(
     title="Largest SNUG to date!", 
