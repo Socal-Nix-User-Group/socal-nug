@@ -2,6 +2,7 @@
 template = "blog_templates/oneyearsnug.html"
 title = "One Year of SNUG"
 description = "Looking back and the Nix Users Group that could"
+date = "2024-05-31"
 +++
 
 <figure class="snug-oneyear-banner">
