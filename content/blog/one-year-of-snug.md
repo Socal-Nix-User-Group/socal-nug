@@ -17,18 +17,31 @@ description = "Looking back and the Nix Users Group that could"
 
 {{ blog_oneyearsnug_timeline_event(
     title="Southern California Linux Expo 20x", 
-    content="Dan, Daniel and Ben got roped into boothing at SCALE for the Nix booth. There many Nix users from all around Southern Califoria and beyond came by and shared their stories. We realized that we had a community here and we wanted to keep it going."
+    content="Dan, Daniel and Ben got roped into boothing at SCALE for the Nix booth. <br><br> 
+    Eventually, other not-yet Nix users got roped in as well.
+
+    We met quite a few Nix users form all over Southern California and beyond.
+    <br><br>
+    We realized there was interest here and wanted to do something about it."
 )}}
 
 {{ blog_oneyearsnug_timeline_heading(heading="April 2023")}}
 
 {{ blog_oneyearsnug_founder_chat() }}
 
+
+{% blog_oneyearsnug_timeline_special(class_name="members-milestone") %}
+    <img src="/blog/one-year-snug/computer_message_app.png">
+    <p>#socal-nug:matrix.org created</p>
+{% end %}
+
+
 {{ blog_oneyearsnug_timeline_heading(heading="May 2023")}}
 
 {{ blog_oneyearsnug_timeline_event(
     title="The First NUG", 
-    content="The first NUG was held at the 23/b Hackerspace in Fullerton. We had a great turnout and we knew we were on to something. 
+    content="We held the NUG in 23/b Hackerspace in Fullerton. The turnout was great and we 
+    knew we were on to something. 
     <br>   
     <br>   
     We also introduced everyone to Dan's Nixosmobile!"
@@ -55,16 +68,15 @@ David and Dan make a banner for NixCon NA
 
 {{ blog_oneyearsnug_timeline_event(
     title="SCaLE 21x and NixCon NA 2024", 
-    content="We had a great time at SCaLE 21x and NixCon NA 2024. We met many new Nix users and we 
-    were able to touch base with other Nix users in Southern California.
+    content="SCaLE 21x and NixCon NA 2024 was a blast! We got to meet plenty of new 
+    Nix Users from around the area and go the word out about the SNUG.
     "
 )}}
-
 
 {{ blog_oneyearsnug_timeline_heading(heading="April 2024")}}
 
 {% blog_oneyearsnug_timeline_special(class_name="members-milestone") %}
-    <span class="count">40</span>
+    <span class="count">40+</span>
     <span class="word">members in Matrix</span>
 {% end %}
 
@@ -73,11 +85,17 @@ David and Dan make a banner for NixCon NA
     content="Our post-NixCon SNUG was the largest SNUG to date. We had a great time and we were able to share our experiences. Despite the rain and cloudy weather, our group's sunny disposition shone through."
 )}}
 
-{{ blog_oneyearsnug_timeline_heading(heading="May 2024")}}
+{{ blog_oneyearsnug_timeline_heading(heading="June 2024")}}
 
 {{ blog_oneyearsnug_timeline_event(
     title="One Year of SNUG", 
-    content="lorem ipsum dolor image"
+    content="We've made it to one whole year of SNUG. When we first started the group, 
+    we were expecting the same 4 people to attend every single time.
+
+    <br>
+    <br>
+    
+    But after one year, we come quite a ways. Here's to another year of SNUG."
 )}}
 
 
