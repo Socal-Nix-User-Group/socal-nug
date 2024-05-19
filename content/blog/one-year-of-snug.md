@@ -29,6 +29,7 @@ description = "Looking back and the Nix Users Group that could"
 
 {{ blog_oneyearsnug_founder_chat() }}
 
+{{ blog_oneyearsnug_timeline_heading(heading="Some time later...")}}
 
 {% blog_oneyearsnug_timeline_special(class_name="members-milestone") %}
     <img src="/blog/one-year-snug/computer_message_app.png">
@@ -98,6 +99,8 @@ David and Dan make a banner for NixCon NA
     But after one year, we come quite a ways. Here's to another year of SNUG."
 )}}
 
+{{ blog_oneyearsnug_timeline_heading(heading="Join us for the anniversary SNUG!")}}
 
+{{ blog_oneyearsnug_june_2024_snug() }}
 </div>
 </div>
