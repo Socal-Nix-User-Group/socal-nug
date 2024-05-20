@@ -11,15 +11,25 @@ $event-background: #f8f8f8;
     h2 {
         color: #fff;
         padding: 1ch;
-        text-shadow: 0px 2px 4px rgba(0,0,0,.4);
+        text-shadow: 0px 2px 4px rgba(0, 0, 0, .4);
     }
 }
-  
+
 .main-wrapper {
     min-height: 100vh;
-    background: linear-gradient(0deg, rgba(0,166,255,0.9066001400560224) 0%, rgba(0,212,255,0) 10%),
-    linear-gradient(180deg, rgba(0,166,255,0.9066001400560224) 0%, rgba(0,212,255,0) 33%),
-    $main-backgournd;
+    background: linear-gradient(0deg, rgba(0, 166, 255, 0.9066001400560224) 0%, rgba(0, 212, 255, 0) 10%),
+        linear-gradient(180deg, rgba(0, 166, 255, 0.9066001400560224) 0%, rgba(0, 212, 255, 0) 33%),
+        $main-backgournd;
+}
+
+.snug-one-year-intro {
+    padding: 1ch 3ch;
+    text-align: center;
+    color: #fff;
+    font-size: 2rem;
+    font-weight: bold;
+    font-family: "Archivo Narrow", sans-serif;
+    text-shadow: rgba(0, 0, 0, .3) 0px 0px 3px;
 }
 
 .timeline {
@@ -54,12 +64,17 @@ $event-background: #f8f8f8;
     border-radius: 1ch;
 }
 
-h1,h2,h3,h4,.timeline-heading, .font-preston-one {
+h1,
+h2,
+h3,
+h4,
+.timeline-heading,
+.font-preston-one {
     font-family: "Poetsen One", sans-serif;
     font-weight: 400 !important;
     font-style: normal;
 }
-  
+
 .timeline-content {
     grid-column: 1 /4;
     grid-row: 1;
@@ -82,6 +97,15 @@ h1,h2,h3,h4,.timeline-heading, .font-preston-one {
     border-radius: 2ch;
     border: .6ch solid $border-color;
     background: $event-background;
+
+    img {
+        display: block;
+        margin: 2ch auto;
+
+        border-radius: 2ch;
+    }
+
+    text-align: center;
 }
 
 .timeline-special {
@@ -94,6 +118,7 @@ h1,h2,h3,h4,.timeline-heading, .font-preston-one {
     padding: 3ch;
     font-family: "Poetsen One", sans-serif;
     text-align: center;
+
     .count {
         line-height: 1em;
         font-size: 10rem;
@@ -101,7 +126,7 @@ h1,h2,h3,h4,.timeline-heading, .font-preston-one {
         font-family: inherit;
         display: block;
     }
-    
+
     .word {
         font-size: 1.5rem;
         font-family: inherit;
@@ -134,7 +159,7 @@ h1,h2,h3,h4,.timeline-heading, .font-preston-one {
         padding: 0;
         margin: 0;
     }
-    
+
     li.other-chatter {
         text-align: right;
 
@@ -169,7 +194,7 @@ h1,h2,h3,h4,.timeline-heading, .font-preston-one {
         .message {
             font-size: 1.5rem;
             padding: 1ch 3ch;
-            background: rgba(0,0,0,.1);
+            background: rgba(0, 0, 0, .1);
             border-radius: 3ch;
 
             display: inline-block;
@@ -180,6 +205,11 @@ h1,h2,h3,h4,.timeline-heading, .font-preston-one {
 }
 
 @media (max-width: 700px) {
+
+    .snug-one-year-intro {
+        font-size: 1.2rem;
+    }
+
     .timeline-content {
         font-size: 1rem !important;
         margin: 0 0 2ch 0;
@@ -193,13 +223,15 @@ h1,h2,h3,h4,.timeline-heading, .font-preston-one {
     }
 
     .timeline-chat {
-        ol > li > .name {
+        ol>li>.name {
             margin: 0 1ch;
         }
-        ol > li.other-chatter {
+
+        ol>li.other-chatter {
             grid-template-columns: 30% 1fr;
         }
-        ol > li > .message {
+
+        ol>li>.message {
             text-align: center;
             padding: .5ch 1ch;
             margin: .3ch 0;

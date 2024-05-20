@@ -11,6 +11,16 @@ date = "2024-05-31"
 <h2 class="title font-preston-one">Looking back on the little NUG that could</h2>
 </figure>
 
+<div class="snug-one-year-intro content">
+<p>
+    We started the Southern California Nix Users Group (SNUG) in 2023.
+</p>
+<p>
+    It's been a year since then and we've come a long way.
+    Here's a look back at the journey we've taken.
+</p>
+</div>
+
 <div class="timeline">
 <div class="timeline-content content">
 
@@ -18,12 +28,10 @@ date = "2024-05-31"
 
 {{ blog_oneyearsnug_timeline_event(
     title="Southern California Linux Expo 20x", 
-    content="Dan, Daniel and Ben got roped into boothing at SCALE for the Nix booth. <br><br> 
-    Eventually, other not-yet Nix users got roped in as well.
-
-    We met quite a few Nix users form all over Southern California and beyond.
-    <br><br>
-    We realized there was interest here and wanted to do something about it."
+    content="<img src='/blog/one-year-snug/scale-2023-booth.jpg' />
+    <br>
+    Dan, Daniel and Ben (not pictured) got roped into boothing at SCALE for the Nix booth. <br><br> 
+    After meeting some enthusiastic users from around the region, they started talking about starting a Nix meetup in Southern California."
 )}}
 
 {{ blog_oneyearsnug_timeline_heading(heading="April 2023")}}
@@ -41,12 +49,11 @@ date = "2024-05-31"
 {{ blog_oneyearsnug_timeline_heading(heading="May 2023")}}
 
 {{ blog_oneyearsnug_timeline_event(
-    title="The First NUG", 
-    content="We held the NUG in 23/b Hackerspace in Fullerton. The turnout was great and we 
-    knew we were on to something. 
-    <br>   
-    <br>   
-    We also introduced everyone to Dan's Nixosmobile!"
+    title="The First SNUG", 
+    content="
+    <img src='/images/gallery/snug-001/group-photo.jpg'>
+
+    We held the first SNUG in <a href='https://socal-nug.com/events/2023-05-30/'>23/b Hackerspace in Fullerton</a>"
 )}}
 
 {% blog_oneyearsnug_timeline_special(class_name="members-milestone") %}
@@ -64,14 +71,10 @@ date = "2024-05-31"
 
 {{ blog_oneyearsnug_timeline_heading(heading="March 2024")}}
 
-{% blog_oneyearsnug_timeline_special(class_name="members-milestone") %}
-David and Dan make a banner for NixCon NA
-{% end %}
-
 {{ blog_oneyearsnug_timeline_event(
     title="SCaLE 21x and NixCon NA 2024", 
-    content="SCaLE 21x and NixCon NA 2024 was a blast! We got to meet plenty of new 
-    Nix Users from around the area and go the word out about the SNUG.
+    content="<img src='/blog/one-year-snug/nixcon-photo.jpg'>SCaLE 21x and NixCon NA 2024 was a blast! We met many 
+    Nix users from around the area.    
     "
 )}}
 
@@ -83,21 +86,25 @@ David and Dan make a banner for NixCon NA
 {% end %}
 
 {{ blog_oneyearsnug_timeline_event(
-    title="Largest SNUG to date!", 
-    content="Our post-NixCon SNUG was the largest SNUG to date. We had a great time and we were able to share our experiences. Despite the rain and cloudy weather, our group's sunny disposition shone through."
+    title="SNUG #5: Largest SNUG to date!", 
+    content="
+    <img src='/blog/one-year-snug/snug-5.jpg'>
+    Despite the rain and cloudy weather, our group's sunny disposition shone through."
 )}}
 
 {{ blog_oneyearsnug_timeline_heading(heading="June 2024")}}
 
 {{ blog_oneyearsnug_timeline_event(
-    title="One Year of SNUG", 
-    content="We've made it to one whole year of SNUG. When we first started the group, 
-    we were expecting the same 4 people to attend every single time.
+    title="One Year of SNUG",
+    content="
+    <img src='/blog/one-year-snug/snug-logo.png'>
+    As they say, time flies when you're having fun. When we first started the group, 
+    we were expecting the same 4 people attending each time.
 
     <br>
     <br>
     
-    But after one year, we come quite a ways. Here's to another year of SNUG."
+    But after one year, we've come quite a ways. Here's to another year of SNUG!"
 )}}
 
 {{ blog_oneyearsnug_timeline_heading(heading="Join us for the anniversary SNUG!")}}
