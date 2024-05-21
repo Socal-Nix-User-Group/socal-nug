@@ -1,0 +1,93 @@
+{% import "macros/date.html" as date_macros %}
+{% extends "child.html" %}
+
+{% block body %}
+<div class="blog-wrapper">
+  <header>
+    <h1 class="blog-title">The SNUG LIFe</h1>
+    <h2 class="blog-subtitle">News from our humble user group</h2>
+  </header>
+
+  <div class="container">
+    <ul class="blog-post-list">
+      {% for post in section.pages %}
+
+      <li class="blog-post">
+        <p class="blog-post-date">
+          {{ post.date }}
+        </p>
+          <h2 class="title is-h2">
+            <a href="{{ post.permalink }}">
+              {{ post.title }}
+            </a>          
+          </h2>
+          <h3 class="subtitle is-h3">
+            {{ post.description }}
+          </h3>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+</div>
+
+<style>
+.blog-post {
+  margin: 2rem 0;
+}
+
+.blog-post h2 {
+  color: #333;
+  font-size: 3rem;
+  text-align: center;
+  margin: 0;
+  font-weight: bold;
+  padding:  0;
+  height: 100%;
+
+  a {
+    color: #333;
+    width: 100%;
+    height: 100%;
+    display: flex;
+
+    text-decoration: underline;
+  }
+
+  a:hover {
+    background: rgba(0,0,0,.2);
+  }
+}
+
+.blog-title {
+  color: #333;
+  font-size: 5rem;
+  text-align: center;
+  margin: 0;
+  font-weight: bold;
+
+  text-transform: uppercase;
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  letter-spacing: -.07em;
+}
+
+.blog-subtitle {
+  color: #333;
+  font-size: 2rem;
+  text-align: center;
+  margin: 0;
+  font-weight: bold;
+}
+
+.blog-wrapper header {
+  border-bottom: 2px solid rgba(90,90,90,.2);
+  border-top: 2px solid rgba(90,90,90,.2);
+  padding: 3ch 0;
+}
+
+.blog-wrapper {
+  min-height: 80vh;;
+}
+
+</style>
+{% endblock body %}

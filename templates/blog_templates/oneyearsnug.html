@@ -1,0 +1,10 @@
+{% extends "child.html" %}
+
+{% block custom_css %}
+<link href="/css/special/blog/oneyearsnug.css" rel="stylesheet"></link>
+{% endblock %}
+
+{% block content %}
+
+    {{ page.content | safe }}
+{% endblock %}

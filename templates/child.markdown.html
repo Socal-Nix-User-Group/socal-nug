@@ -4,8 +4,11 @@
 {% include "partials/child.breadcrumb.html" %}
 {% endblock %}
 
-{% block content %}
-<div class="content">
-  {{ page.content | safe }}
+{% block body %}
+<div class="container content">
+    {% block content %}
+    {{ page.content | safe }}
+
+    {% endblock %}
 </div>
 {% endblock %}
