@@ -1,6 +1,7 @@
 # The URL the site will be built for
 base_url = "https://socal-nug.com/"
 title = "SoCal Nix Users Group"
+theme = "del-sur"
 
 # Whether to automatically compile all Sass files in the sass directory
 compile_sass = true
