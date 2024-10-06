@@ -2,24 +2,11 @@
 import icalendar
 from pathlib import Path
 
-import tomllib
-import json
+import toml
 import click
 
 import pytz
 from datetime import datetime
-
-# https://svn.blender.org/svnroot/bf-blender/trunk/blender/build_files/scons/tools/bcolors.py
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
 
 @click.command()
 @click.argument('posts',  nargs=-1)
@@ -36,7 +23,7 @@ def validate_data(posts, output):
         
         separator = '+++'
         front_matter = data_content.split(separator)[1].strip()
-        data = tomllib.loads(front_matter)
+        data = toml.loads(front_matter)
 
         # Parse the date and times
         event_date = data["extra"]["event"]["date"]

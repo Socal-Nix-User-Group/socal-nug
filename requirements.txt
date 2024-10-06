@@ -8,3 +8,4 @@ pytz==2023.3.post1
 referencing==0.30.2
 rpds-py==0.10.3
 six==1.16.0
+toml==0.10.2
