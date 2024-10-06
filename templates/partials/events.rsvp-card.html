@@ -13,19 +13,22 @@
                     <time>
                         {{ 
                             date_macros::date_full(
-                            year=date_parts[0] | int,
-                            month=date_parts[1] | int,
-                            day=date_parts[2] | int)
-                        }}
-                        <br>
-                        {% if 'start_time' in page.extra.event %}
+                                year=date_parts[0] | int,
+                                month=date_parts[1] | int,
+                                day=date_parts[2] | int)
+                            }}
+                            <br>
+                            {% if 'start_time' in page.extra.event %}
                             {{ page.extra.event['start_time'] }}
-                        {% endif %}
-                        {% if 'stop_time' in page.extra.event %}
+                            {% endif %}
+                            {% if 'stop_time' in page.extra.event %}
                             - {{ page.extra.event['stop_time'] }}
-                        {% endif %}
-                    </time>
-                </div>
+                            {% endif %}
+                            
+                        </time>
+                        
+                    
+                    </div>
             </div>
         </div>
         <div class="card-content">

@@ -39,8 +39,11 @@
             zola
             alejandra
             python311
+            python311Packages.toml
+            python311Packages.pip
             python311Packages.click
             python311Packages.jsonschema
+            python311Packages.icalendar
             act
           ];
         };
