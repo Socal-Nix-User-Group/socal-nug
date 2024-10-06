@@ -40,7 +40,7 @@ def validate_data(posts, output):
         event = icalendar.Event()
         
         event.add("summary", data["title"])
-        event.add("description", data["description"])
+        event.add("description", data["description"] + "\n" + data["content"])
         event.add("dtstart", start_datetime)
         event.add("dtend", stop_datetime)
         event.add("location", f"{data['extra']['venue']['name']}, {data['extra']['venue']['address_street']}, "
@@ -51,11 +51,11 @@ def validate_data(posts, output):
         cal.add_component(event)
         all_events.add_component(event)
         
-        output_path = Path(f'{output}/{event_date}/{event_date}.ics')
+        output_path = Path(f'{output}/{event_date}/event.ics')
         with open(output_path, 'wb') as f:
             f.write(cal.to_ical())
     
-    with Path(f'{output}/all_events.ics').open('wb') as f:
+    with Path(f'{output}/calendar.ics').open('wb') as f:
         f.write(all_events.to_ical())
 
 
