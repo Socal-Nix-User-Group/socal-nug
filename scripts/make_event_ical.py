@@ -40,7 +40,7 @@ def validate_data(posts, output):
         event = icalendar.Event()
         
         event.add("summary", data["title"])
-        event.add("description", data["description"] + "\n" + data["content"])
+        event.add("description", data["description"])
         event.add("dtstart", start_datetime)
         event.add("dtend", stop_datetime)
         event.add("location", f"{data['extra']['venue']['name']}, {data['extra']['venue']['address_street']}, "
