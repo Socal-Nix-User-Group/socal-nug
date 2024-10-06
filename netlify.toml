@@ -15,4 +15,4 @@ ZOLA_VERSION = "0.13.0"
 # `$DEPLOY_PRIME_URL`.
 
 [context.deploy-preview]
-command = "zola build --base-url $DEPLOY_PRIME_URL"
+command = "zola build --base-url $DEPLOY_PRIME_URL && python scripts/make_event_ical.py --output public/events/ content/events/20*.md"
