@@ -23,8 +23,9 @@ class bcolors:
 
 @click.command()
 @click.argument('posts',  nargs=-1)
-def validate_data(posts):
-    any_failed = False
+@click.option('--output',  help='Output for iCal files')
+def validate_data(posts, output):
+    all_events = icalendar.Calendar()
 
     for post in posts:
         if '_index.md' in post:
@@ -61,10 +62,14 @@ def validate_data(posts):
         
         # Add the event to the calendar
         cal.add_component(event)
-        print(cal.to_ical())
+        all_events.add_component(event)
         
-        with open('./foo.ical', 'wb') as f:
+        output_path = Path(f'{output}/{event_date}/{event_date}.ics')
+        with open(output_path, 'wb') as f:
             f.write(cal.to_ical())
+    
+    with Path(f'{output}/all_events.ics').open('wb') as f:
+        f.write(all_events.to_ical())
 
 
 if __name__ == '__main__':
