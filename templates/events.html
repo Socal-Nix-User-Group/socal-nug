@@ -4,9 +4,9 @@
 {% block content %}
 
 <h1 class="title is-1 mb-3">Events</h1>
-<p>
-  <a href="/events/calendar.ics" class="">Add Events Feed to Calendar</a>
-</p>
+<div class="add-to-calendar">
+  <a href="ical:///events/calendar.ics" class="button">📅 Add to iCal</a>
+</div>
 <div class="columns">
   <div class="column is-two-thirds">
     <div class="is-multiline event-listing">

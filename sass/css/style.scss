@@ -5,6 +5,7 @@
 @import "components/ui-specialhero.scss";
 @import "components/ui-frontpage-event-card.scss";
 @import "components/ui-frontpage-hero-cta.scss";
+@import "components/ui-calendar-holder.scss";
 @import "pages/events.scss";
 
 body, html {
@@ -44,4 +45,11 @@ p, ul, a, span, div {
 }
 
 footer {
+}
+
+@media screen and (max-width: 700px) {
+    .child-page {
+        box-sizing: border-box;
+        padding: 1em;
+    }    
 }
