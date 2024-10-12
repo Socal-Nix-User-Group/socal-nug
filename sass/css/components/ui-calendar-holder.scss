@@ -7,3 +7,9 @@
         box-shadow: rgba(0, 0, 0, 0.2) 0px 1px 2px 0px;
     }
 }
+
+@media screen and (max-width: 700px) {
+    .add-to-calendar {
+        flex-direction: column;
+    }
+}
