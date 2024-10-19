@@ -5,7 +5,7 @@
 
 <h1 class="title is-1 mb-3">Events</h1>
 <div class="add-to-calendar">
-  {% set ical_feed_url = config.base_url ~ '/events/calendar.ics' %}
+  {% set ical_feed_url = config.base_url ~ 'events/calendar.ics' %}
   {% set ical_feed_url_google = ical_feed_url | replace(from='https', to='http') %}
   <a href="{{ ical_feed_url }}" class="button">
     📅 Download ICS Feed
