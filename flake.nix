@@ -39,12 +39,12 @@
           buildInputs = with pkgs; [
             zola
             alejandra
-            python311
-            python311Packages.toml
-            python311Packages.pip
-            python311Packages.click
-            python311Packages.jsonschema
-            python311Packages.icalendar
+            python3
+            python3Packages.toml
+            python3Packages.pip
+            python3Packages.click
+            python3Packages.jsonschema
+            python3Packages.icalendar
             act
           ];
         };
