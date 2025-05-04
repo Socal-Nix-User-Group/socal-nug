@@ -15,4 +15,6 @@ highlight_code = true
 
 [extra]
 matrix_url = "https://matrix.to/#/#socal-nug:matrix.org"
+ncnug_url = "https://northcounty.socal-nug.com"
+gcnug_url = "https://gc.socal-nug.com"
 og_preview_img = "/logo.png"
