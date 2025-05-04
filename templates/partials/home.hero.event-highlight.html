@@ -26,6 +26,19 @@
                   </div>
                 </div>
               </div>
+              <div class="content">
+                <p>
+                  Check out some of our members more frequently held NUGs.
+                </p>
+              </div>
+              <div class="level is-mobile">
+                <div class="level-left">
+                  <div class="buttons mt-3">
+                    <a class="button" href="{{ config.extra.ncnug_url }}">North County NUG</a>
+                    <a class="button" href="{{ config.extra.gcnug_url }}">Gateway Cities NUG</a>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -65,9 +78,9 @@
     } else {
       eventStopTime.remove();
     }
-    
+
     eventContainer.replaceWith(eventBadgeClone);
-  } 
+  }
 
   (async function () {
     // Grab event page html
@@ -91,6 +104,6 @@
     const upcomingEvents = events.filter( e => e.eventDate > new Date())
     if (upcomingEvents.length > 0) {
       displayEventBadge(upcomingEvents.pop());
-    } 
+    }
   }());
 </script>
