@@ -65,9 +65,9 @@
     } else {
       eventStopTime.remove();
     }
-    
+
     eventContainer.replaceWith(eventBadgeClone);
-  } 
+  }
 
   (async function () {
     // Grab event page html
@@ -91,6 +91,6 @@
     const upcomingEvents = events.filter( e => e.eventDate > new Date())
     if (upcomingEvents.length > 0) {
       displayEventBadge(upcomingEvents.pop());
-    } 
+    }
   }());
 </script>
