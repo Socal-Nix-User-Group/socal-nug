@@ -16,3 +16,6 @@ ZOLA_VERSION = "0.13.0"
 
 [context.deploy-preview]
 command = "zola build --base-url $DEPLOY_PRIME_URL && python scripts/make_event_ical.py --output public/events/ content/events/20*.md"
+
+[images]
+  remote_images = ["https://socal-nug.sfo2.digitaloceanspaces.com/.*"]
