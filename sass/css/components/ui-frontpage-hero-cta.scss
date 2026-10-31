@@ -2,18 +2,18 @@
     .buttons {
         margin-top: 1.5rem;
     }
+
+    .text {
+        text-align: center;
+    }
+
+    .buttons {
+        justify-content: center;
+    }
 }
 
 .home-hero-cta.reversed {
     flex-direction: row-reverse;
-
-    .text {
-        text-align: right;
-    }
-
-    .buttons {
-        justify-content: flex-end;
-    }
 }
 
 @media screen and (max-width: 800px) {
