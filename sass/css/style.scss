@@ -1,5 +1,21 @@
 @import url(https://fonts.bunny.net/css?family=albert-sans:100,400,500,500i,600,600i,700,800i|barlow:400,400i,500,500i,600,600i);
 
+// Theme scoping. Mirrors Bulma 1's theme resolution: an explicit data-theme on <html>
+// wins, otherwise the OS preference applies.
+@mixin in-dark-theme {
+    @media (prefers-color-scheme: dark) {
+        html:not([data-theme=light]) & { @content; }
+    }
+    html[data-theme=dark] & { @content; }
+}
+
+@mixin in-light-theme {
+    @media (prefers-color-scheme: light) {
+        html:not([data-theme=dark]) & { @content; }
+    }
+    html[data-theme=light] & { @content; }
+}
+
 @import "components/ui-date.scss";
 @import "components/ui-breadcrumb.scss";
 @import "components/ui-specialhero.scss";
@@ -22,6 +38,24 @@ body, html {
     .title {
         color: #fff !important;
     }
+
+    @include in-dark-theme {
+        background: rgb(4,4,56);
+        background: linear-gradient(0deg, rgba(4,4,56,1) 0%, rgba(4,34,92,1) 14%, rgba(0,122,150,1) 100%);
+    }
+}
+
+// Bulma 1's is-info is a light cyan with dark text. Keep that in the light theme, but in
+// the dark theme use Bulma 0.9's $info, hsl(207, 61%, 53%), with white text.
+.button.is-info {
+    @include in-dark-theme {
+        --bulma-button-h: 207deg;
+        --bulma-button-s: 61%;
+        --bulma-button-l: 53%;
+        --bulma-button-background-l: 53%;
+        --bulma-button-border-l: 53%;
+        --bulma-button-color-l: 100%;
+    }
 }
 
 .title, 
@@ -39,22 +73,13 @@ p, ul, a, span, div {
     }
 }
 
-// Theme-dependent image variants. Mirrors Bulma 1's theme resolution:
-// an explicit data-theme on <html> wins, otherwise the OS preference applies.
-// Only the wrong variant is hidden; the shown one keeps whatever display Bulma gives it.
-@media (prefers-color-scheme: dark) {
-    html:not([data-theme=light]) .show-in-light {
-        display: none;
-    }
+// Theme-dependent image variants. Only the wrong variant is hidden; the shown one keeps
+// whatever display Bulma gives it.
+.show-in-light {
+    @include in-dark-theme { display: none; }
 }
-@media (prefers-color-scheme: light) {
-    html:not([data-theme=dark]) .show-in-dark {
-        display: none;
-    }
-}
-html[data-theme=dark] .show-in-light,
-html[data-theme=light] .show-in-dark {
-    display: none;
+.show-in-dark {
+    @include in-light-theme { display: none; }
 }
 
 .subnav-wrapper {
