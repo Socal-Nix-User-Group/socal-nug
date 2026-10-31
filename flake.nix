@@ -48,6 +48,8 @@
           buildInputs = [
             pkgs.act
             pkgs.alejandra
+            pkgs.imagemagick
+            pkgs.potrace
             pkgs.zola
             (pkgs.python3.withPackages (ps: [
               ps.toml
