@@ -40,8 +40,8 @@ body, html {
     }
 
     @include in-dark-theme {
-        background: rgb(4,4,56);
-        background: linear-gradient(0deg, rgba(4,4,56,1) 0%, rgba(4,34,92,1) 14%, rgba(0,122,150,1) 100%);
+        background: rgb(6,6,40);
+        background: linear-gradient(0deg, rgba(6,6,40,1) 0%, rgba(8,22,70,1) 14%, rgba(18,62,124,1) 100%);
     }
 }
 
