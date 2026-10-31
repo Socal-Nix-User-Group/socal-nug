@@ -1,29 +1,29 @@
-{% macro date_chip(month, day) %}
+{% component date_chip(month, day) %}
 
 {% set months_short = [
-  "ERR", 
-  "JAN", 
-  "FEB", 
-  "MAR", 
-  "APR", 
-  "MAY", 
-  "JUN", 
-  "JUL", 
-  "AUG", 
-  "SEP", 
-  "OCT", 
-  "NOV", 
+  "ERR",
+  "JAN",
+  "FEB",
+  "MAR",
+  "APR",
+  "MAY",
+  "JUN",
+  "JUL",
+  "AUG",
+  "SEP",
+  "OCT",
+  "NOV",
   "DEC"
-  ] 
+  ]
 %}
 
 <div class="calendar-date-chip">
     <div class="month">{{ months_short[month] }}</div>
     <div class="day">{{ day }}</div>
   </div>
-{% endmacro date_chip %}
+{% endcomponent date_chip %}
 
-{% macro date_full(month, day, year) %}
+{% component date_full(month, day, year) %}
 {% set months_long = [
   "Error",
   "January",
@@ -41,4 +41,4 @@
 ] %}
 
 {{ months_long[month] }} {{ day }}, {{ year }}
-{% endmacro date_full %}
+{% endcomponent date_full %}

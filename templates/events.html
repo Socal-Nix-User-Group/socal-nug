@@ -1,4 +1,3 @@
-{% import "macros/date.html" as date_macros %}
 {% extends "child.html" %}
 
 {% block content %}
@@ -6,7 +5,7 @@
 <h1 class="title is-1 mb-3">Events</h1>
 <div class="add-to-calendar">
   {% set ical_feed_url = config.base_url ~ '/events/calendar.ics' %}
-  {% set webcal_feed_url = config.base_url ~ '/events/calendar.ics' | replace(from='https:', to='webcal:') %}
+  {% set webcal_feed_url = (config.base_url ~ '/events/calendar.ics') | replace(from='https:', to='webcal:') %}
   {% set ical_feed_url_google = ical_feed_url | replace(from='https', to='http') %}
   <a href="{{ ical_feed_url }}" class="button">
     📅 Download ICS Feed
@@ -21,15 +20,7 @@
 <div class="columns">
   <div class="column is-two-thirds">
     <div class="is-multiline event-listing">
-      {% set_global years = [] %}
-      {% set slugs = section.pages | map(attribute="extra.event.date") %}
-      {% for year in slugs %}
-      {% set current_year = year | split(pat='-') %}
-      {% set_global years = years | concat(with= current_year[0]) | unique %}
-      {% endfor %}
-
-      {% for current_year in years | sort | reverse %}
-      <h2 class="title is-3 mb-3">{{ current_year }}</h2>
+      {% set_global current_year = "" %}
       {% for page in section.pages | sort(attribute="extra.event.date") | reverse %}
 
       {% set date_parts = page.extra.event.date | split(pat="-")%}
@@ -37,11 +28,12 @@
       {% set event_month = date_parts[1] | int %}
       {% set event_day = date_parts[2] | int %}
 
-      {% if current_year != date_parts[0] %}
-      {% continue %}
+      {% if date_parts[0] != current_year %}
+      {% set_global current_year = date_parts[0] %}
+      <h2 class="title is-3 mb-3">{{ date_parts[0] }}</h2>
       {% endif %}
-      <div class="event-listing-item" 
-        data-event-date="{{ page.extra.event.date }}" 
+      <div class="event-listing-item"
+        data-event-date="{{ page.extra.event.date }}"
         data-event-name="{{ page.title }}"
         data-event-location="{{ page.extra.venue.name }}"
         {% if page.extra.venue.google_maps %}
@@ -55,7 +47,7 @@
         {% if page.extra.event.stop_time %}
           data-event-stop-time="{{ page.extra.event.stop_time }}"
         {% endif %}
-        
+
         {% if page.extra.event.start_time %}
           data-event-start-time="{{ page.extra.event.start_time }}"
         {% endif %}
@@ -66,14 +58,14 @@
         <a href="{{ page.permalink }}">
           <div class="media">
             <div class="media-left">
-              {{ date_macros::date_chip(month=event_month, day=event_day) }}
+              {{ <date_chip month={event_month} day={event_day} /> }}
             </div>
             <div class="media-content">
               <h2 class="title" style="margin:0">
                 {{ page.title }}
               </h2>
               <h3>
-                {{ date_macros::date_full(month=event_month, day=event_day, year=event_year)}}
+                {{ <date_full month={event_month} day={event_day} year={event_year} /> }}
               </h3>
               <h3>{{ page.extra.venue.name }}</h3>
             </div>
@@ -81,14 +73,13 @@
         </a>
       </div>
       {% endfor %}
-      {% endfor %}
     </div>
 
   </div>
   <div class="column is-third content">
     <h2>What happens at a NUG meetup?</h2>
-    NUG meetups are informal meetups where we gather around and discuss our favorite package manager. 
-    Bring your laptop, show off your Nix configs, and ask questions. 
+    NUG meetups are informal meetups where we gather around and discuss our favorite package manager.
+    Bring your laptop, show off your Nix configs, and ask questions.
     No prior experience with Nix is required, and all are welcome.
   </div>
 </div>

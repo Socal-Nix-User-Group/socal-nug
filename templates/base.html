@@ -1,19 +1,18 @@
-{% import "macros/social.html" as social -%}
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="utf-8">
   {%- block og_preview -%}
-      {{ social::og_preview() }}
+      {{ <og_preview /> }}
   {%- endblock og_preview -%}
 
   {%- block twitter_preview -%}
-      {{ social::twitter_preview() }}
+      {{ <twitter_preview /> }}
   {%- endblock twitter_preview -%}
-  <title>{{ social::og_title() }}</title>
+  <title>{{ <og_title /> }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="{{ social::og_description() }}">
+  <meta name="description" content="{{ <og_description /> }}">
   <meta name="keywords" content="nixos, nix package manager, linux, southern california, socal">
   <meta name="author" content="SoCal Nix Users Group">
   <link rel="icon" href="/logo.png" type="image/x-icon">

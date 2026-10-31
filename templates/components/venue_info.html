@@ -1,0 +1,8 @@
+{% component venue_info(name, street, city, zip, unit = "", state = "CA") %}
+<div class="event-venue-info">
+    {{ name }} <br>
+    {{ street }}{% if unit %}, {{ unit }}{% endif %} <br>
+    {{ city }}, {{ state }} <br>
+    {{ zip }}
+</div>
+{% endcomponent venue_info %}
