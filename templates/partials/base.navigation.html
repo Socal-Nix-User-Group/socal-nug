@@ -41,6 +41,14 @@
             </a>
           </div>
         </div>
+
+        <div class="navbar-item is-hidden" data-theme-switcher>
+          <div class="buttons has-addons" role="group" aria-label="Color theme">
+            <button class="button is-small" type="button" data-theme-choice="auto">Auto</button>
+            <button class="button is-small" type="button" data-theme-choice="light">Light</button>
+            <button class="button is-small" type="button" data-theme-choice="dark">Dark</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -63,6 +71,42 @@ document.addEventListener('DOMContentLoaded', () => {
       el.classList.toggle('is-active');
       $target.classList.toggle('is-active');
 
+    });
+  });
+
+  // Theme switcher: "auto" follows the OS setting, "light" and "dark" override it.
+  // The override lives in localStorage and is applied early by the script in <head>.
+  const $themeButtons = Array.prototype.slice.call(document.querySelectorAll('[data-theme-choice]'), 0);
+  const showActiveTheme = (theme) => {
+    $themeButtons.forEach(button => {
+      const active = button.dataset.themeChoice === theme;
+      button.classList.toggle('is-link', active);
+      button.classList.toggle('is-selected', active);
+      button.setAttribute('aria-pressed', active);
+    });
+  };
+
+  let storedTheme = null;
+  try { storedTheme = localStorage.getItem('theme'); } catch (e) {}
+  showActiveTheme(storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'auto');
+  document.querySelector('[data-theme-switcher]').classList.remove('is-hidden');
+
+  $themeButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const theme = button.dataset.themeChoice;
+      if (theme === 'auto') {
+        delete document.documentElement.dataset.theme;
+      } else {
+        document.documentElement.dataset.theme = theme;
+      }
+      try {
+        if (theme === 'auto') {
+          localStorage.removeItem('theme');
+        } else {
+          localStorage.setItem('theme', theme);
+        }
+      } catch (e) {}
+      showActiveTheme(theme);
     });
   });
 

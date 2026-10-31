@@ -16,7 +16,19 @@
   <meta name="keywords" content="nixos, nix package manager, linux, southern california, socal">
   <meta name="author" content="SoCal Nix Users Group">
   <link rel="icon" href="/logo.png" type="image/x-icon">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <script>
+    // Apply a stored theme override before the stylesheets load so the page never flashes the wrong theme.
+    // No stored value means "auto": Bulma follows the prefers-color-scheme media query.
+    (function () {
+      try {
+        var theme = localStorage.getItem('theme');
+        if (theme === 'light' || theme === 'dark') {
+          document.documentElement.dataset.theme = theme;
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
   <link rel="stylesheet" href="/css/style.css">
   {%- block custom_css -%}
 

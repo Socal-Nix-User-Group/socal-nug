@@ -4,6 +4,12 @@ $border-color: #187c96;
 $main-backgournd: #48b3d8;
 $event-background: #f8f8f8;
 
+// The template wraps this post in Bulma's .theme-light so the designed light palette holds in dark mode.
+// That class only redefines variables, so re-apply the body text color for inherited text.
+.theme-light {
+    color: var(--bulma-text);
+}
+
 .snug-oneyear-banner {
     text-align: center;
     padding: 3ch 0;
