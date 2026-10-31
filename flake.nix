@@ -55,6 +55,7 @@
               ps.click
               ps.jsonschema
               ps.icalendar
+              ps.pytz
             ]))
           ];
         };
