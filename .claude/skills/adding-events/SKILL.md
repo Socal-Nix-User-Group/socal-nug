@@ -54,7 +54,7 @@ Create the branch first so the file lands on it:
 git switch -c event/snug-<N> origin/main     # Mini NUG: event/mini-<date>
 ```
 
-Every slot below is required. `description` is not in the schema, but the calendar feed script reads it and the Netlify build fails without it. Optional: `address_unit` for a suite or unit number, and `website`. The values here are made up.
+Every slot below is required. `description` is required by the schema and read by the calendar feed script. Optional: `address_unit` for a suite or unit number, and `website`. The values here are made up.
 
 ```toml
 +++

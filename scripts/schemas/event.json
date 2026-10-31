@@ -8,6 +8,9 @@
       "title": {
         "type": "string"
       },
+      "description": {
+        "type": "string"
+      },
       "extra": {
         "type": "object",
         "properties": {
@@ -78,6 +81,6 @@
         "required": ["organizer", "event", "venue"]
       }
     },
-    "required": ["template", "title", "extra"]
+    "required": ["template", "title", "description", "extra"]
   }
   
