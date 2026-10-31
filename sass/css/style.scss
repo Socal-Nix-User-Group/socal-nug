@@ -16,6 +16,14 @@
     html[data-theme=light] & { @content; }
 }
 
+// Bulma's spacing helpers stop at 6 (3rem); extend the scale for larger section gaps.
+.mt-7 {
+    margin-top: 6rem !important;
+}
+.mt-8 {
+    margin-top: 8rem !important;
+}
+
 @import "components/ui-date.scss";
 @import "components/ui-breadcrumb.scss";
 @import "components/ui-specialhero.scss";
