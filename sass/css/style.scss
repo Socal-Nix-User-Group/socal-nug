@@ -39,6 +39,24 @@ p, ul, a, span, div {
     }
 }
 
+// Theme-dependent image variants. Mirrors Bulma 1's theme resolution:
+// an explicit data-theme on <html> wins, otherwise the OS preference applies.
+// Only the wrong variant is hidden; the shown one keeps whatever display Bulma gives it.
+@media (prefers-color-scheme: dark) {
+    html:not([data-theme=light]) .show-in-light {
+        display: none;
+    }
+}
+@media (prefers-color-scheme: light) {
+    html:not([data-theme=dark]) .show-in-dark {
+        display: none;
+    }
+}
+html[data-theme=dark] .show-in-light,
+html[data-theme=light] .show-in-dark {
+    display: none;
+}
+
 .subnav-wrapper {
     padding: .5em 0;
     box-shadow: rgba(0,0,0,.1) 0px 0px 4px;
