@@ -1,5 +1,3 @@
-{% import "macros/date.html" as date_macros %}
-{% import "macros/gallery.html" as gallery_macros %}
 {% extends "child.html" %}
 
 {% block content %}
@@ -22,7 +20,7 @@
 </div>
 
 {% if page.extra.gallery %}
-{{ gallery_macros::gallery() }}
+{{ <gallery /> }}
 {% endif %}
 
 {% endblock content %}

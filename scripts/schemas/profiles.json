@@ -4,6 +4,10 @@
     "description": "A wrapper object containing a user profile.",
     "type": "object",
     "properties": {
+        "weight": {
+            "type": "integer",
+            "description": "Position on the about page; lower numbers come first."
+        },
         "extra": {
             "type": "object",
             "properties": {

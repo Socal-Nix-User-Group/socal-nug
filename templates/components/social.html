@@ -1,10 +1,10 @@
-{% macro og_preview() %}
-    <meta property="og:title" content="{{ social::og_title() }}" />
+{% component og_preview(@config, @page: map = {}, @section: map = {}, @current_url = "") %}
+    <meta property="og:title" content="{{ <og_title /> }}" />
     <meta property="og:type" content="website"/>
     {%- if current_url -%}
         <meta property="og:url" content="{{ current_url }}"/>
     {%- endif -%}
-    <meta property="og:description" content="{{ social::og_description() }}"/>
+    <meta property="og:description" content="{{ <og_description /> }}"/>
 
     {%- if section -%}
         {%- if config.extra.og_preview_img -%}
@@ -13,15 +13,15 @@
 
     {%- elif page -%}
         {%- if page.extra.og_image -%}
-        <meta property="og:image" content="{{ current_url ~ page.extra.og_image | trim }}"/>
+        <meta property="og:image" content="{{ (current_url ~ page.extra.og_image) | trim }}"/>
         {%- elif config.extra.og_preview_img -%}
         <meta property="og:image" content="{{ get_url(path=config.extra.og_preview_img) }}"/>
         {%- endif -%}
     {%- endif -%}{# ./if section #}
 
-{% endmacro og_preview %}
+{% endcomponent og_preview %}
 
- {% macro twitter_preview() %}
+ {% component twitter_preview(@config, @page: map = {}) %}
     {%- if page -%}
     {% if page.extra.og_image %}
     <meta name="twitter:card" content="summary_large_image">
@@ -45,9 +45,9 @@
     {%- elif config.extra.twitter_user %}
     <meta name="twitter:creator" content="{{ config.extra.twitter_user }}">
     {%- endif %}{# ./if page #}
-{% endmacro twitter_preview %}
+{% endcomponent twitter_preview %}
 
-{% macro og_description() %}
+{% component og_description(@config, @page: map = {}, @section: map = {}) %}
     {%- if section -%}
         {%-  if section.description -%}
             {{ section.description }}
@@ -55,7 +55,7 @@
             {{ config.description }}
         {%- endif -%}
     {%- elif page -%}
-        {%- if page.summary | string -%}
+        {%- if page.summary | str -%}
             {{ page.summary | striptags | truncate(length=200) }}
         {%- elif page.description -%}
             {{ page.description }}
@@ -63,9 +63,9 @@
             {{ config.description }}
         {%- endif -%}
     {%- endif -%}
-{% endmacro og_description %}
+{% endcomponent og_description %}
 
-{% macro og_title() -%}
+{% component og_title(@config, @page: map = {}, @section: map = {}) -%}
     {{ config.title }} -&nbsp;
     {%- if section -%}
         {%- if section.title -%}
@@ -80,4 +80,4 @@
             {{ config.description }}
         {%- endif -%}
     {%- endif -%}
-{% endmacro og_title %}
+{% endcomponent og_title %}

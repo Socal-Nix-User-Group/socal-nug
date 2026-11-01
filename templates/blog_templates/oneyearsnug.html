@@ -5,6 +5,8 @@
 {% endblock %}
 
 {% block content %}
-
+{# This post is a designed page with its own light palette, so pin it to Bulma's light theme. #}
+<div class="theme-light">
     {{ page.content | safe }}
+</div>
 {% endblock %}

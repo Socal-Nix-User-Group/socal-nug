@@ -1,6 +1,7 @@
 +++
 template = "about.html"
 title = "About Us"
+sort_by = "weight"
 +++
 
 # About Us
