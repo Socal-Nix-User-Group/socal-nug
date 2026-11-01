@@ -7,5 +7,8 @@ inputs.nixpkgs.lib.mapAttrs (_system: pkgs: {
     socal-nug-verify-post
     socal-nug-test-site
     socal-nug-logos
+    netlify-cli
+    zizmor
+    pinact
     ;
 }) inputs.self.legacyPackages
