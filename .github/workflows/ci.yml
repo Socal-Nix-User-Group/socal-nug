@@ -1,0 +1,111 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  # One run per pull request, or per ref for push and dispatch events. Pull requests cancel
+  # superseded runs; pushes to main never cancel a deploy in flight.
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  nix-checks:
+    name: nix flake check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/setup-nix
+      - run: nix flake check -L
+
+  workflow-security:
+    name: workflow security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/setup-nix
+      - name: Audit workflows with zizmor
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: nix run .#zizmor -- .github/
+      - name: Verify action pins and version comments with pinact
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: nix run .#pinact -- run --check
+
+  preview:
+    name: preview deploy
+    # Same-repository pull requests only: a fork's run has no credential and skips this job.
+    # The preview Environment requires a reviewer's approval before the job runs.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    environment:
+      name: preview
+      url: https://pr-${{ github.event.pull_request.number }}--socal-nug.netlify.app
+    permissions:
+      contents: read # checkout
+      pull-requests: write # the sticky preview comment
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/setup-nix
+      - name: Build the site for the preview URL
+        id: build
+        run: |
+          out=$(nix build --no-link --print-out-paths --impure --expr "(builtins.getFlake (toString ./.)).legacyPackages.\${builtins.currentSystem}.socal-nug-site.override { baseUrl = \"https://pr-$PR_NUMBER--socal-nug.netlify.app\"; }")
+          echo "path=$out" >> "$GITHUB_OUTPUT"
+      - name: Deploy the preview
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          SITE_DIR: ${{ steps.build.outputs.path }}
+        run: |
+          nix run .#netlify-cli -- deploy --no-build --dir "$SITE_DIR" --alias "pr-$PR_NUMBER" --site socal-nug
+      - name: Comment the preview URL
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none --body "Preview: https://pr-$PR_NUMBER--socal-nug.netlify.app"
+
+  deploy:
+    name: production deploy
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs:
+      - nix-checks
+      - workflow-security
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://socal-nug.com
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: $/.github/actions/setup-nix
+      - name: Build the site
+        id: build
+        run: |
+          out=$(nix build --no-link --print-out-paths .#socal-nug-site)
+          echo "path=$out" >> "$GITHUB_OUTPUT"
+      - name: Deploy to production
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          SITE_DIR: ${{ steps.build.outputs.path }}
+        run: |
+          nix run .#netlify-cli -- deploy --no-build --prod --dir "$SITE_DIR" --site socal-nug

@@ -1,0 +1,19 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directories:
+      - "/"
+      # Also scan the composite actions under .github/actions/*; a plain "/" does not
+      # cover their action.yml files. https://github.com/dependabot/dependabot-core/issues/6704
+      - "/.github/actions/*"
+    schedule:
+      interval: weekly
+    cooldown:
+      # Wait before adopting a fresh release so a compromised one has time to be yanked.
+      default-days: 7
+  - package-ecosystem: nix
+    directory: "/"
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
