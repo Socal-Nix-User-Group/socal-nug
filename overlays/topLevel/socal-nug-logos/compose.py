@@ -1,21 +1,18 @@
 #!/usr/bin/env python3
 """Compose gateway-cities.svg and north-county.svg from the potrace output produced by build.sh.
 
-usage: compose.py <work dir containing all.svg and n.svg>
+usage: compose.py <work dir containing all.svg and n.svg> <output dir>
 
 all.svg holds one <path> per connected component of the Gateway Cities logo: G, C, the six
 snowflake arms, N, U, G. They are classified by position and recolored. North County reuses
 the same letterforms, with the separately traced clean N (n.svg) as its first letter.
-Outputs go to static/siblings/; a review sheet (review.png) is written to the work dir.
+A review sheet (review.png) is written to the work dir.
 """
 import math
 import pathlib
 import re
 import subprocess
 import sys
-
-ROOT = pathlib.Path(__file__).resolve().parents[2]
-OUT_DIR = ROOT / 'static' / 'siblings'
 
 # Fills. Change these to recolor; letters 'left' are the two before the snowflake, 'right' the three after.
 GATEWAY_CITIES = {'left': '#E96409', 'right': '#F3A23C', 'arm_a': '#F3A23C', 'arm_b': '#F3C16D'}
@@ -163,6 +160,7 @@ def build(letters, arms, colors, clean_n=None):
 
 def main():
     work = pathlib.Path(sys.argv[1])
+    out_dir = pathlib.Path(sys.argv[2])
     transform, paths = parse_paths((work / 'all.svg').read_text())
     letters, arms = classify(paths)
     _, clean_paths = parse_paths((work / 'n.svg').read_text())
@@ -170,16 +168,16 @@ def main():
 
     gc = svg(build(letters, arms, GATEWAY_CITIES), transform, 'Gateway Cities Nix Users Group')
     nc = svg(build(letters, arms, NORTH_COUNTY, clean_paths[0]), transform, 'North County Nix Users Group')
-    (OUT_DIR / 'gateway-cities.svg').write_text(gc)
-    (OUT_DIR / 'north-county.svg').write_text(nc)
-    print('wrote', OUT_DIR / 'gateway-cities.svg', 'and', OUT_DIR / 'north-county.svg')
+    (out_dir / 'gateway-cities.svg').write_text(gc)
+    (out_dir / 'north-county.svg').write_text(nc)
+    print('wrote', out_dir / 'gateway-cities.svg', 'and', out_dir / 'north-county.svg')
 
     # review sheet: both logos on white and on the site's dark background
     tiles = []
     for name in ('gateway-cities', 'north-county'):
         for bg in ('white', '#14161a'):
             tile = work / f'{name}-{"light" if bg == "white" else "dark"}.png'
-            subprocess.run(['magick', '-background', bg, '-density', '96', str(OUT_DIR / f'{name}.svg'),
+            subprocess.run(['magick', '-background', bg, '-density', '96', str(out_dir / f'{name}.svg'),
                             '-resize', '700x', '-bordercolor', bg, '-border', '20', str(tile)], check=True)
             tiles.append(str(tile))
     subprocess.run(['magick', *tiles, '-append', str(work / 'review.png')], check=True)
