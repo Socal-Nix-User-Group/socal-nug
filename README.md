@@ -58,3 +58,12 @@ Environment and, because Dependabot runs can only read Dependabot secrets, also 
 secret; another in the `production` Environment. Record the expiry chosen when creating them.
 If a token expires or is rotated, update the secret and re-run the failed workflow run, or
 dispatch `ci.yml` on `main`.
+
+The two Environments carry the protection rules the security model depends on, because a
+pull request runs its own branch's workflow code with whatever secrets its jobs can reach:
+
+- `preview` requires reviewers. Add them before storing its secret; a first workflow run creates
+  the Environment with no rules, so configure the existing one rather than expecting to create
+  it. The reviewer gate is the only thing separating the preview token from production unless
+  that token comes from a Netlify account without production access.
+- `production` limits deployment branches to `main`. Set that before storing its secret.

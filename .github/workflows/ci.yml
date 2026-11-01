@@ -54,8 +54,8 @@ jobs:
       name: preview
       url: https://pr-${{ github.event.pull_request.number }}--socal-nug.netlify.app
     permissions:
-      contents: read
-      pull-requests: write
+      contents: read # checkout
+      pull-requests: write # the sticky preview comment
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
     steps:

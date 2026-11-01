@@ -205,11 +205,13 @@ an expired or rotated token: update the secret, then re-run the failed run or di
 `netlify.toml` and `requirements.txt` are deleted. The Netlify site is named `socal-nug`. The
 maintainer, outside this repository, in this order:
 
-1. Before the `preview` job can pass on this branch's PR: create the GitHub Environment `preview`
-   with the maintainers as required reviewers and store the preview credential in it as
-   `NETLIFY_AUTH_TOKEN`; store the same credential as the repository Dependabot secret
-   `NETLIFY_AUTH_TOKEN`; create the Environment `production` with deployment branches limited to
-   `main` and store the production credential in it as `NETLIFY_AUTH_TOKEN`.
+1. Before the `preview` job can pass on this branch's PR, in this order: the `preview` Environment
+   already exists with no protection rules, because the first workflow run referenced it; add the
+   maintainers as required reviewers to it first, then store the preview credential in it as
+   `NETLIFY_AUTH_TOKEN` and as the repository Dependabot secret `NETLIFY_AUTH_TOKEN`. Create the
+   `production` Environment with deployment branches limited to `main`, then store the production
+   credential in it as `NETLIFY_AUTH_TOKEN`. Rules before secrets, so no PR-authored run can read
+   a secret ungated.
 1. Once the PR's `preview` job has deployed successfully, and before merging: in the Netlify
    site's Build & deploy settings, stop builds. Netlify keeps serving the last deploy, and CLI
    deploys keep working with builds stopped. Doing this before the merge avoids a race between
