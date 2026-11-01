@@ -23,7 +23,7 @@
 - Production base URL `https://socal-nug.com`; preview URL `https://pr-<number>--socal-nug.netlify.app`; Netlify site name `socal-nug`.
 - Netlify deploys pass `--dir` as the store path from `nix build --no-link --print-out-paths`, never the `result` symlink.
 - Every workflow action is pinned to a commit SHA with a `# vX.Y.Z` comment; every checkout sets `persist-credentials: false`; event payload values reach `run` only through `env`; `run` scripts containing `: ` use `|` block scalars.
-- Secrets: `NETLIFY_AUTH_TOKEN` as a repository Actions secret and Dependabot secret (preview), and `NETLIFY_AUTH_TOKEN` in the GitHub Environment `production` (deploy). No repository variables.
+- Secrets: `NETLIFY_AUTH_TOKEN` in the GitHub Environment `preview` (required reviewers) and as a repository Dependabot secret, for the preview job; `NETLIFY_AUTH_TOKEN` in the GitHub Environment `production` (branch policy `main`) for the deploy job. No repository-level Actions secrets, no repository variables.
 - mdformat covers only `README.md`, `docs/**/*.md` and `overlays/**/*.md` via `programs.mdformat.includes`; `content/**` and `.claude/**` are excluded from all formatters via `settings.excludes`.
 - Commit messages: plain engineer voice, no bold lead-ins, no em dashes, ending with `Assisted-by: Claude Code (<model>)`.
 - Every commit leaves `nix flake check` passing for the checks that exist at that point.
@@ -424,7 +424,7 @@ Jobs, each starting with `actions/checkout@3d3c42e5aac5ba805825da76410c181273ba9
 
 - `nix-checks`: `nix flake check -L`.
 - `workflow-security`: `nix run .#zizmor -- .github/` with `env: GH_TOKEN: ${{ github.token }}`, then `nix run .#pinact -- run --check` with `env: GITHUB_TOKEN: ${{ github.token }}`.
-- `preview`: `if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository`; job `permissions: { contents: read, pull-requests: write }`; job `env: PR_NUMBER: ${{ github.event.pull_request.number }}`. Steps:
+- `preview`: `if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository`; `environment: { name: preview, url: "https://pr-${{ github.event.pull_request.number }}--socal-nug.netlify.app" }` (an expression in `environment.url` is not a script context, so zizmor's injection rule does not apply); job `permissions: { contents: read, pull-requests: write }`; job `env: PR_NUMBER: ${{ github.event.pull_request.number }}`. Steps:
   1. build, capturing the store path into `$GITHUB_OUTPUT` as `path`:
      `out=$(nix build --no-link --print-out-paths --impure --expr "(builtins.getFlake (toString ./.)).legacyPackages.\${builtins.currentSystem}.socal-nug-site.override { baseUrl = \"https://pr-$PR_NUMBER--socal-nug.netlify.app\"; }")` then `echo "path=$out" >> "$GITHUB_OUTPUT"`.
   2. deploy, with `env: NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}` and `SITE_DIR: ${{ steps.build.outputs.path }}`: `nix run .#netlify-cli -- deploy --no-build --dir "$SITE_DIR" --alias "pr-$PR_NUMBER" --site socal-nug`.
@@ -487,7 +487,7 @@ Expected: no matches outside `docs/`.
 
 - [ ] **Step 2: Rewrite `README.md`**
 
-Sections, in order: title; Quickstart (`nix develop`, then `zola serve`); Checks (`nix flake check` runs the site build, frontmatter validation, build-output tests and formatting; `nix fmt` fixes formatting); Build (`nix build` produces the deployable site in `result/`; `.#socal-nug-site` accepts a `baseUrl` override); Tools (`nix run .#socal-nug-verify-post`, `.#socal-nug-make-event-ical`, `.#socal-nug-test-site`, `.#socal-nug-logos`, one line each); Deploys (pull requests from this repository get a preview at `https://pr-<number>--socal-nug.netlify.app`; merges to `main` deploy to production from the `production` Environment; Netlify only hosts; the two `NETLIFY_AUTH_TOKEN` credentials, their expiry choice, and recovery by updating the secret and re-running or dispatching `ci.yml` on `main`). Keep it under 70 lines.
+Sections, in order: title; Quickstart (`nix develop`, then `zola serve`); Checks (`nix flake check` runs the site build, frontmatter validation, build-output tests and formatting; `nix fmt` fixes formatting); Build (`nix build` produces the deployable site in `result/`; `.#socal-nug-site` accepts a `baseUrl` override); Tools (`nix run .#socal-nug-verify-post`, `.#socal-nug-make-event-ical`, `.#socal-nug-test-site`, `.#socal-nug-logos`, one line each); Deploys (pull requests from this repository get a preview at `https://pr-<number>--socal-nug.netlify.app`; a maintainer approves each preview deploy in the Actions UI; merges to `main` deploy to production from the `production` Environment; Netlify only hosts; the two `NETLIFY_AUTH_TOKEN` credentials and where each lives, their expiry choice, and recovery by updating the secret and re-running or dispatching `ci.yml` on `main`). Keep it under 70 lines.
 
 - [ ] **Step 3: Verify the whole branch**
 
@@ -506,7 +506,7 @@ Expected: all pass.
 
 - [ ] **Step 1: Maintainer prerequisites (outside the repo, before the PR)**
 
-1. Create the preview Netlify credential (scope per the spec's open question) and store it as the repository Actions secret and the repository Dependabot secret `NETLIFY_AUTH_TOKEN`.
+1. Create the GitHub Environment `preview`, add the maintainers as required reviewers, and store the preview Netlify credential in it as `NETLIFY_AUTH_TOKEN`. Store the same credential as the repository Dependabot secret `NETLIFY_AUTH_TOKEN` (Dependabot runs cannot read Environment secrets).
 2. Create the GitHub Environment `production`, set its deployment branches to `main` only, and store the production credential in it as `NETLIFY_AUTH_TOKEN`.
 
 - [ ] **Step 2: Push and open the PR**
@@ -517,8 +517,10 @@ The body states: what moved into the flake; that `nix flake check` is the test s
 
 - [ ] **Step 3: Verify the live run**
 
+The `preview` job waits for Environment approval; approve it in the run's Actions page, then:
+
 Run: `gh pr checks <number> --watch`
-Expected: `nix-checks`, `workflow-security` and `preview` pass; `deploy` is skipped.
+Expected: `nix-checks`, `workflow-security` and `preview` pass; `deploy` is skipped; the PR shows a `preview` deployment with the URL.
 
 Run: `curl -sL https://pr-<number>--socal-nug.netlify.app/sitemap.xml | grep -c 'pr-<number>--socal-nug.netlify.app'` and `curl -sL .../ | grep -o 'bulma@[0-9.]*'`
 Expected: a positive count and `bulma@1.0.4`; the sticky comment with the preview URL exists exactly once on the PR, and a second push updates it rather than adding another.

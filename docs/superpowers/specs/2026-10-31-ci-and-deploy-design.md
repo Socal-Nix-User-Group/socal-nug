@@ -142,10 +142,13 @@ what they need. Values from the event payload reach `run` steps through `env`, n
     `nix run .#pinact -- run --check` with `GITHUB_TOKEN: ${{ github.token }}`. Without the token
     zizmor silently runs offline and skips its online audits.
   - `preview`: pull requests only, and only when
-    `github.event.pull_request.head.repo.full_name == github.repository`. This includes
-    Dependabot PRs, which receive Dependabot secrets rather than repository secrets. Builds the
-    site with `baseUrl` set to `https://pr-<number>--socal-nug.netlify.app` and captures the
-    store path with `nix build --no-link --print-out-paths`, deploys it with
+    `github.event.pull_request.head.repo.full_name == github.repository`. Runs in the GitHub
+    Environment `preview`, whose required-reviewers rule pauses the job until a maintainer
+    approves it in the Actions UI; that applies to every PR including Dependabot's, so PR-authored
+    workflow code never sees the credential without a human looking first. The job's
+    `environment.url` is the preview URL so GitHub shows it on the PR. Builds the site with
+    `baseUrl` set to `https://pr-<number>--socal-nug.netlify.app` and captures the store path
+    with `nix build --no-link --print-out-paths`, deploys it with
     `netlify deploy --no-build --dir <store path> --alias pr-<number> --site socal-nug`, and
     maintains one sticky comment on the PR with the URL (job permission `pull-requests: write`).
     Uses the preview credential described below.
@@ -175,12 +178,18 @@ zizmor, pinact and the Netlify CLI come from nixpkgs through the flake's package
 
 ### Credentials
 
-Two Netlify credentials, so that the one reachable from pull-request jobs cannot touch
-production:
+Two Netlify credentials, so that the one used by pull-request jobs cannot touch production, and
+neither is readable by PR-authored code without approval:
 
-- Production: `NETLIFY_AUTH_TOKEN` stored only in the GitHub Environment `production`.
-- Preview: `NETLIFY_AUTH_TOKEN` stored as a repository Actions secret and as a repository
-  Dependabot secret. Its scope is decided by the open question below.
+- Production: `NETLIFY_AUTH_TOKEN` stored only in the GitHub Environment `production`, whose
+  deployment-branch policy allows `main` only.
+- Preview: `NETLIFY_AUTH_TOKEN` stored in the GitHub Environment `preview`, which has required
+  reviewers, and also as a repository Dependabot secret, because Dependabot-triggered runs can
+  read only Dependabot secrets (GitHub's documentation: "the only secrets available to the
+  workflow are Dependabot secrets. GitHub Actions secrets are not available"). The Environment's
+  approval gate still applies to those runs since the job references the Environment.
+
+No repository-level Actions secrets.
 
 Netlify personal access tokens act for the whole account that created them, and they can be given
 an expiry. The expiry choice is recorded in the repository README's deploy section. Recovery after
@@ -192,10 +201,11 @@ an expired or rotated token: update the secret, then re-run the failed run or di
 `netlify.toml` and `requirements.txt` are deleted. The Netlify site is named `socal-nug`. The
 maintainer, outside this repository, in this order:
 
-1. Before the `preview` job can pass on this branch's PR: create the preview credential and store
-   it as the Actions secret and the Dependabot secret `NETLIFY_AUTH_TOKEN`; create the
-   `production` Environment with deployment branches limited to `main` and store the production
-   credential in it as `NETLIFY_AUTH_TOKEN`.
+1. Before the `preview` job can pass on this branch's PR: create the GitHub Environment `preview`
+   with the maintainers as required reviewers and store the preview credential in it as
+   `NETLIFY_AUTH_TOKEN`; store the same credential as the repository Dependabot secret
+   `NETLIFY_AUTH_TOKEN`; create the Environment `production` with deployment branches limited to
+   `main` and store the production credential in it as `NETLIFY_AUTH_TOKEN`.
 2. Once the PR's `preview` job has deployed successfully, and before merging: in the Netlify
    site's Build & deploy settings, stop builds. Netlify keeps serving the last deploy, and CLI
    deploys keep working with builds stopped. Doing this before the merge avoids a race between
@@ -218,20 +228,6 @@ overlay tools, treefmt, zizmor, pinact and the Netlify CLI.
 Separate commits, in roughly this order: flake re-architecture; tools moved into the overlay;
 checks; the one-time reformat, then the formatter and its check; workflows and dependabot; Netlify
 removal and README. Each commit passes the checks that exist at that point.
-
-## Open question for the maintainer
-
-Scope of the preview credential. Because same-repo PR jobs run PR-authored workflow code with the
-repository's secrets, any of the repository's collaborators can read the preview token by opening a
-PR. Options:
-
-1. Accept that exposure: the preview token is a personal access token for the maintainer's Netlify
-   account, and the collaborator list is trusted. Cheapest; one account to manage.
-2. Create a separate Netlify user (or team member) with access only to the `socal-nug` site, and
-   use that user's token for previews. Exposure is then limited to that site.
-3. Put the preview job in a GitHub Environment `preview` with required reviewers, so a maintainer
-   approves each preview deploy after seeing the PR. No exposure without a human, at the cost of a
-   click per PR, including Dependabot PRs.
 
 ## Left to the builder
 
