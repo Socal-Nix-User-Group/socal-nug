@@ -4,7 +4,7 @@
 
 **Goal:** Make the Nix flake the single definition of how the site is built, checked and deployed, with GitHub Actions deploying the Nix-built site to Netlify.
 
-**Architecture:** The flake is restructured in theonecfg's shape (one directory per output, tools as overlay packages, `nix flake check` as the whole test suite). The site is a derivation parameterized by `baseUrl`; one `ci.yml` workflow runs the checks, deploys same-repo PR previews, and deploys `main` to production with the Netlify CLI. Netlify stops building.
+**Architecture:** The flake is restructured in theonecfg's shape (one directory per output, tools as overlay packages, `nix flake check` as the whole test suite). The site is a derivation parameterized by `baseUrl`; one `ci.yml` workflow runs the checks, deploys same-repo PR previews, and deploys `main` to production from a protected GitHub Environment with the Netlify CLI. Netlify stops building.
 
 **Tech Stack:** Nix flakes (nixpkgs nixos-unstable, treefmt-nix), zola 0.23.6, `writers.writePython3Bin`, `writeShellApplication`, GitHub Actions, zizmor, pinact, dependabot, netlify-cli.
 
@@ -17,20 +17,24 @@
 - Supported systems: `x86_64-linux`, `aarch64-linux`, `x86_64-darwin`, `aarch64-darwin`.
 - nixpkgs is instantiated with `config = { allowAliases = false; allowUnfree = true; }` and the repo overlay.
 - Overlay packages live in `overlays/topLevel/<name>/package.nix` and are named `socal-nug-site`, `socal-nug-make-event-ical`, `socal-nug-verify-post`, `socal-nug-test-site`, `socal-nug-logos`.
+- Nix flakes see only git-tracked files: run `git add` on every new file or directory before any `nix build`, `nix run`, `nix fmt` or `nix flake check`.
+- Python scripts wrapped with `writePython3Bin` have no shebang line (the writer supplies the interpreter; a shebang on line 2 fails flake8 E265). Shell scripts wrapped with `writeShellApplication` keep `#!/usr/bin/env bash` so shellcheck can lint them standalone.
+- Every derivation or wrapper that runs zola sets `SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt"`.
 - Production base URL `https://socal-nug.com`; preview URL `https://pr-<number>--socal-nug.netlify.app`; Netlify site name `socal-nug`.
-- Every workflow action is pinned to a commit SHA with a `# vX.Y.Z` comment; every checkout sets `persist-credentials: false`; event payload values reach `run` only through `env`.
-- Secrets: only `NETLIFY_AUTH_TOKEN`, stored as both an Actions secret and a Dependabot secret. No repository variables.
-- mdformat covers only `README.md`, `docs/**/*.md` and `overlays/**/*.md`; `content/**` and `.claude/**` are excluded from all formatters.
+- Netlify deploys pass `--dir` as the store path from `nix build --no-link --print-out-paths`, never the `result` symlink.
+- Every workflow action is pinned to a commit SHA with a `# vX.Y.Z` comment; every checkout sets `persist-credentials: false`; event payload values reach `run` only through `env`; `run` scripts containing `: ` use `|` block scalars.
+- Secrets: `NETLIFY_AUTH_TOKEN` as a repository Actions secret and Dependabot secret (preview), and `NETLIFY_AUTH_TOKEN` in the GitHub Environment `production` (deploy). No repository variables.
+- mdformat covers only `README.md`, `docs/**/*.md` and `overlays/**/*.md` via `programs.mdformat.includes`; `content/**` and `.claude/**` are excluded from all formatters via `settings.excludes`.
 - Commit messages: plain engineer voice, no bold lead-ins, no em dashes, ending with `Assisted-by: Claude Code (<model>)`.
-- Each task's final commit leaves `nix flake check` passing for the checks that exist at that point.
+- Every commit leaves `nix flake check` passing for the checks that exist at that point.
 
 ## Review Focus
 
-- A pull request from a fork must skip the preview job rather than fail on the missing secret. Task 7 pins the `if` condition and runs actionlint and zizmor over it.
-- The production deploy must never run for pull requests or pushes to other branches, and never while a check is red. Task 7 pins `if` and `needs`; Task 9 confirms the PR run shows `deploy` skipped.
-- The Nix-built site must contain what Netlify used to produce, including every `event.ics` and `calendar.ics`. Task 2 diffs the package output against a devShell `zola build` plus ical run.
+- A pull request from a fork must skip the preview job rather than fail on the missing secret. Task 7 pins the `if` condition; it is a read-through, since no local tool evaluates `if` semantics and Task 9 exercises only a same-repo PR.
+- The production deploy must never run for pull requests or pushes to other branches, never while a check is red, and never with a credential reachable from PR jobs. Task 7 pins `if`, `needs` and `environment: production`; Task 9 confirms the PR run shows `deploy` skipped.
+- The Nix-built site must contain what Netlify used to produce, including every `event.ics` and `calendar.ics`. Task 2 adds an install check for `calendar.ics` to the package and diffs the output against a devShell `zola build` plus ical run.
 - A preview built with an overridden `baseUrl` must not link back to production. Task 1 asserts the sitemap of an override build contains only the override URL.
-- `nix fmt` must never touch site content or the skill. Task 6 asserts `content/` and `.claude/` are untouched after a full format.
+- `nix fmt` must never touch site content or the skill. Task 6 asserts `content/`, `.claude/`, `static/`, `templates/` and `sass/` are untouched after a full format, and that a stray `.md` outside the documentation set is not formatted.
 
 ---
 
@@ -56,7 +60,7 @@ Modified: `.claude/skills/adding-events/SKILL.md` (tool paths), `README.md` (rew
 
 **Files:**
 - Modify: `flake.nix`
-- Create: `legacyPackages/default.nix`, `overlays/default.nix`, `packages/default.nix`, `devShells/default.nix`, `overlays/topLevel/socal-nug-site/package.nix`
+- Create: `legacyPackages/default.nix`, `overlays/default.nix`, `packages/default.nix`, `devShells/default.nix`, `overlays/topLevel/socal-nug-site/package.nix`, placeholders `checks/default.nix`, `formatter/default.nix`, `formatterModule/default.nix`
 - Delete: `shell.nix`, `default.nix`
 
 **Interfaces:**
@@ -86,11 +90,11 @@ Modified: `.claude/skills/adding-events/SKILL.md` (tool paths), `README.md` (rew
 }
 ```
 
-`checks`, `formatter` and `formatterModule` do not exist until Tasks 3 and 6; create each of those three files now as `inputs: { }` so the flake evaluates, and replace them in their tasks.
+Create `checks/default.nix`, `formatter/default.nix` and `formatterModule/default.nix` as `inputs: { }` so the flake evaluates; Tasks 3 and 6 replace them.
 
 - [ ] **Step 2: Write `legacyPackages/default.nix`**
 
-`inputs: lib.genAttrs <the four systems> (system: import inputs.nixpkgs { inherit system; overlays = [ inputs.self.overlays.default ]; config = { allowAliases = false; allowUnfree = true; }; })` using `inputs.nixpkgs.lib.genAttrs`.
+`inputs: inputs.nixpkgs.lib.genAttrs <the four systems> (system: import inputs.nixpkgs { inherit system; overlays = [ inputs.self.overlays.default ]; config = { allowAliases = false; allowUnfree = true; }; })`.
 
 - [ ] **Step 3: Write `overlays/default.nix`**
 
@@ -112,13 +116,11 @@ in
 
 - [ ] **Step 4: Write `packages/default.nix` and `devShells/default.nix`**
 
-`packages`: `mapAttrs` over `inputs.self.legacyPackages` producing `{ default = pkgs.socal-nug-site; inherit (pkgs) socal-nug-site; }`. Later tasks add attributes to this set; the final set is `socal-nug-site`, `socal-nug-make-event-ical`, `socal-nug-verify-post`, `socal-nug-test-site`, `socal-nug-logos`, `netlify-cli`, `zizmor`, `pinact`.
+`packages`: `mapAttrs` over `inputs.self.legacyPackages` producing `{ default = pkgs.socal-nug-site; inherit (pkgs) socal-nug-site; }`. Later tasks extend the `inherit` list; the final list is `socal-nug-site socal-nug-make-event-ical socal-nug-verify-post socal-nug-test-site socal-nug-logos netlify-cli zizmor pinact`.
 
-`devShells`: `mapAttrs` over `inputs.self.legacyPackages` producing `{ default = pkgs.mkShellNoCC { packages = [ pkgs.zola ]; }; }`. Later tasks add the tools, the formatter, `zizmor`, `pinact` and `netlify-cli`. `act` and `alejandra` are not carried over: `nix flake check` replaces act, nixfmt via treefmt replaces alejandra.
+`devShells`: `mapAttrs` over `inputs.self.legacyPackages` producing `{ default = pkgs.mkShellNoCC { packages = [ pkgs.zola ]; }; }`. Later tasks add the tools, the formatter, `zizmor`, `pinact` and `netlify-cli`. `act` and `alejandra` are not carried over.
 
 - [ ] **Step 5: Write `overlays/topLevel/socal-nug-site/package.nix`**
-
-Signature and fixed values:
 
 ```nix
 { lib, stdenvNoCC, zola, cacert, baseUrl ? "https://socal-nug.com" }:
@@ -131,17 +133,17 @@ stdenvNoCC.mkDerivation {
   };
   nativeBuildInputs = [ zola ];
   SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";
-  # buildPhase: zola build --base-url (escaped baseUrl) --output-dir $out ; dontInstall = true
+  # buildPhase: zola build --base-url (lib.escapeShellArg baseUrl) --output-dir $out ; dontInstall = true
   passthru = { inherit baseUrl; };
 }
 ```
 
-`$out` is the site root itself (no `public/` subdirectory). The `fileset` keeps CI and docs changes from rebuilding the site.
+`$out` is the site root itself. The `fileset` keeps CI and docs changes from rebuilding the site.
 
-- [ ] **Step 6: Delete `shell.nix` and `default.nix`, update `flake.lock`**
+- [ ] **Step 6: Delete `shell.nix` and `default.nix`, stage everything, update `flake.lock`**
 
-Run: `git rm shell.nix default.nix && nix flake lock`
-Expected: `flake.lock` lists only `nixpkgs` and `treefmt-nix` (plus their own inputs); no `flake-utils`, `flake-compat`.
+Run: `git rm shell.nix default.nix && git add -A && nix flake lock`
+Expected: `flake.lock` lists `nixpkgs` and `treefmt-nix` (plus their own inputs); no `flake-utils`, no `flake-compat`.
 
 - [ ] **Step 7: Verify the package and the override**
 
@@ -156,7 +158,7 @@ Expected: `zola 0.23.6`; outputs listed for all four systems.
 
 - [ ] **Step 8: Commit**
 
-`flake: restructure without flake-utils and flake-compat` covering `flake.nix`, `flake.lock`, the new directories and the two deletions.
+`flake: restructure without flake-utils and flake-compat` covering `flake.nix`, `flake.lock`, the new directories and the two deletions. Do not commit `result*` symlinks.
 
 ---
 
@@ -171,7 +173,7 @@ Expected: `zola 0.23.6`; outputs listed for all four systems.
 
 - [ ] **Step 1: Move the script and make it flake8-clean**
 
-`git mv scripts/make_event_ical.py overlays/topLevel/socal-nug-make-event-ical/make_event_ical.py`. Replace `import toml` with the standard library `tomllib` (verify_post.py already uses it) so the tool needs no TOML dependency. Fix every flake8 finding (long lines, trailing whitespace) rather than ignoring them.
+`git mv scripts/make_event_ical.py overlays/topLevel/socal-nug-make-event-ical/make_event_ical.py`. Delete the shebang line. Replace `import toml` with the standard library `tomllib` (open the file in binary mode for `tomllib.load`); the reviewer confirmed both parse all 25 posts identically. Fix every remaining flake8 finding (long lines, trailing whitespace) rather than ignoring them.
 
 - [ ] **Step 2: Write `package.nix`**
 
@@ -182,19 +184,19 @@ writers.writePython3Bin "socal-nug-make-event-ical" {
 } (builtins.readFile ./make_event_ical.py)
 ```
 
-- [ ] **Step 3: Verify the tool builds and runs**
+- [ ] **Step 3: Stage, then verify the tool builds and runs**
 
-Run: `nix run .#socal-nug-make-event-ical -- --help`
+Run: `git add overlays/topLevel/socal-nug-make-event-ical && nix run .#socal-nug-make-event-ical -- --help`
 Expected: click's usage text; the build (which runs flake8) succeeds.
 
-- [ ] **Step 4: Fold it into the site package**
+- [ ] **Step 4: Fold it into the site package with an install check**
 
-Add `socal-nug-make-event-ical` to the package's arguments and `nativeBuildInputs`; after `zola build` run `socal-nug-make-event-ical --output $out/events/ content/events/20*.md`.
+Add `socal-nug-make-event-ical` to the package's arguments and `nativeBuildInputs`; after `zola build` run `socal-nug-make-event-ical --output $out/events/ content/events/20*.md`. Add `doInstallCheck = true;` and an `installCheckPhase` that runs `test -f $out/events/calendar.ics`.
 
 - [ ] **Step 5: Verify the output matches a devShell build**
 
-Run: `nix build .#socal-nug-site && test -f result/events/calendar.ics && ls result/events/*/event.ics | wc -l`
-Expected: calendar exists; the count equals the number of `content/events/20*.md` files.
+Run: `nix build .#socal-nug-site && ls result/events/*/event.ics | wc -l`
+Expected: the count equals the number of `content/events/20*.md` files (the install check already proved `calendar.ics`).
 
 Run, from the devShell: `rm -rf /tmp/manual && zola build --output-dir /tmp/manual && socal-nug-make-event-ical --output /tmp/manual/events/ content/events/20*.md && diff -rq /tmp/manual result`
 Expected: no differences.
@@ -217,15 +219,15 @@ Expected: no differences.
 
 - [ ] **Step 1: Move the script and schemas, make the script flake8-clean**
 
-`git mv` the three files. Fix flake8 findings.
+`git mv` the three files. Delete the shebang line. Fix flake8 findings.
 
 - [ ] **Step 2: Write `package.nix`**
 
 `writers.writePython3Bin "socal-nug-verify-post" { libraries = with python3Packages; [ click jsonschema ]; } (builtins.readFile ./verify_post.py)` then `.overrideAttrs (_: { passthru.schemas = ./schemas; })`.
 
-- [ ] **Step 3: Verify the tool, including the failure path**
+- [ ] **Step 3: Stage, then verify the tool, including the failure path**
 
-Run: `nix run .#socal-nug-verify-post -- --schema overlays/topLevel/socal-nug-verify-post/schemas/event.json content/events/20*.md; echo "exit $?"`
+Run: `git add overlays/topLevel/socal-nug-verify-post && nix run .#socal-nug-verify-post -- --schema overlays/topLevel/socal-nug-verify-post/schemas/event.json content/events/20*.md; echo "exit $?"`
 Expected: every file `[OK]`, `exit 0`.
 
 Run: `printf '+++\ntitle = "x"\n+++\n' > /tmp/bad.md && nix run .#socal-nug-verify-post -- --schema overlays/topLevel/socal-nug-verify-post/schemas/event.json /tmp/bad.md; echo "exit $?"`
@@ -237,7 +239,7 @@ Expected: `[ERROR]` line and `exit 1`.
 
 - [ ] **Step 5: Verify the check**
 
-Run: `nix build .#checks.x86_64-linux.frontmatter && nix flake check -L`
+Run: `git add checks && nix build .#checks.x86_64-linux.frontmatter && nix flake check -L`
 Expected: both succeed.
 
 - [ ] **Step 6: Update the skill**
@@ -267,7 +269,7 @@ nix develop -c socal-nug-make-event-ical --output public/events/ content/events/
 
 - [ ] **Step 1: Move the script and take the source directory as an argument**
 
-`git mv scripts/test_site.py overlays/topLevel/socal-nug-test-site/test_site.py`. Replace `ROOT = pathlib.Path(__file__).resolve().parents[1]` with `ROOT = pathlib.Path(sys.argv[1]).resolve()` and strip that argument before handing the rest to `unittest.main`. Update the module docstring: `socal-nug-test-site .` from the repository root.
+`git mv scripts/test_site.py overlays/topLevel/socal-nug-test-site/test_site.py`. Replace `ROOT = pathlib.Path(__file__).resolve().parents[1]` with `ROOT = pathlib.Path(sys.argv[1]).resolve()` and strip that argument before handing the rest to `unittest.main`. Update the module docstring: `socal-nug-test-site .` from the repository root. (This script is run through `python3`, not `writePython3Bin`, so its shebang may stay.)
 
 - [ ] **Step 2: Write `package.nix`**
 
@@ -281,9 +283,9 @@ writeShellApplication {
 }
 ```
 
-- [ ] **Step 3: Verify the tool from the repository root**
+- [ ] **Step 3: Stage, then verify the tool from the repository root**
 
-Run: `nix run .#socal-nug-test-site -- . 2>&1 | tail -3 && git status --short content/about`
+Run: `git add overlays/topLevel/socal-nug-test-site && nix run .#socal-nug-test-site -- . 2>&1 | tail -3 && git status --short content/about`
 Expected: `OK` with 16 tests; `content/about` clean (the probe profile was removed).
 
 - [ ] **Step 4: Add the checks**
@@ -293,7 +295,7 @@ In `checks/default.nix`: `site = pkgs.socal-nug-site;` and `test-site = pkgs.run
 - [ ] **Step 5: Verify**
 
 Run: `nix build .#checks.x86_64-linux.test-site && nix flake check -L`
-Expected: both succeed. Passing inside the sandbox proves the probe writes to the copy, not the flake source.
+Expected: both succeed. Passing inside the sandbox proves the probe writes to the copy, not the flake source, and that the wrapper's `SSL_CERT_FILE` reaches zola.
 
 - [ ] **Step 6: Expose the tool in `packages` and `devShells`, commit**
 
@@ -313,7 +315,7 @@ Expected: both succeed. Passing inside the sandbox proves the probe writes to th
 
 - [ ] **Step 1: Move the files and make the scripts path-independent**
 
-`compose.py` takes two arguments, `<work dir> <output dir>`, instead of deriving the output directory from `__file__`. `build.sh` loses its shebang and `here` logic and expects `$artwork` and `$compose` in its environment; it refuses to run unless `./config.toml` exists (so it only runs from the repository root) and passes `"$PWD/static/siblings"` as the output directory.
+`compose.py` takes two arguments, `<work dir> <output dir>`, instead of deriving the output directory from `__file__`. `build.sh` keeps `#!/usr/bin/env bash` and `set -euo pipefail`, drops its `here` logic, starts with `: "${artwork:?}" "${compose:?}"` (asserts the environment and satisfies shellcheck SC2154), refuses to run unless `./config.toml` exists (so it only runs from the repository root), and passes `"$PWD/static/siblings"` as the output directory.
 
 - [ ] **Step 2: Write `package.nix`**
 
@@ -330,9 +332,9 @@ writeShellApplication {
 
 Update the README in the package directory: run as `nix run .#socal-nug-logos` from the repository root.
 
-- [ ] **Step 3: Verify it reproduces the committed logos**
+- [ ] **Step 3: Stage, then verify it reproduces the committed logos**
 
-Run: `nix run .#socal-nug-logos && git status --short static/siblings`
+Run: `git add overlays/topLevel/socal-nug-logos && nix run .#socal-nug-logos && git status --short static/siblings`
 Expected: the tool prints both output paths and `git status` prints nothing (byte-identical SVGs).
 
 - [ ] **Step 4: Remove `scripts/`, expose the tool, commit**
@@ -357,9 +359,9 @@ Commit `tools: package the logo pipeline and retire scripts/`.
 `mapAttrs` over `inputs.self.legacyPackages`, each `inputs.treefmt-nix.lib.evalModule pkgs { config = { ... }; }` with:
 
 - `projectRootFile = "flake.nix"`, `enableDefaultExcludes = true`
-- `programs.nixfmt.enable = true`, `programs.shellcheck.enable = true`, `programs.mdformat = { enable = true; plugins = ps: [ ps.mdformat-gfm ]; }`
-- `settings.formatter.mdformat.includes = [ "README.md" "docs/**/*.md" "overlays/**/*.md" ]`
-- `settings.global.excludes = [ "content/**" ".claude/**" "*.gitignore" ]`
+- `programs.nixfmt.enable = true`, `programs.shellcheck.enable = true`
+- `programs.mdformat = { enable = true; plugins = ps: [ ps.mdformat-gfm ]; includes = [ "README.md" "docs/**/*.md" "overlays/**/*.md" ]; }` (the program-level `includes` replaces the default `*.md`; the `settings.formatter.mdformat.includes` list would merge with it)
+- `settings.excludes = [ "content/**" ".claude/**" ]` (`settings.global.excludes` is a renamed, deprecated alias)
 
 - [ ] **Step 2: Write `formatter/default.nix` and the check**
 
@@ -367,20 +369,20 @@ Commit `tools: package the logo pipeline and retire scripts/`.
 `checks.formatting = inputs.self.formatterModule.${system}.config.build.check inputs.self`.
 Add `inputs.self.formatter.${system}` to the devShell packages.
 
-- [ ] **Step 3: Run the formatter once and verify its reach**
+- [ ] **Step 3: Stage, confirm the check fails on the unformatted tree, then format**
 
-Run: `nix fmt && git status --short content .claude static templates sass; echo "(nothing expected)" && git status --short | head -30`
-Expected: no changes under `content/`, `.claude/`, `static/`, `templates/` or `sass/`; changes only to `.nix`, `.sh` and the covered `.md` files.
+Run: `git add formatter formatterModule checks && nix build .#checks.x86_64-linux.formatting; echo "exit $?"`
+Expected: `exit 1` with nixfmt or shellcheck findings listed.
 
-Run, before `nix fmt`: `nix build .#checks.x86_64-linux.formatting; echo "exit $?"`
-Expected: `exit 1` with nixfmt or shellcheck findings listed (the existing files are unformatted).
+Run: `touch static/stray.md && printf '#  stray\n' > static/stray.md && nix fmt && git status --short content .claude static templates sass; echo "(only static/stray.md as untracked expected)" && cat static/stray.md && rm static/stray.md`
+Expected: nothing changed under `content/`, `.claude/`, `templates/` or `sass/`; `static/stray.md` still reads `#  stray` (mdformat did not touch a Markdown file outside the documentation set); `git status --short` otherwise shows only `.nix`, `.sh` and covered `.md` files.
 
-Run, after `nix fmt`: `nix build .#checks.x86_64-linux.formatting`
-Expected: passes. A git flake's source includes uncommitted changes to tracked files, so this works before the commit.
+Run: `nix build .#checks.x86_64-linux.formatting`
+Expected: passes (a git flake's source includes uncommitted changes to tracked files).
 
-- [ ] **Step 4: Commit in two parts**
+- [ ] **Step 4: Commit in two parts, reformat first**
 
-First `fmt: add treefmt with nixfmt, shellcheck and mdformat` (the three Nix files and the check), then `fmt: apply treefmt to the existing tree` (only the reformatted files).
+First `fmt: reformat nix, shell and markdown files` containing only the reformatted files (the formatter and check files stay staged but uncommitted). Then `fmt: add treefmt with nixfmt, shellcheck and mdformat` with `formatter/`, `formatterModule/`, `checks/` and `devShells/`. Both commits pass the checks that exist at each point.
 
 Run after: `nix flake check -L`
 Expected: `site`, `frontmatter`, `test-site`, `formatting` all pass.
@@ -418,19 +420,20 @@ permissions:
   contents: read
 ```
 
-Jobs, each starting with `actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1` with `persist-credentials: false` then `$/.github/actions/setup-nix`:
+Jobs, each starting with `actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1` with `persist-credentials: false` then `$/.github/actions/setup-nix`. Every `run` with a URL or a `--body` is a `|` block scalar.
 
 - `nix-checks`: `nix flake check -L`.
-- `workflow-security`: `nix run .#zizmor -- .github/` with `GH_TOKEN: ${{ github.token }}`, then `nix run .#pinact -- run --check` with `GITHUB_TOKEN: ${{ github.token }}`.
+- `workflow-security`: `nix run .#zizmor -- .github/` with `env: GH_TOKEN: ${{ github.token }}`, then `nix run .#pinact -- run --check` with `env: GITHUB_TOKEN: ${{ github.token }}`.
 - `preview`: `if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository`; job `permissions: { contents: read, pull-requests: write }`; job `env: PR_NUMBER: ${{ github.event.pull_request.number }}`. Steps:
-  1. build: `nix build --impure --expr "(builtins.getFlake (toString ./.)).legacyPackages.\${builtins.currentSystem}.socal-nug-site.override { baseUrl = \"https://pr-$PR_NUMBER--socal-nug.netlify.app\"; }"`
-  2. deploy, with `env: NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}`: `nix run .#netlify-cli -- deploy --no-build --dir "$(readlink -f result)" --alias "pr-$PR_NUMBER" --site socal-nug`
-  3. comment, with `env: GH_TOKEN: ${{ github.token }}`: `gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none --body "Preview: https://pr-$PR_NUMBER--socal-nug.netlify.app"` (`--create-if-none` needs gh 2.65 or newer, which ubuntu-latest ships).
-- `deploy`: `if: github.event_name == 'push' && github.ref == 'refs/heads/main'`; `needs: [nix-checks, workflow-security]`; job `concurrency: { group: deploy-production, cancel-in-progress: false }`. Steps: `nix build .#socal-nug-site`, then with the secret `nix run .#netlify-cli -- deploy --no-build --prod --dir "$(readlink -f result)" --site socal-nug`.
+  1. build, capturing the store path into `$GITHUB_OUTPUT` as `path`:
+     `out=$(nix build --no-link --print-out-paths --impure --expr "(builtins.getFlake (toString ./.)).legacyPackages.\${builtins.currentSystem}.socal-nug-site.override { baseUrl = \"https://pr-$PR_NUMBER--socal-nug.netlify.app\"; }")` then `echo "path=$out" >> "$GITHUB_OUTPUT"`.
+  2. deploy, with `env: NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}` and `SITE_DIR: ${{ steps.build.outputs.path }}`: `nix run .#netlify-cli -- deploy --no-build --dir "$SITE_DIR" --alias "pr-$PR_NUMBER" --site socal-nug`.
+  3. comment, with `env: GH_TOKEN: ${{ github.token }}`: `gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none --body "Preview: https://pr-$PR_NUMBER--socal-nug.netlify.app"` (`--create-if-none` needs gh 2.65 or newer; ubuntu-latest ships 2.103).
+- `deploy`: `if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')`; `needs: [nix-checks, workflow-security]`; `environment: production`; job `concurrency: { group: deploy-production, cancel-in-progress: false }`. Steps: `out=$(nix build --no-link --print-out-paths .#socal-nug-site)` into `$GITHUB_OUTPUT`, then with the Environment's secret `nix run .#netlify-cli -- deploy --no-build --prod --dir "$SITE_DIR" --site socal-nug`.
 
 - [ ] **Step 3: Write `zizmor.yml` and `dependabot.yml`**
 
-`zizmor.yml` verbatim from theonecfg (triggers on pushes to `main` and PRs touching `.github/**` or `flake.lock`; `permissions: {}`; job permissions `contents: read`, `security-events: write`; `nix run .#zizmor -- --format sarif --pedantic . > results.sarif`; `github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1`).
+`zizmor.yml` from theonecfg with one change: triggers only on `push` to `main` with paths `.github/**` and `flake.lock` (no `pull_request`, since a fork PR's read-only token cannot upload SARIF). `permissions: {}` at the top; job permissions `contents: read`, `security-events: write`; `nix run .#zizmor -- --format sarif --pedantic . > results.sarif`; `github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1`.
 
 `dependabot.yml`:
 
@@ -447,25 +450,23 @@ updates:
     cooldown: { default-days: 7 }
 ```
 
-- [ ] **Step 4: Expose the CI tools and delete the old workflow**
+- [ ] **Step 4: Expose the CI tools, delete the old workflow, stage**
 
-Add `inherit (pkgs) netlify-cli zizmor pinact;` to `packages` and the same three to the devShell. `git rm .github/workflows/main.yml`.
+Add `inherit (pkgs) netlify-cli zizmor pinact;` to `packages` and the same three to the devShell. `git rm .github/workflows/main.yml && git add -A`.
 
 - [ ] **Step 5: Verify locally**
 
-Run: `nix run .#zizmor -- .github/`
-Expected: `No findings` (regular persona).
+Run: `GH_TOKEN=$(gh auth token) nix run .#zizmor -- .github/`
+Expected: the output includes a `completed` line for `ci.yml` and for `zizmor.yml` (a file that fails to parse is skipped silently and still yields "No findings"), then `No findings to report`.
 
-Run: `nix run .#pinact -- run --check`
-Expected: exit 0 (every `uses:` pinned with a version comment).
+Run: `GITHUB_TOKEN=$(gh auth token) nix run .#pinact -- run --check`
+Expected: exit 0 (every `uses:` pinned with a version comment; `$/` references are ignored).
 
-Run: `nix run nixpkgs#actionlint -- .github/workflows/ci.yml .github/workflows/zizmor.yml`
-Expected: no findings.
+Run: `nix run nixpkgs#actionlint -- -ignore 'specifying action "\$/[^"]*" in invalid format' .github/workflows/ci.yml .github/workflows/zizmor.yml`
+Expected: no findings. actionlint does not know the `$/` self-repository reference, which GitHub documents and theonecfg's green CI uses, so that one diagnostic is ignored deliberately.
 
-Run: `nix run .#netlify-cli -- deploy --help | grep -E -- '--no-build|--alias|--site'`
-Expected: all three flags listed. If `--no-build` is absent, drop it and record why in the commit message.
-
-Run: `nix run .#netlify-cli -- deploy --help` confirms `--dir` accepts a path; `readlink -f result` is used because `result` is a symlink into the store.
+Run: `nix run nixpkgs#yq -- . .github/workflows/ci.yml > /dev/null`
+Expected: parses (guards against the `: ` plain-scalar mistake).
 
 - [ ] **Step 6: Commit**
 
@@ -486,11 +487,11 @@ Expected: no matches outside `docs/`.
 
 - [ ] **Step 2: Rewrite `README.md`**
 
-Sections, in order: title; Quickstart (`nix develop`, then `zola serve`); Checks (`nix flake check` runs the site build, frontmatter validation, build-output tests and formatting; `nix fmt` fixes formatting); Build (`nix build` produces the deployable site in `result/`; `.#socal-nug-site` accepts a `baseUrl` override); Tools (`nix run .#socal-nug-verify-post`, `.#socal-nug-make-event-ical`, `.#socal-nug-test-site`, `.#socal-nug-logos`, one line each); Deploys (pull requests from this repository get a preview at `https://pr-<number>--socal-nug.netlify.app`; merges to `main` deploy to production; Netlify only hosts). Keep it under 60 lines.
+Sections, in order: title; Quickstart (`nix develop`, then `zola serve`); Checks (`nix flake check` runs the site build, frontmatter validation, build-output tests and formatting; `nix fmt` fixes formatting); Build (`nix build` produces the deployable site in `result/`; `.#socal-nug-site` accepts a `baseUrl` override); Tools (`nix run .#socal-nug-verify-post`, `.#socal-nug-make-event-ical`, `.#socal-nug-test-site`, `.#socal-nug-logos`, one line each); Deploys (pull requests from this repository get a preview at `https://pr-<number>--socal-nug.netlify.app`; merges to `main` deploy to production from the `production` Environment; Netlify only hosts; the two `NETLIFY_AUTH_TOKEN` credentials, their expiry choice, and recovery by updating the secret and re-running or dispatching `ci.yml` on `main`). Keep it under 70 lines.
 
 - [ ] **Step 3: Verify the whole branch**
 
-Run: `nix flake check -L && nix build .#socal-nug-site && nix run .#zizmor -- .github/ && nix run .#pinact -- run --check`
+Run: `nix flake check -L && nix build .#socal-nug-site && GH_TOKEN=$(gh auth token) nix run .#zizmor -- .github/ && GITHUB_TOKEN=$(gh auth token) nix run .#pinact -- run --check`
 Expected: all pass.
 
 - [ ] **Step 4: Commit**
@@ -503,26 +504,25 @@ Expected: all pass.
 
 **Files:** none.
 
-- [ ] **Step 1: Maintainer prerequisites (outside the repo, done by the maintainer before the PR)**
+- [ ] **Step 1: Maintainer prerequisites (outside the repo, before the PR)**
 
-1. Create a Netlify personal access token.
-2. Store it as the repository Actions secret `NETLIFY_AUTH_TOKEN`.
-3. Store it as the repository Dependabot secret `NETLIFY_AUTH_TOKEN`.
+1. Create the preview Netlify credential (scope per the spec's open question) and store it as the repository Actions secret and the repository Dependabot secret `NETLIFY_AUTH_TOKEN`.
+2. Create the GitHub Environment `production`, set its deployment branches to `main` only, and store the production credential in it as `NETLIFY_AUTH_TOKEN`.
 
 - [ ] **Step 2: Push and open the PR**
 
 Run: `git push -u origin HEAD:ci-rework` then `gh pr create --base main --head ci-rework --title "Build, check and deploy the site from the Nix flake" --body-file <body>`.
 
-The body states: what moved into the flake; that `nix flake check` is the test suite; the preview and deploy mechanics; that Netlify's own deploy preview for this PR will fail or be wrong because `netlify.toml` is gone, which is expected; the merge-time step (stop builds in Netlify's Build & deploy settings); the recommendation to add `nix-checks` and `workflow-security` as required status checks; and a single final line `Assisted-by: Claude Code (<model>)`. No bold lead-ins, no em dashes.
+The body states: what moved into the flake; that `nix flake check` is the test suite; the preview and deploy mechanics and the two credentials; that Netlify's own deploy preview for this PR will fail or be wrong because `netlify.toml` is gone, which is expected; the pre-merge step (stop builds in Netlify's Build & deploy settings once the preview job has deployed); the recommendation to add `nix-checks` and `workflow-security` as required status checks; and a single final line `Assisted-by: Claude Code (<model>)`. No bold lead-ins, no em dashes.
 
 - [ ] **Step 3: Verify the live run**
 
 Run: `gh pr checks <number> --watch`
-Expected: `nix-checks`, `workflow-security` and `preview` pass; `deploy` is skipped; the `zizmor` report workflow passes.
+Expected: `nix-checks`, `workflow-security` and `preview` pass; `deploy` is skipped.
 
 Run: `curl -sL https://pr-<number>--socal-nug.netlify.app/sitemap.xml | grep -c 'pr-<number>--socal-nug.netlify.app'` and `curl -sL .../ | grep -o 'bulma@[0-9.]*'`
 Expected: a positive count and `bulma@1.0.4`; the sticky comment with the preview URL exists exactly once on the PR, and a second push updates it rather than adding another.
 
-- [ ] **Step 4: After merge (maintainer)**
+- [ ] **Step 4: Before and after merge (maintainer)**
 
-Stop builds in Netlify. Confirm the `deploy` job ran on the merge commit and `https://socal-nug.com` serves the new build (compare `curl -sL https://socal-nug.com/ | grep -o 'bulma@[0-9.]*'`).
+Before merging: stop builds in Netlify. After merging: confirm the `deploy` job ran on the merge commit, that Netlify's deploy log shows a CLI deploy, and that `https://socal-nug.com` serves the new build (`curl -sL https://socal-nug.com/ | grep -o 'bulma@[0-9.]*'`).
