@@ -1,7 +1,8 @@
 inputs:
-inputs.nixpkgs.lib.mapAttrs (_system: pkgs: {
+inputs.nixpkgs.lib.mapAttrs (system: pkgs: {
   default = pkgs.mkShellNoCC {
     packages = [
+      inputs.self.formatter.${system}
       pkgs.zola
       pkgs.socal-nug-make-event-ical
       pkgs.socal-nug-verify-post

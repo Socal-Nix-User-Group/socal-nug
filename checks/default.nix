@@ -1,8 +1,11 @@
 inputs:
-inputs.nixpkgs.lib.mapAttrs (_system: pkgs: {
+inputs.nixpkgs.lib.mapAttrs (system: pkgs: {
 
   # The site builds, with its calendar files.
   site = pkgs.socal-nug-site;
+
+  # Nix, shell and documentation Markdown are formatted (see formatterModule).
+  formatting = inputs.self.formatterModule.${system}.config.build.check inputs.self;
 
   # The build-output tests, run against a writable copy of the source because the
   # about-page ordering test writes a temporary profile into content/about/.
