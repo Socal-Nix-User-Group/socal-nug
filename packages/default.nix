@@ -5,5 +5,6 @@ inputs.nixpkgs.lib.mapAttrs (_system: pkgs: {
     socal-nug-site
     socal-nug-make-event-ical
     socal-nug-verify-post
+    socal-nug-test-site
     ;
 }) inputs.self.legacyPackages

@@ -1,6 +1,23 @@
 inputs:
 inputs.nixpkgs.lib.mapAttrs (_system: pkgs: {
 
+  # The site builds, with its calendar files.
+  site = pkgs.socal-nug-site;
+
+  # The build-output tests, run against a writable copy of the source because the
+  # about-page ordering test writes a temporary profile into content/about/.
+  test-site =
+    pkgs.runCommand "socal-nug-test-site-check"
+      {
+        nativeBuildInputs = [ pkgs.socal-nug-test-site ];
+      }
+      ''
+        cp -r ${inputs.self} src
+        chmod -R u+w src
+        socal-nug-test-site ./src
+        touch "$out"
+      '';
+
   # Every event post and member profile validates against its JSON schema.
   frontmatter =
     pkgs.runCommand "socal-nug-frontmatter"
