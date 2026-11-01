@@ -1,7 +1,6 @@
 # CI and deploy rework
 
-Date: 2026-10-31. Branch `ci-rework`, based on `dark-mode` (PR #97); rebase onto `main` once that
-merges.
+Date: 2026-10-31. Branch `ci-rework`, based on `main` after the dark-mode PR (#97) merged.
 
 ## Intent
 
@@ -184,8 +183,8 @@ Each commit builds and passes `nix flake check`.
 - Exact directory and attribute names within the conventions above.
 - `writers.writePython3Bin` runs flake8 over the wrapped script; the existing scripts have long
   lines and trailing whitespace. Prefer cleaning the scripts over disabling the check.
-- The `adding-events` skill under `.claude/skills/` lives on `main` and is not on this branch
-  yet; its `scripts/` references are updated when the branch is rebased onto `main`.
+- The `adding-events` skill under `.claude/skills/` references the validator and schema under
+  `scripts/`; it is updated to the new tool and schema locations.
 - How `socal-nug-test-site` receives the source path and how the check copies the tree.
 - The sticky-comment mechanism (a marker string searched with `gh`, or an action if a pinned
   one is clearly better).
