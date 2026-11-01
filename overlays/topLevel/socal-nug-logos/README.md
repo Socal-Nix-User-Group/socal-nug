@@ -3,7 +3,9 @@
 `static/siblings/gateway-cities.svg` and `static/siblings/north-county.svg` are generated from
 `artwork/gateway-cities.png`, the Gateway Cities NUG logo. Run from the repository root:
 
-    nix run .#socal-nug-logos
+```
+nix run .#socal-nug-logos
+```
 
 This traces the PNG with potrace, splits the result into the letters G, C, N, U, G and the six
 snowflake arms, recolors them, and writes both SVGs. North County's mark reuses the same

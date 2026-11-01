@@ -134,9 +134,11 @@ what they need. Values from the event payload reach `run` steps through `env`, n
   `nix-community/cache-nix-action` keyed on `flake.lock`, copied from theonecfg. Referenced as
   `$/.github/actions/setup-nix`; GitHub documents `$/` as the self-repository reference, and
   actionlint does not know it, so actionlint runs with that diagnostic ignored.
+
 - `.github/workflows/ci.yml`, one workflow on `pull_request`, `push` to `main` and
   `workflow_dispatch`, with a per-PR concurrency group that cancels in progress for pull requests
   and never cancels a production deploy:
+
   - `nix-checks`: `nix flake check -L`.
   - `workflow-security`: `nix run .#zizmor -- .github/` with `GH_TOKEN: ${{ github.token }}` and
     `nix run .#pinact -- run --check` with `GITHUB_TOKEN: ${{ github.token }}`. Without the token
@@ -169,8 +171,10 @@ what they need. Values from the event payload reach `run` steps through `env`, n
 - `.github/workflows/zizmor.yml`: pedantic SARIF report uploaded to code scanning, on pushes to
   `main` touching `.github/**` or `flake.lock`. Not on pull requests: a fork PR's read-only token
   cannot upload SARIF, and the blocking gate is the regular-persona run in `ci.yml`.
+
 - `.github/dependabot.yml`: `github-actions` for `/` and `/.github/actions/*`, and `nix` for `/`,
   weekly, 7-day cooldown.
+
 - `.github/workflows/main.yml` is deleted.
 
 zizmor, pinact and the Netlify CLI come from nixpkgs through the flake's packages so
@@ -206,11 +210,11 @@ maintainer, outside this repository, in this order:
    `NETLIFY_AUTH_TOKEN`; store the same credential as the repository Dependabot secret
    `NETLIFY_AUTH_TOKEN`; create the Environment `production` with deployment branches limited to
    `main` and store the production credential in it as `NETLIFY_AUTH_TOKEN`.
-2. Once the PR's `preview` job has deployed successfully, and before merging: in the Netlify
+1. Once the PR's `preview` job has deployed successfully, and before merging: in the Netlify
    site's Build & deploy settings, stop builds. Netlify keeps serving the last deploy, and CLI
    deploys keep working with builds stopped. Doing this before the merge avoids a race between
    Netlify's git build (now with no `netlify.toml`) and the Actions deploy on the merge commit.
-3. After the merge: confirm in Netlify's deploy log that the production deploy came from the CLI,
+1. After the merge: confirm in Netlify's deploy log that the production deploy came from the CLI,
    and that `socal-nug.com` serves the new build.
 
 On this branch's PR, Netlify's own deploy preview will fail or be wrong once `netlify.toml` is
