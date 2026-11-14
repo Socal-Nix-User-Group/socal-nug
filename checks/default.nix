@@ -34,4 +34,20 @@ inputs.nixpkgs.lib.mapAttrs (system: pkgs: {
         touch "$out"
       '';
 
+  # Netlify builds the site with its own Zola, pinned in netlify.toml; the pin must match the
+  # flake's zola so a Netlify build does not differ from the package.
+  netlify-zola-version =
+    pkgs.runCommand "socal-nug-netlify-zola-version"
+      {
+        pinned = (builtins.fromTOML (builtins.readFile ../netlify.toml)).build.environment.ZOLA_VERSION;
+        flake = pkgs.zola.version;
+      }
+      ''
+        if [ "$pinned" != "$flake" ]; then
+          echo "netlify.toml pins ZOLA_VERSION = $pinned but the flake's zola is $flake" >&2
+          exit 1
+        fi
+        touch "$out"
+      '';
+
 }) inputs.self.legacyPackages

@@ -8,7 +8,6 @@ inputs.nixpkgs.lib.mapAttrs (system: pkgs: {
       pkgs.socal-nug-verify-post
       pkgs.socal-nug-test-site
       pkgs.socal-nug-logos
-      pkgs.netlify-cli
       pkgs.zizmor
       pkgs.pinact
     ];

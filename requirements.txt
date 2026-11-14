@@ -1,0 +1,5 @@
+# Python dependencies for Netlify's build of the calendar script, pinned to the versions in
+# the flake's nixpkgs. The Nix build gets them from overlays/topLevel/socal-nug-make-event-ical.
+click==8.4.2
+icalendar==7.2.2
+pytz==2026.3.post1

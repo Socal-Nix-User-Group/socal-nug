@@ -1,7 +1,8 @@
 # Southern California Nix User Group Site
 
-The site is built with [Zola](https://www.getzola.org/). Everything here is defined by the Nix
-flake: the development shell, the build, the checks, and the tools.
+The site is built with [Zola](https://www.getzola.org/). The Nix flake defines the development
+shell, the build, the checks, and the tools. Netlify builds and hosts the deployed site from
+`netlify.toml`.
 
 ## Quickstart
 
@@ -17,9 +18,9 @@ nix flake check
 ```
 
 This builds the site, validates the front matter of event posts and member profiles against
-their JSON schemas, runs the build-output tests, and checks formatting. CI runs the same
-command. To fix formatting (Nix, shell scripts and repository Markdown; site content is never
-formatted):
+their JSON schemas, runs the build-output tests, checks that `netlify.toml` pins the same Zola
+version as the flake, and checks formatting. CI runs the same command. To fix formatting (Nix,
+shell scripts and repository Markdown; site content is never formatted):
 
 ```
 nix fmt
@@ -31,8 +32,8 @@ nix fmt
 nix build
 ```
 
-`result/` is the deployable site, including the calendar feed and each event's `event.ics`.
-The package accepts a `baseUrl` override, which the preview deploys use.
+`result/` is the site as Netlify should build it, including the calendar feed and each event's
+`event.ics`. The package accepts a `baseUrl` override.
 
 ## Tools
 
@@ -45,27 +46,12 @@ Each lives under `overlays/topLevel/` and runs with `nix run`:
 
 ## Deploys
 
-GitHub Actions deploys the Nix-built site to Netlify, which only hosts it.
+Netlify builds and deploys the site itself, configured by `netlify.toml`: pushes to `main` go to
+production at https://socal-nug.com, and every pull request gets a deploy preview linked from
+the pull request's checks. GitHub Actions only runs the checks, so the repository holds no
+deploy credentials.
 
-- Pull requests from this repository get a preview at `https://pr-<number>--socal-nug.netlify.app`.
-  The job runs in the `preview` GitHub Environment and waits for a maintainer's approval in the
-  Actions UI before it deploys.
-- Merges to `main` deploy to production from the `production` Environment once the checks pass.
-  The job can also be dispatched manually on `main` to redeploy.
-
-Credentials are Netlify personal access tokens named `NETLIFY_AUTH_TOKEN`: one in the `preview`
-Environment and, because Dependabot runs can only read Dependabot secrets, also as a Dependabot
-secret; another in the `production` Environment. Record the expiry chosen when creating them.
-If a token expires or is rotated, update the secret and re-run the failed workflow run, or
-dispatch `ci.yml` on `main`.
-
-The two Environments carry the protection rules the security model depends on, because a
-pull request runs its own branch's workflow code with whatever secrets its jobs can reach:
-
-- `preview` requires reviewers. Add them before storing its secret; a first workflow run creates
-  the Environment with no rules, so configure the existing one rather than expecting to create
-  it. The reviewer gate is the only thing separating the preview token from production: a
-  Netlify personal access token acts for its whole account, and no Netlify role can deploy
-  previews but not production. Using a separate token for previews still lets it be revoked on
-  its own.
-- `production` limits deployment branches to `main`. Set that before storing its secret.
+Netlify builds with its own Zola and Python rather than with the flake. `netlify.toml` pins
+`ZOLA_VERSION`, and `nix flake check` fails if that pin differs from the flake's zola, so a
+nixpkgs update that changes zola also updates the pin. The calendar script's Python
+dependencies come from `requirements.txt`, pinned to the versions in the flake's nixpkgs.
