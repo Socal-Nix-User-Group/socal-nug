@@ -88,13 +88,13 @@ Write the file (for a new venue, only after the venue block is confirmed). Show 
 ## Verify
 
 ```bash
-nix develop -c python scripts/verify_post.py --schema scripts/schemas/event.json content/events/20*.md
+nix develop -c socal-nug-verify-post --schema overlays/topLevel/socal-nug-verify-post/schemas/event.json content/events/20*.md
 nix develop -c zola build
-nix develop -c python scripts/make_event_ical.py --output public/events/ content/events/20*.md
+nix develop -c socal-nug-make-event-ical --output public/events/ content/events/20*.md
 grep -c 'data-event-date="YYYY-MM-DD"' public/events/index.html
 ```
 
-The first three must exit 0: the CI check, then the two Netlify build steps. The grep must print 1. `public/` is gitignored.
+The first three must exit 0: the frontmatter check, the site build, and the calendar generation, which are what `nix flake check` and the site package run. The grep must print 1. `public/` is gitignored.
 
 ## Ship
 

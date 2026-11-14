@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Build the site with zola and check the generated HTML and CSS.
 
-Run from the repository root with zola on PATH (the devShell provides it):
+Takes the site source directory as its first argument. From the repository root:
 
-    python3 scripts/test_site.py
+    socal-nug-test-site .
 
-Uses only the standard library. The site is built into a temporary directory.
+Uses only the standard library. The site is built into a temporary directory. The
+about-page ordering test writes a temporary profile into the source's content/about/.
 """
 import hashlib
 import pathlib
@@ -16,7 +17,7 @@ import sys
 import tempfile
 import unittest
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
+ROOT = pathlib.Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else None
 
 # https://brand.nixos.org/internals/nixos-logomark-default-gradient-none.svg
 LOGOMARK_SHA256 = '50bfc4ca4fdeed8adfcfcb91f4c67007cd1af92e070bd0a38b1a56f2da4932f6'
@@ -162,4 +163,6 @@ class SiteBuild(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main(verbosity=2)
+    if ROOT is None or not (ROOT / 'config.toml').is_file():
+        sys.exit('usage: socal-nug-test-site <site source dir>')
+    unittest.main(argv=[sys.argv[0]] + sys.argv[2:], verbosity=2)

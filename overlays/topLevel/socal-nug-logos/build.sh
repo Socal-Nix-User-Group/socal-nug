@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
 # Regenerate the sibling group logos, static/siblings/*.svg, from the Gateway Cities source PNG.
-# Requires potrace, ImageMagick (magick) and python3; the devShell provides all three.
+# Run from the repository root as `nix run .#socal-nug-logos`. The wrapper provides potrace,
+# ImageMagick and python3 and sets $artwork and $compose to the store paths of the inputs.
 set -euo pipefail
+: "${artwork:?}" "${compose:?}"
 
-here=$(cd "$(dirname "$0")" && pwd)
+if [ ! -f ./config.toml ]; then
+  echo "run this from the repository root (config.toml not found in $PWD)" >&2
+  exit 1
+fi
+
 work=$(mktemp -d)
-src="$here/artwork/gateway-cities.png"
+out="$PWD/static/siblings"
 
 # 1. Trace the alpha mask at 4x. The snowflake's right arm overlaps the N stem with a thin
 #    knockout outline in the source art, so the trace yields the arm whole (with its arrowhead)
 #    and the N with a matching notch. Both are kept: the notch shows the page background.
-magick "$src" -filter Lanczos -resize 400% -alpha extract -threshold 50% -negate "$work/mask.pbm"
+magick "$artwork" -filter Lanczos -resize 400% -alpha extract -threshold 50% -negate "$work/mask.pbm"
 potrace --svg --turdsize 10 --alphamax 1 --opttolerance 0.2 -o "$work/all.svg" "$work/mask.pbm"
 
 # 2. A clean N for North County's first letter: crop the N (source x 353..448, i.e. 1412..1792
@@ -20,4 +26,4 @@ magick "$work/mask.pbm" -negate -crop 383x700+1412+0 +repage -morphology Close D
 potrace --svg --turdsize 10 --alphamax 1 --opttolerance 0.2 -o "$work/n.svg" "$work/n.pbm"
 
 # 3. Split the trace into letters and snowflake arms, recolor, and write both logos.
-python3 "$here/compose.py" "$work"
+python3 "$compose" "$work" "$out"

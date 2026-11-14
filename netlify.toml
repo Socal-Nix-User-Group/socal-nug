@@ -1,18 +1,16 @@
+# Netlify builds and deploys the site from this file: production from main, and a deploy
+# preview per pull request. The GitHub Actions workflow only runs the checks.
 [build]
-# This assumes that the Zola site is in a docs folder. If it isn't, you don't need
-# to have a `base` variable but you do need the `publish` and `command` variables.
-base    = "/"
 publish = "public"
-command = "zola build && python scripts/make_event_ical.py --output public/events/ content/events/20*.md"
+command = "zola build && python3 overlays/topLevel/socal-nug-make-event-ical/make_event_ical.py --output public/events/ content/events/20*.md"
 
 [build.environment]
-# Set the version name that you want to use and Netlify will automatically use it.
+# Keep ZOLA_VERSION equal to the flake's zola: `nix flake check` fails when they differ.
 ZOLA_VERSION = "0.23.6"
+# The calendar script uses tomllib, so Python 3.11 or newer. Netlify installs
+# requirements.txt before running the build command.
+PYTHON_VERSION = "3.13"
 
-# The magic for deploying previews of branches.
-# We need to override the base url with whatever url Netlify assigns to our
-# preview site.  We do this using the Netlify environment variable
-# `$DEPLOY_PRIME_URL`.
-
+# Zola bakes base_url into links, so previews are built for the URL Netlify assigns them.
 [context.deploy-preview]
-command = "zola build --base-url $DEPLOY_PRIME_URL && python scripts/make_event_ical.py --output public/events/ content/events/20*.md"
+command = "zola build --base-url $DEPLOY_PRIME_URL && python3 overlays/topLevel/socal-nug-make-event-ical/make_event_ical.py --output public/events/ content/events/20*.md"

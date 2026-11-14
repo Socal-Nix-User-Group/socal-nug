@@ -1,16 +1,15 @@
-#!/usr/bin/env python
-import icalendar
+import tomllib
+from datetime import datetime
 from pathlib import Path
 
-import toml
 import click
-
+import icalendar
 import pytz
-from datetime import datetime
+
 
 @click.command()
-@click.argument('posts',  nargs=-1)
-@click.option('--output',  help='Output for iCal files')
+@click.argument('posts', nargs=-1)
+@click.option('--output', help='Output for iCal files')
 def validate_data(posts, output):
     all_events = icalendar.Calendar()
     all_events.add('prodid', '-//SoCal NUG//Calendar Boi//EN')
@@ -25,7 +24,7 @@ def validate_data(posts, output):
 
         separator = '+++'
         front_matter = data_content.split(separator)[1].strip()
-        data = toml.loads(front_matter)
+        data = tomllib.loads(front_matter)
 
         # Parse the date and times
         event_date = data["extra"]["event"]["date"]
@@ -34,8 +33,13 @@ def validate_data(posts, output):
 
         # Create datetime objects with timezone information (Assuming PST)
         timezone = pytz.timezone("America/Los_Angeles")
-        start_datetime = timezone.localize(datetime.strptime(f"{event_date} {start_time_str}", "%Y-%m-%d %H:%M")).astimezone(pytz.utc)
-        stop_datetime = timezone.localize(datetime.strptime(f"{event_date} {stop_time_str}", "%Y-%m-%d %H:%M")).astimezone(pytz.utc)
+        time_format = "%Y-%m-%d %H:%M"
+        start_datetime = timezone.localize(
+            datetime.strptime(f"{event_date} {start_time_str}", time_format)
+        ).astimezone(pytz.utc)
+        stop_datetime = timezone.localize(
+            datetime.strptime(f"{event_date} {stop_time_str}", time_format)
+        ).astimezone(pytz.utc)
 
         # Create the calendar and event objects
         cal = icalendar.Calendar()
@@ -43,14 +47,16 @@ def validate_data(posts, output):
         cal.add('version', '2.0')
         event = icalendar.Event()
 
+        venue = data['extra']['venue']
         event.add('uid', f"{event_date}-{start_time_str}@socalnog.local")
         event.add('dtstamp', start_datetime)
         event.add("summary", data["title"])
         event.add("description", data["description"])
         event.add("dtstart", start_datetime)
         event.add("dtend", stop_datetime)
-        event.add("location", f"{data['extra']['venue']['name']}, {data['extra']['venue']['address_street']}, "
-                              f"{data['extra']['venue']['address_city']} {data['extra']['venue']['address_zip']}")
+        event.add("location",
+                  f"{venue['name']}, {venue['address_street']}, "
+                  f"{venue['address_city']} {venue['address_zip']}")
         event.add("organizer", data["extra"]["organizer"])
 
         # Add the event to the calendar
