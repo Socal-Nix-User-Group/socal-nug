@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-31-ci-and-deploy-design.md`
 
+**Revision of 2026-11-14:** after this plan was executed, the deploy model changed: Netlify builds and deploys the site itself again from `netlify.toml`, the `preview` and `deploy` jobs, the Netlify CLI package and the Environment secrets are gone, `requirements.txt` is back, and a `netlify-zola-version` check keeps `netlify.toml`'s Zola pin equal to the flake's zola. The spec's revision note explains why. The deploy parts of Tasks 7, 8 and 9 below are therefore historical; the rest of the plan stands as executed.
+
 ## Global Constraints
 
 - Flake inputs are exactly `nixpkgs` (`github:NixOS/nixpkgs/nixos-unstable`) and `treefmt-nix` (following `nixpkgs`). No flake-utils, no flake-compat.

@@ -1,30 +1,39 @@
 # CI and deploy rework
 
-Date: 2026-10-31, revised 2026-11-01 after adversarial review. Branch `ci-rework`, based on `main`
-after the dark-mode PR (#97) merged.
+Date: 2026-10-31, revised 2026-11-01 after adversarial review, and again 2026-11-14 when the
+deploy model changed. Branch `ci-rework`, based on `main` after the dark-mode PR (#97) merged.
+
+Revision of 2026-11-14: the branch first made GitHub Actions deploy the Nix-built site to Netlify
+with the Netlify CLI, which needs a Netlify personal access token in the repository. Those tokens
+act for the whole account that created them, the account is a member's personal one, and the
+group expects to self-host before investing in a Netlify team. So Netlify builds and deploys the
+site itself again, from `netlify.toml`, and the repository holds no deploy credential. Everything
+else below stands; the sections on workflows, credentials and Netlify describe the revised design.
 
 ## Intent
 
-Make the Nix flake the single definition of how the site is built, checked and deployed. Today
-there are three: the flake (devShell and package), Netlify's own build (its Zola binary plus a
-Python script with `requirements.txt`), and GitHub Actions (pip installs, a Zola tarball). They
-drift, and the Zola 0.13 to 0.23 gap that surfaced during the dark-mode work was the result.
+Make the Nix flake the definition of how the site is built and checked. Before this change there
+were three: the flake (devShell and package), Netlify's own build (its Zola binary plus a Python
+script with `requirements.txt`), and GitHub Actions (pip installs, a Zola tarball). They drifted,
+and the Zola 0.13 to 0.23 gap that surfaced during the dark-mode work was the result.
 
 After this change:
 
 - `nix flake check` is the whole test suite, locally and in CI.
-- `nix build .#socal-nug-site` is the deployable site, byte for byte what production serves.
-- GitHub Actions deploys that build to Netlify. Netlify hosts and does not build.
+- `nix build .#socal-nug-site` is the deployable site, what Netlify's build should produce.
+- Netlify builds and deploys from `netlify.toml`, whose build command is the package's build
+  phase, and a flake check keeps its Zola pin equal to the flake's zola.
 - The repo follows the conventions of the maintainer's `theonecfg` repository: no flake-utils or
   flake-compat, one directory per flake output, tools as derivations in an overlay, pinned and
   audited workflows, dependabot.
 
 ## Goals
 
-- One build definition (the flake), one check command (`nix flake check`), one deploy path (CI).
-- Production deploys on push to `main`; preview deploys for pull requests from this repository.
+- One build definition (the flake) that Netlify's build mirrors, one check command
+  (`nix flake check`), and a check that fails when the two disagree on the Zola version.
+- Production deploys on push to `main`; deploy previews for pull requests, both by Netlify.
 - Workflows that pass zizmor (regular persona) and pinact, with least-privilege permissions.
-- Dependabot keeps GitHub Actions and flake inputs current.
+- Dependabot keeps GitHub Actions, flake inputs and `requirements.txt` current.
 - Local developer experience: `nix develop`, then `zola serve`, `nix flake check`, `nix build`.
 
 ## Non-goals
@@ -32,31 +41,27 @@ After this change:
 - Formatting Python, SCSS, HTML or templates. treefmt covers Nix, shell and Markdown only.
 - Changing the site's content, templates or styles.
 - Multi-system CI. Checks run on `x86_64-linux`; the flake stays multi-system.
-- Replacing Netlify as the host.
+- Replacing Netlify as the host. Self-hosting is a later project; the flake's site package is the
+  piece it will need.
 
 ## Anti-goals
 
-- A preview mechanism that hands secrets to code from forks, or uses `pull_request_target`.
-- A Netlify configuration that silently keeps building the site alongside CI.
-- A `nix flake check` that passes while the deployed site would differ from the package.
-- A production credential reachable from any pull-request job.
+- Any deploy credential in the repository: no Netlify token as an Actions, Environment or
+  Dependabot secret, and no `pull_request_target`.
+- A `nix flake check` that passes while Netlify would build the site with a different Zola.
 
 ## Constraints
 
-- Netlify cannot run Nix, so it must stop building; the maintainer does this in the Netlify UI.
-- Zola bakes `base_url` into permalinks, sitemaps and social tags, so previews must be built with
-  their own URL.
+- Netlify cannot run Nix. Its build uses the Zola binary selected by `ZOLA_VERSION` and a Python
+  selected by `PYTHON_VERSION`, and installs `requirements.txt` with pip before the build command.
+  The calendar script uses `tomllib`, so Python 3.11 or newer.
+- Zola bakes `base_url` into permalinks, sitemaps and social tags, so deploy previews are built
+  with `--base-url $DEPLOY_PRIME_URL`.
 - Zola 0.23 panics in the Nix sandbox without a CA bundle. Every derivation or wrapper that runs
   zola (the site package and the `socal-nug-test-site` tool) sets `SSL_CERT_FILE` from `cacert`.
-- A `pull_request` workflow runs the workflow file from the PR branch. For a same-repo PR that
-  code runs with the repository's Actions secrets, so any collaborator with push access can read a
-  secret exposed to PR jobs without a review. Secrets exposed to PR jobs must therefore be
-  limited in scope, and the production credential must never be one of them.
 - The `nix` dependabot ecosystem supports version updates only, not security updates.
 - The build-output tests write a temporary profile into `content/about/`; inside a derivation
   they must run against a writable copy of the source.
-- The Netlify CLI walks `--dir` with `lstat`, so a symlink such as `result` deploys nothing.
-  Deploy commands always pass the resolved store path.
 - Nix flakes only see files tracked by git; new files must be staged before any `nix` command.
 
 ## Decisions
@@ -81,11 +86,11 @@ each `import ./<name> inputs`. `legacyPackages` instantiates nixpkgs per support
   `socal-nug-make-event-ical`. Argument `baseUrl` defaulting to `https://socal-nug.com`. Build
   phase runs `zola build --base-url $baseUrl --output-dir $out`, then the ical generator over
   `content/events/20*.md` into `$out/events/`. An install check asserts `events/calendar.ics`
-  exists. This is the only build of the site anywhere.
+  exists. Netlify's build command performs the same two steps.
 - `socal-nug-make-event-ical`: `writers.writePython3Bin` with icalendar, pytz and click,
   wrapping the current `make_event_ical.py` (switched to the standard library's `tomllib`). The
   source moves into the package directory. The writer supplies the interpreter line, so the
-  script's own shebang is removed.
+  script's own shebang is removed. Netlify runs the same file with its own Python.
 - `socal-nug-verify-post`: `writePython3Bin` with jsonschema and click, wrapping `verify_post.py`,
   same shebang rule. The JSON schemas move alongside it and are exposed as `passthru.schemas`.
 - `socal-nug-test-site`: `writeShellApplication` running the build-output tests with zola and
@@ -109,6 +114,10 @@ tool and schema locations.
   profile content.
 - `test-site`: `runCommand` copying the source to a writable directory and running
   `socal-nug-test-site` against it.
+- `netlify-zola-version`: `runCommand` comparing `build.environment.ZOLA_VERSION` from
+  `netlify.toml` (read with `builtins.fromTOML`) against `zola.version` from the flake's nixpkgs,
+  failing with both values in the message. A nixpkgs update that changes zola therefore fails CI
+  until the pin follows.
 - `formatting`: treefmt-nix's check with nixfmt, shellcheck and mdformat (with the GFM plugin),
   `projectRootFile = "flake.nix"`. mdformat is scoped to repository documentation only:
   `README.md`, `docs/**` and READMEs under `overlays/`, set through the program's own `includes`
@@ -135,114 +144,76 @@ what they need. Values from the event payload reach `run` steps through `env`, n
   `$/.github/actions/setup-nix`; GitHub documents `$/` as the self-repository reference, and
   actionlint does not know it, so actionlint runs with that diagnostic ignored.
 
-- `.github/workflows/ci.yml`, one workflow on `pull_request`, `push` to `main` and
-  `workflow_dispatch`, with a per-PR concurrency group that cancels in progress for pull requests
-  and never cancels a production deploy:
+- `.github/workflows/ci.yml`, one workflow on `pull_request` and `push` to `main`, with a
+  per-PR (or per-ref) concurrency group that cancels superseded runs:
 
   - `nix-checks`: `nix flake check -L`.
   - `workflow-security`: `nix run .#zizmor -- .github/` with `GH_TOKEN: ${{ github.token }}` and
     `nix run .#pinact -- run --check` with `GITHUB_TOKEN: ${{ github.token }}`. Without the token
     zizmor silently runs offline and skips its online audits.
-  - `preview`: pull requests only, and only when
-    `github.event.pull_request.head.repo.full_name == github.repository`. Runs in the GitHub
-    Environment `preview`, whose required-reviewers rule pauses the job until a maintainer
-    approves it in the Actions UI; that applies to every PR including Dependabot's, so PR-authored
-    workflow code never sees the credential without a human looking first. The job's
-    `environment.url` is the preview URL so GitHub shows it on the PR. Builds the site with
-    `baseUrl` set to `https://pr-<number>--socal-nug.netlify.app` and captures the store path
-    with `nix build --no-link --print-out-paths`, deploys it with
-    `netlify deploy --no-build --dir <store path> --alias pr-<number> --site socal-nug`, and
-    maintains one sticky comment on the PR with the URL (job permission `pull-requests: write`).
-    Uses the preview credential described below.
-  - `deploy`: `push` to `main`, or `workflow_dispatch` on `main` for recovery,
-    `needs: [nix-checks, workflow-security]`, so a red check never deploys. Runs in the GitHub
-    Environment `production`, whose deployment-branch policy allows only `main`, so its secret is
-    unreachable from pull-request jobs. Builds `.#socal-nug-site`, captures the store path, and
-    runs `netlify deploy --no-build --prod --dir <store path> --site socal-nug`. A single workflow
-    is used instead of a separate `deploy.yml` so the gating is expressed with `needs` rather than
-    relying on branch protection.
 
-  The site is addressed by name in the workflow file; the name is not sensitive.
+  No job deploys, needs a secret, or needs more than `contents: read`.
 
   Recommended but outside this repository: add `nix-checks` and `workflow-security` as required
   status checks in branch protection for `main`, which currently requires one review and no
-  checks.
+  checks. Netlify's `deploy-preview` status is a candidate too.
 
 - `.github/workflows/zizmor.yml`: pedantic SARIF report uploaded to code scanning, on pushes to
   `main` touching `.github/**` or `flake.lock`. Not on pull requests: a fork PR's read-only token
   cannot upload SARIF, and the blocking gate is the regular-persona run in `ci.yml`.
 
-- `.github/dependabot.yml`: `github-actions` for `/` and `/.github/actions/*`, and `nix` for `/`,
-  weekly, 7-day cooldown.
+- `.github/dependabot.yml`: `github-actions` for `/` and `/.github/actions/*`, `nix` for `/`, and
+  `pip` for `/` (the `requirements.txt` Netlify installs), weekly, 7-day cooldown.
 
 - `.github/workflows/main.yml` is deleted.
 
-zizmor, pinact and the Netlify CLI come from nixpkgs through the flake's packages so
-`nix run .#<tool>` works in CI and locally.
+zizmor and pinact come from nixpkgs through the flake's packages so `nix run .#<tool>` works in
+CI and locally.
 
 ### Credentials
 
-Two Netlify credentials, so that the one used by pull-request jobs cannot touch production, and
-neither is readable by PR-authored code without approval:
+None in the repository. Netlify deploys through its own GitHub App integration, which the Netlify
+site already has; GitHub Actions uses only the per-job `github.token`.
 
-- Production: `NETLIFY_AUTH_TOKEN` stored only in the GitHub Environment `production`, whose
-  deployment-branch policy allows `main` only.
-- Preview: `NETLIFY_AUTH_TOKEN` stored in the GitHub Environment `preview`, which has required
-  reviewers, and also as a repository Dependabot secret, because Dependabot-triggered runs can
-  read only Dependabot secrets (GitHub's documentation: "the only secrets available to the
-  workflow are Dependabot secrets. GitHub Actions secrets are not available"). The Environment's
-  approval gate still applies to those runs since the job references the Environment.
-
-No repository-level Actions secrets.
-
-Netlify personal access tokens act for the whole account that created them, and no Netlify team
-role can deploy previews but not production (Developers can manage all deploys; Reviewers can
-deploy nothing). Two tokens therefore give independent revocation and audit, not permission
-separation; the reviewer gate on `preview` is the control. Tokens can be given an expiry. The expiry choice is recorded in the repository README's deploy section. Recovery after
-an expired or rotated token: update the secret, then re-run the failed run or dispatch `ci.yml` on
-`main`.
+The earlier design's GitHub Environments `preview` and `production` and their secrets are not
+used. The `preview` Environment that the first run of the earlier workflow created should be
+deleted, as should any `NETLIFY_AUTH_TOKEN` secret, so that no account-wide Netlify token sits
+in the repository unused.
 
 ### Netlify
 
-`netlify.toml` and `requirements.txt` are deleted. The Netlify site is named `socal-nug`. The
-maintainer, outside this repository, in this order:
+`netlify.toml` configures the build:
 
-1. Before the `preview` job can pass on this branch's PR, in this order: the `preview` Environment
-   already exists with no protection rules, because the first workflow run referenced it; add the
-   maintainers as required reviewers to it first, then store the preview credential in it as
-   `NETLIFY_AUTH_TOKEN` and as the repository Dependabot secret `NETLIFY_AUTH_TOKEN`. Create the
-   `production` Environment with deployment branches limited to `main`, then store the production
-   credential in it as `NETLIFY_AUTH_TOKEN`. Rules before secrets, so no PR-authored run can read
-   a secret ungated.
-1. Once the PR's `preview` job has deployed successfully, and before merging: in the Netlify
-   site's Build & deploy settings, stop builds. Netlify keeps serving the last deploy, and CLI
-   deploys keep working with builds stopped. Doing this before the merge avoids a race between
-   Netlify's git build (now with no `netlify.toml`) and the Actions deploy on the merge commit.
-1. After the merge: confirm in Netlify's deploy log that the production deploy came from the CLI,
-   and that `socal-nug.com` serves the new build.
+- `[build]`: `publish = "public"`, `command` is `zola build` followed by
+  `python3 overlays/topLevel/socal-nug-make-event-ical/make_event_ical.py --output public/events/ content/events/20*.md`.
+- `[build.environment]`: `ZOLA_VERSION` equal to the flake's zola (enforced by the
+  `netlify-zola-version` check) and `PYTHON_VERSION = "3.13"`, which satisfies `tomllib`.
+- `[context.deploy-preview]`: the same command with `zola build --base-url $DEPLOY_PRIME_URL`.
 
-On this branch's PR, Netlify's own deploy preview will fail or be wrong once `netlify.toml` is
-gone; that is expected and the PR description says so.
+`requirements.txt` lists click, icalendar and pytz, pinned to the versions in the flake's nixpkgs
+at the time of writing; dependabot's `pip` ecosystem keeps them current.
+
+Nothing changes in the Netlify UI: the site named `socal-nug` keeps building from `main` and
+building deploy previews for pull requests, as it did before this branch.
 
 ### Developer workflow
 
 `README.md` is rewritten around `nix develop`, `zola serve`, `nix flake check`, `nix fmt` and
-`nix build`, with a deploy section covering the credentials and recovery. `act` and `alejandra`
+`nix build`, with a deploy section explaining that Netlify builds from `netlify.toml`, that the
+repository holds no deploy credential, and how the Zola pin is kept in step. `act` and `alejandra`
 leave the devShell (replaced by `nix flake check` and nixfmt); the devShell contains zola, the
-overlay tools, treefmt, zizmor, pinact and the Netlify CLI.
+overlay tools, treefmt, zizmor and pinact.
 
 ### Commits
 
 Separate commits, in roughly this order: flake re-architecture; tools moved into the overlay;
-checks; the one-time reformat, then the formatter and its check; workflows and dependabot; Netlify
-removal and README. Each commit passes the checks that exist at that point.
+checks; the one-time reformat, then the formatter and its check; workflows and dependabot; the
+Netlify changes and README. Each commit passes the checks that exist at that point.
 
 ## Left to the builder
 
 - Exact attribute names within the conventions above.
 - How `socal-nug-test-site` receives the source path and how the check copies the tree.
-- The sticky-comment mechanism (a marker string searched with `gh`, or an action if a pinned
-  one is clearly better).
 - Which systems `legacyPackages` enumerates.
 - Cache sizing and purge settings in `setup-nix`.
 - `writers.writePython3Bin` runs flake8 over the wrapped script; the existing scripts have long
@@ -250,13 +221,15 @@ removal and README. Each commit passes the checks that exist at that point.
 
 ## Verification
 
-- `nix flake check` passes locally on the final branch.
-- `nix build .#socal-nug-site` output matches a `zola build` plus ical run on the same source.
+- `nix flake check` passes locally on the final branch, and `netlify-zola-version` fails when
+  the pin is deliberately wrong.
+- `nix build .#socal-nug-site` output matches `netlify.toml`'s build command run with the flake's
+  zola and a pip-installed `requirements.txt` on the same source, and the deploy-preview command
+  produces a sitemap on the preview host only.
 - zizmor regular persona (with a token) and pinact pass locally on `.github/`.
-- The PR for this branch exercises `nix-checks`, `workflow-security` and `preview` for real; the
-  preview URL works and its links stay on the preview host; `deploy` is skipped.
-- The `deploy` job is exercised by the merge to `main`; Netlify's deploy log shows a CLI deploy
-  and `socal-nug.com` serves the new build.
+- The PR for this branch exercises `nix-checks` and `workflow-security` for real, and Netlify's
+  deploy preview for the PR builds and serves the branch.
+- The merge to `main` is deployed by Netlify's production build as before.
 
-Versions verified in the locked nixpkgs at the time of writing: zola 0.23.6, netlify-cli 23.15.0,
-zizmor 1.31.1, pinact 5.0.0.
+Versions verified in the locked nixpkgs at the time of writing: zola 0.23.6, zizmor 1.31.1,
+pinact 5.0.0, click 8.4.2, icalendar 7.2.2, pytz 2026.3.post1.
