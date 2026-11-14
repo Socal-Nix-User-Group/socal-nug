@@ -12,6 +12,8 @@ import pytz
 @click.option('--output', help='Output for iCal files')
 def validate_data(posts, output):
     all_events = icalendar.Calendar()
+    all_events.add('prodid', '-//SoCal NUG//Calendar Boi//EN')
+    all_events.add('version', '2.0')
 
     for post in posts:
         if '_index.md' in post:
@@ -33,15 +35,21 @@ def validate_data(posts, output):
         timezone = pytz.timezone("America/Los_Angeles")
         time_format = "%Y-%m-%d %H:%M"
         start_datetime = timezone.localize(
-            datetime.strptime(f"{event_date} {start_time_str}", time_format))
+            datetime.strptime(f"{event_date} {start_time_str}", time_format)
+        ).astimezone(pytz.utc)
         stop_datetime = timezone.localize(
-            datetime.strptime(f"{event_date} {stop_time_str}", time_format))
+            datetime.strptime(f"{event_date} {stop_time_str}", time_format)
+        ).astimezone(pytz.utc)
 
         # Create the calendar and event objects
         cal = icalendar.Calendar()
+        cal.add('prodid', '-//SoCal NUG//Calendar Boi//EN')
+        cal.add('version', '2.0')
         event = icalendar.Event()
 
         venue = data['extra']['venue']
+        event.add('uid', f"{event_date}-{start_time_str}@socalnog.local")
+        event.add('dtstamp', start_datetime)
         event.add("summary", data["title"])
         event.add("description", data["description"])
         event.add("dtstart", start_datetime)
