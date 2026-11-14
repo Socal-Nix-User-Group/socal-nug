@@ -64,6 +64,8 @@ pull request runs its own branch's workflow code with whatever secrets its jobs 
 
 - `preview` requires reviewers. Add them before storing its secret; a first workflow run creates
   the Environment with no rules, so configure the existing one rather than expecting to create
-  it. The reviewer gate is the only thing separating the preview token from production unless
-  that token comes from a Netlify account without production access.
+  it. The reviewer gate is the only thing separating the preview token from production: a
+  Netlify personal access token acts for its whole account, and no Netlify role can deploy
+  previews but not production. Using a separate token for previews still lets it be revoked on
+  its own.
 - `production` limits deployment branches to `main`. Set that before storing its secret.

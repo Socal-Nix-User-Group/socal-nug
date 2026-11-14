@@ -195,8 +195,10 @@ neither is readable by PR-authored code without approval:
 
 No repository-level Actions secrets.
 
-Netlify personal access tokens act for the whole account that created them, and they can be given
-an expiry. The expiry choice is recorded in the repository README's deploy section. Recovery after
+Netlify personal access tokens act for the whole account that created them, and no Netlify team
+role can deploy previews but not production (Developers can manage all deploys; Reviewers can
+deploy nothing). Two tokens therefore give independent revocation and audit, not permission
+separation; the reviewer gate on `preview` is the control. Tokens can be given an expiry. The expiry choice is recorded in the repository README's deploy section. Recovery after
 an expired or rotated token: update the secret, then re-run the failed run or dispatch `ci.yml` on
 `main`.
 
