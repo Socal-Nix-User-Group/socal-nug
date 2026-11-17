@@ -2,6 +2,8 @@
   description = "Southern California Nix User Group Site";
 
   inputs = {
+    disko.url = "github:nix-community/disko";
+    disko.inputs.nixpkgs.follows = "nixpkgs";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     treefmt-nix.url = "github:numtide/treefmt-nix";
     treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
@@ -13,6 +15,7 @@
     formatter = import ./formatter inputs;
     formatterModule = import ./formatterModule inputs;
     legacyPackages = import ./legacyPackages inputs;
+    nixosConfigurations = import ./nixosConfigurations inputs;
     overlays = import ./overlays inputs;
     packages = import ./packages inputs;
   };
