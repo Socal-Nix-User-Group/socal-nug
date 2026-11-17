@@ -81,9 +81,32 @@ The file /dev/disk/by-partlabel/disk-main-root does not exist and no size was sp
 
 This is deterministic, not flaky. It failed twice in a row, and the symlink is present a moment
 later, which is what makes the error misleading. `--no-disko-deps` uploads only the partitioning
-script, so disko uses the installer's own tools and `udevadm` matches the running udevd. Confirm
-the installer provides what disko needs before relying on this: `sgdisk`, `partprobe`,
-`mkfs.ext4`, `udevadm`, `blkid` and `jq` are all on a stock NixOS installer's `PATH`.
+script, so disko uses the installer's own tools and `udevadm` matches the running udevd.
+
+That trade is only safe if the installer actually carries those tools. Confirm it from the
+installer, after the kexec and before re-running the install:
+
+```fish
+ssh root@<ip> 'for t in sgdisk partprobe mkfs.ext4 udevadm blkid jq; do printf "%-12s " $t; command -v $t || echo MISSING; done'
+```
+
+All six resolved under `/run/current-system/sw/bin` on a stock NixOS installer. Any `MISSING`
+means `--no-disko-deps` will fail later and differently, so stop and reconsider.
+
+Run that on the installer, not on an installed host. A minimal NixOS system ships none of
+`sgdisk`, `partprobe` or `jq`, so the same command against a finished droplet reports `MISSING`
+for three of the six and means nothing at all.
+
+To see the mismatch itself rather than take it on trust, compare the two versions on the
+installer:
+
+```fish
+ssh root@<ip> 'udevadm --version; pgrep -a systemd-udevd | head -1'
+```
+
+The first number is the version disko would use with `--no-disko-deps`; the path in the second
+line carries the version of the udevd actually running. They should agree. Without the flag, the
+`udevadm` disko uses instead comes from the uploaded closure and will not.
 
 Expect, in order: `Uploading install SSH keys`, `Gathering machine facts`, the kexec and a brief
 unreachable window, `Formatting hard drive with disko`, `Uploading the system closure`,
@@ -141,6 +164,18 @@ The boot id must differ and `uptime` must show a fresh boot. Re-run the post-ins
 line must still hold. Reconnecting under host-key verification also confirms the host keys
 persisted.
 
+## Cleanup
+
+Only once the post-install and reboot checks pass, since a rollback re-runs the install.
+
+```fish
+rm -f result                      # if the toplevel was built by hand
+rm -f ~/.ssh/known_hosts.old      # written by ssh-keygen -R
+```
+
+Nothing needs removing on the droplet. The installed system holds no install-time state: no
+passphrase was uploaded, `--extra-files` was not used, and the kexec installer lived in RAM.
+
 ## Recovery
 
 There is no root password, by design, so the DigitalOcean web console can show boot output but
@@ -150,3 +185,37 @@ A droplet that does not come back is destroyed and recreated, then installed aga
 patch it into life: whatever was wrong is wrong in the configuration, and a hand-fixed droplet
 hides that. Recreating assigns a new IP, so update the host's `networking` block and re-run the
 pre-flight before installing again.
+
+## First execution
+
+Recorded so the next run can tell a new problem from a known one.
+
+Host `nixos-anywhere-test1`, 2026-11-16. Droplet: SFO2, 1 vCPU, 2 GB RAM, 50 GB disk, Ubuntu
+24.04.5 LTS, `178.128.76.203`. Installed `26.11.20261030.1c89083 (Zokor)` from this repo's
+pinned nixpkgs, via a NixOS 25.05 kexec installer.
+
+Three attempts were needed:
+
+1. Failed at `mkfs.ext4`, as described under Install. Diagnosed as a udev timing problem and
+   wrongly assumed to be a one-off caused by tearing down Ubuntu's four pre-existing partitions.
+1. Failed identically, which ruled out a race and made it deterministic. Root-caused by running
+   disko's `sgdisk` sequence by hand, which worked, and then re-running it with the `udevadm`
+   from disko's uploaded closure, which reproduced the failure on demand.
+1. Succeeded with `--no-disko-deps`.
+
+Attempts one and two each wiped the disk before failing, which is why the Install section says
+not to reboot a droplet whose install died after disko ran. The droplet stayed reachable
+throughout as the RAM installer, and no droplet had to be recreated.
+
+What differed from the design doc, which has both corrections in place:
+
+- `--no-disko-deps` is required. The design doc concluded from the 2 GB of RAM that it was not.
+- `boot.loader.grub.devices` must not be set on the host. disko sets it from the EF02 partition
+  (`lib/types/gpt.nix`), and setting it again trips grub's "duplicated devices in mirroredBoots"
+  assertion. The host sets `grub.enable` and `grub.efiSupport` only.
+- `nix flake check` evaluates `nixosConfigurations` but does not build them, so CI gains an
+  evaluation check for the host at no build cost.
+
+Everything else in the design doc's constraints table held exactly as recorded, including the
+absent DHCP server, the BIOS boot, the missing `by-id` links, and the kexec installer preserving
+the static network configuration across the jump.
