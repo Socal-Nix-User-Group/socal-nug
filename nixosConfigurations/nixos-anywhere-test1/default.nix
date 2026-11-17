@@ -35,4 +35,45 @@
     "console=tty1"
     "console=ttyS0,115200"
   ];
+
+  # This droplet answers no DHCP offers. Verified with `dhcpcd -T eth0` on the
+  # target: it solicited for about twenty seconds, received nothing, and fell
+  # back to an IPv4LL address. NixOS defaults networking.useDHCP to true, so
+  # leaving it alone would install cleanly and then come up with no network.
+  # Every address below is copied from the droplet's own cloud-init netplan.
+  networking.useDHCP = false;
+  networking.interfaces.eth0.ipv4.addresses = [
+    {
+      address = "178.128.76.203";
+      prefixLength = 20;
+    }
+    # DigitalOcean's anchor address, which the droplet's netplan also carries.
+    {
+      address = "10.46.0.5";
+      prefixLength = 16;
+    }
+  ];
+  networking.defaultGateway = "178.128.64.1";
+
+  # Not DigitalOcean's regional resolver at 10.120.15.254: it is only
+  # reachable over the eth1 VPC interface, which this host does not configure.
+  networking.nameservers = [
+    "1.1.1.1"
+    "9.9.9.9"
+  ];
+
+  services.openssh = {
+    enable = true;
+    settings = {
+      PermitRootLogin = "prohibit-password";
+      PasswordAuthentication = false;
+    };
+  };
+
+  # The only way into this host. There is no root password, by design, so this
+  # key is byte-identical to the one already in the droplet's authorized_keys;
+  # only the trailing comment differs.
+  users.users.root.openssh.authorizedKeys.keys = [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEbH7DL3UpeYHm+J3YHJTIsnk/vdo5JgEzwD/Bf1tupp yubikey"
+  ];
 }
