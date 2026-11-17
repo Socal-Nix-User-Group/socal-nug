@@ -13,9 +13,9 @@
       partitions = {
         # GRUB's core image needs somewhere to live on a GPT disk that boots
         # via BIOS. EF02 is the BIOS boot partition type code; it holds no
-        # filesystem and is never mounted. Priority orders it ahead of the
-        # root partition below, which would otherwise take the whole disk
-        # first and leave nothing for it.
+        # filesystem and is never mounted. The explicit priority only states
+        # the ordering disko would pick anyway: it already defaults EF02 to
+        # 100 and 100%-sized partitions to 9001, smallest created first.
         boot = {
           size = "1M";
           type = "EF02";

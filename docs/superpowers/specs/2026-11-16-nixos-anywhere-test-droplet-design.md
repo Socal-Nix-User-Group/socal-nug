@@ -14,9 +14,11 @@ Droplet already created by the maintainer: SFO2, 1 vCPU, 2 GB RAM, 50 GB disk, U
 
 ## Goals
 
-- `nix run .#nixos-anywhere -- --flake .#nixos-anywhere-test1 --target-host root@178.128.76.203`
+- `nix run .#nixos-anywhere -- --no-disko-deps --flake .#nixos-anywhere-test1 --target-host root@178.128.76.203`
   installs NixOS, the droplet reboots into it, and it is reachable over SSH as root with the same
-  YubiKey key that reaches it today.
+  YubiKey key that reaches it today. (`--no-disko-deps` added 2026-11-16 after the install: without
+  it this fails deterministically at `mkfs.ext4`, and it fails *after* disko has cleared the disk.
+  See the runbook.)
 - The configuration lives in this repo under its existing one-directory-per-flake-output
   convention, so a second host later is a sibling directory and nothing else.
 - The procedure is written down well enough to repeat deliberately, not rediscovered.

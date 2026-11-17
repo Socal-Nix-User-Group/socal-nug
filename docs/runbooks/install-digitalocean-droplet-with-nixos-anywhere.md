@@ -51,10 +51,18 @@ droplet gets a new IP, and installing a stale configuration onto it strands the 
 
 ```fish
 ssh root@<ip> 'ip -4 -brief addr show eth0; ip route | grep default; free -m | head -2'
+ssh root@<ip> 'ls -l /dev/disk/by-path/; lsblk -o NAME,SIZE,TYPE'
 ```
 
 The addresses, the gateway and the RAM must match the host's `networking` block. Stop if any
 differ, and fix the configuration before going further.
+
+The second command matters as much as the first and is easy to skip. The host also hardcodes a
+disk, by PCI path, in its `disko.nix`. That path must still resolve to the large disk. If a
+recreated droplet puts the system disk on a different PCI slot, the install either aborts partway
+through partitioning or, if the configured path now resolves to `vdb`, hands disko the 490 K
+cloud-init ISO and builds a 490 K root filesystem. Confirm the configured `by-path` entry points
+at the 50 G disk and not at the tiny one.
 
 ## Install
 
@@ -80,8 +88,10 @@ The file /dev/disk/by-partlabel/disk-main-root does not exist and no size was sp
 ```
 
 This is deterministic, not flaky. It failed twice in a row, and the symlink is present a moment
-later, which is what makes the error misleading. `--no-disko-deps` uploads only the partitioning
-script, so disko uses the installer's own tools and `udevadm` matches the running udevd.
+later, which is what makes the error misleading. `--no-disko-deps` uploads the partitioning script
+without the tool closure it would otherwise run from, so disko falls back to the installer's own
+tools and `udevadm` matches the running udevd. It is not literally "the script alone": other
+pieces, `disk-deactivate` among them, still run from `/nix/store` on the target.
 
 That trade is only safe if the installer actually carries those tools. Confirm it from the
 installer, after the kexec and before re-running the install:
@@ -175,6 +185,13 @@ rm -f ~/.ssh/known_hosts.old      # written by ssh-keygen -R
 
 Nothing needs removing on the droplet. The installed system holds no install-time state: no
 passphrase was uploaded, `--extra-files` was not used, and the kexec installer lived in RAM.
+
+Then destroy the droplet, unless it is still being used for something. A test host is billed by
+the hour and reachable from the whole internet, and it has no update path: nothing re-deploys to
+it, so it drifts out of date from the moment it boots. Destroying it is the normal end of this
+runbook, not an exception. Remove its `nixosConfigurations` entry in the same change, and drop
+its host key with `ssh-keygen -R <ip>`, so the repo does not keep claiming to manage a machine
+that is gone.
 
 ## Recovery
 
