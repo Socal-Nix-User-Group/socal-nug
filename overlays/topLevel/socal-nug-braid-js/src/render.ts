@@ -26,6 +26,8 @@ const LABEL_HEIGHT = 14;
 /** How far a hop's control points sit along the time axis. 0 is a corner. */
 const EASE = 0.5;
 const YEAR_GUTTER = 34;
+/** Pixels between a root avatar and the first node on its thread. */
+const ROOT_GAP = AVATAR + 24;
 
 function make(
   doc: DocumentLike,
@@ -239,6 +241,23 @@ export function renderBraid(
   }
 
   // --- threads --------------------------------------------------------------
+  // Root avatars are collected rather than appended here: they go in last, so
+  // a node circle drawn later cannot sit on top of somebody's face.
+  const roots: ElementLike[] = [];
+
+  /**
+   * A thread's starting point: its own lane, stepped back along the time axis
+   * by a fixed number of pixels. Pixels rather than a fraction of the axis,
+   * so the avatar clears the first node at any canvas height.
+   */
+  const originOf = (thread: Braid["threads"][number]) => {
+    const first = thread.segments[0].points[0];
+    const [laneX, laneY] = projection.project(first.t, thread.lane);
+    return timeAxis === "y"
+      ? ([laneX, Math.max(0, laneY - ROOT_GAP)] as const)
+      : ([Math.max(0, laneX - ROOT_GAP), laneY] as const);
+  };
+
   braid.threads.forEach((thread, index) => {
     const kind = thread.person.member ? "is-member" : "is-guest";
     // Colour comes from a palette slot, not from the slug, so adding a person
@@ -265,12 +284,7 @@ export function renderBraid(
       } else {
         // An approach begins in the person's own lane, so a thread whose
         // first moment sits in somebody else's lane still reads as theirs.
-        points.push(
-          projection.project(
-            Math.max(0, segment.points[0].t - 0.02),
-            thread.lane,
-          ),
-        );
+        points.push(originOf(thread));
         points.push(...segment.points.map(place));
         // A thread must visibly reach the spine it joins. Someone recruited at
         // an excursion is named in no trunk moment, so without this their line
@@ -296,19 +310,14 @@ export function renderBraid(
         }),
       );
     }
-    svg.appendChild(
-      make(doc, "g", {
-        class: "origins-root",
-        "data-person": thread.person.slug,
-        "data-hue": hue,
-        transform: translate(
-          projection.project(
-            Math.max(0, thread.segments[0].points[0].t - 0.02),
-            thread.lane,
-          ),
-        ),
-      }),
-    ).appendChild(avatarFor(thread.person, doc));
+    const root = make(doc, "g", {
+      class: "origins-root",
+      "data-person": thread.person.slug,
+      "data-hue": hue,
+      transform: translate(originOf(thread)),
+    });
+    root.appendChild(avatarFor(thread.person, doc));
+    roots.push(root);
   });
 
   // --- excursions -----------------------------------------------------------
@@ -341,6 +350,11 @@ export function renderBraid(
         r: moment.moment.trunk ? 7 : 4.5,
       }),
     );
+  }
+
+  // Faces last, so no node circle can land on top of one.
+  for (const root of roots) {
+    svg.appendChild(root);
   }
 
   // --- labels, swept apart along the free axis ------------------------------

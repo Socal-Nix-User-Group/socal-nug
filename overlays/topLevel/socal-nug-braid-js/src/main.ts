@@ -1,4 +1,4 @@
-import { rosterFor } from "./cards.ts";
+import { detailFor, rosterFor } from "./cards.ts";
 import { buildBraid } from "./layout.ts";
 import { parseData } from "./parse.ts";
 import { projectionFor } from "./projections.ts";
@@ -47,11 +47,11 @@ declare const document: DocumentLike & {
 declare const window: { localStorage: StorageLike } | undefined;
 declare const console: { error(...args: unknown[]): void };
 
-// River height is moments x ROW, floored at MIN_HEIGHT. Both were 46 and 600;
-// raised 25% for breathing room, which also eases label crowding since the
-// sweep has more axis to work with.
-const ROW = 57.5;
-const MIN_HEIGHT = 750;
+// River height is moments x ROW, floored at MIN_HEIGHT. The picture is taller
+// than the page, so its container scrolls rather than the page growing without
+// bound; see .origins-braid in origins.scss.
+const ROW = 46;
+const MIN_HEIGHT = 600;
 const FALLBACK_WIDTH = 900;
 const MORPH_MS = 420;
 // Subway runs time across the page, so its canvas has to grow sideways with
@@ -87,7 +87,8 @@ function boot(): void {
     return;
   }
 
-  const braid = buildBraid(data.moments, data.people);
+  const cast = data.people;
+  const braid = buildBraid(data.moments, cast);
   const lanes = laneRangeOf(braid);
   const store = storage();
   let mode: Mode = readMode(store);
@@ -157,6 +158,9 @@ function boot(): void {
       }
     }
     previous = now;
+    // The old nodes went with replaceChildren, so the card has nothing left to
+    // point at.
+    hideDetail();
     wireHover();
   }
 
@@ -172,6 +176,31 @@ function boot(): void {
     }
   }
 
+  function showDetail(id: string | undefined): void {
+    const panel = document.getElementById("origins-detail");
+    if (panel === null || id === undefined) return;
+    const placed = braid.moments.find((m) => m.moment.id === id);
+    if (placed === undefined) return;
+    panel.replaceChildren(detailFor(placed, cast, document));
+    panel.classList.remove("is-hidden");
+    for (const dismiss of panel.querySelectorAll("[data-origins-dismiss]")) {
+      dismiss.addEventListener("click", () => hideDetail());
+    }
+    for (const node of mount!.querySelectorAll("[data-moment]")) {
+      node.classList.toggle("is-open", node.dataset.moment === id);
+    }
+  }
+
+  function hideDetail(): void {
+    const panel = document.getElementById("origins-detail");
+    if (panel === null) return;
+    panel.replaceChildren();
+    panel.classList.add("is-hidden");
+    for (const node of mount!.querySelectorAll("[data-moment]")) {
+      node.classList.toggle("is-open", false);
+    }
+  }
+
   function wireHover(): void {
     for (const node of mount!.querySelectorAll("[data-person]")) {
       node.addEventListener("mouseenter", (e) => {
@@ -180,6 +209,23 @@ function boot(): void {
       node.addEventListener("mouseleave", (e) => {
         highlight(e.currentTarget.dataset.person, false);
       });
+    }
+
+    // Hovering a moment lights the threads of everyone who was there; clicking
+    // it opens the card. Hover is for "who was in this", click is for "tell me
+    // about it", which is the part worth dwelling on.
+    for (const node of mount!.querySelectorAll("[data-moment]")) {
+      const id = node.dataset.moment;
+      const placed = braid.moments.find((m) => m.moment.id === id);
+      if (placed === undefined) continue;
+      const who = placed.moment.people;
+      node.addEventListener("mouseenter", () => {
+        for (const slug of who) highlight(slug, true);
+      });
+      node.addEventListener("mouseleave", () => {
+        for (const slug of who) highlight(slug, false);
+      });
+      node.addEventListener("click", () => showDetail(id));
     }
   }
 

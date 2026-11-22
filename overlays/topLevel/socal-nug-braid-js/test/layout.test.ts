@@ -236,6 +236,20 @@ test("an excursion gives each leaver a second drawn segment", () => {
   );
 });
 
+test("an excursion sits clear of the lanes late joiners arrive on", () => {
+  // excursions happen after the spine starts, by which point the
+  // pre-convergence side is empty, so that is where they go. Allocating on
+  // the joiner side made the departure curve cross incoming threads and their
+  // root avatars.
+  const e = braid.excursions.find((x) => x.moment.moment.id === "nix-camp")!;
+  assert.ok(e.lane < 0, `excursion at ${e.lane} should be on the vacated side`);
+  for (const [slug, lane] of lanes) {
+    if (lane > 0) {
+      assert.notEqual(e.lane, lane, `${slug} shares the excursion lane`);
+    }
+  }
+});
+
 test("an excursion sits off the spine, not at lane 0", () => {
   const e = braid.excursions.find((x) => x.moment.moment.id === "nix-camp")!;
   assert.notEqual(e.lane, 0);

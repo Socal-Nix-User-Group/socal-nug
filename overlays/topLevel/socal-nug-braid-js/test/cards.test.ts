@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { parseFuzzyDate } from "../src/dates.ts";
 import { buildBraid } from "../src/layout.ts";
-import { joinLineFor, rosterFor } from "../src/cards.ts";
+import { detailFor, joinLineFor, rosterFor } from "../src/cards.ts";
 import type { DocumentLike, ElementLike } from "../src/render.ts";
 import type { Moment, Person } from "../src/types.ts";
 
@@ -134,6 +134,66 @@ test("a card carries the same palette slot as its thread", () => {
     cards.map((n) => n.attrs["data-hue"]),
     braid.threads.map((_, i) => String(i)),
   );
+});
+
+// --- moment detail ----------------------------------------------------------
+
+const placed = (id: string) => braid.moments.find((m) => m.moment.id === id)!;
+const texts = (made: Node[]) => made.map((n) => n.text).filter((t) => t !== "");
+
+test("a detail card names the moment and its date at the right precision", () => {
+  const { doc, made } = stubDocument();
+  detailFor(placed("founded"), PEOPLE, doc);
+  assert.ok(texts(made).includes("founded"));
+  assert.ok(texts(made).includes("April 2023"));
+});
+
+test("a detail card names the people, not their slugs", () => {
+  const { doc, made } = stubDocument();
+  detailFor(placed("meets-rok"), PEOPLE, doc);
+  const joined = texts(made).join(" ");
+  assert.ok(joined.includes("DANIEL"), joined);
+  assert.ok(joined.includes("ROK"), joined);
+  assert.ok(!joined.includes("daniel"), "slug leaked into the card");
+});
+
+test("a detail card shows a photo only when the moment has one", () => {
+  const withPhoto = stubDocument();
+  detailFor(
+    { ...placed("founded"), moment: { ...placed("founded").moment, photo: "/p.jpg" } },
+    PEOPLE,
+    withPhoto.doc,
+  );
+  assert.ok(withPhoto.made.some((n) => n.tag === "img"));
+
+  const without = stubDocument();
+  detailFor(placed("founded"), PEOPLE, without.doc);
+  assert.equal(without.made.some((n) => n.tag === "img"), false);
+});
+
+test("a detail card links to the event page when there is one", () => {
+  const { doc, made } = stubDocument();
+  detailFor(
+    {
+      ...placed("founded"),
+      moment: { ...placed("founded").moment, permalink: "/events/x/" },
+    },
+    PEOPLE,
+    doc,
+  );
+  assert.ok(made.some((n) => n.tag === "a" && n.attrs.href === "/events/x/"));
+});
+
+test("a detail card omits the link when the moment has no page", () => {
+  const { doc, made } = stubDocument();
+  detailFor(placed("meets-rok"), PEOPLE, doc);
+  assert.equal(made.some((n) => n.tag === "a"), false);
+});
+
+test("a detail card carries a dismiss control", () => {
+  const { doc, made } = stubDocument();
+  detailFor(placed("founded"), PEOPLE, doc);
+  assert.ok(made.some((n) => n.attrs["data-origins-dismiss"] !== undefined));
 });
 
 test("the roster is a list so it is reachable by keyboard in both modes", () => {

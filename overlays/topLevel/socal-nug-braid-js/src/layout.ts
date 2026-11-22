@@ -130,16 +130,19 @@ export function buildBraid(
     }
   }
 
-  // Excursion lanes come from a pool past the furthest joiner, taken for the
-  // stretch the detour spans and released after it, so a later excursion reuses
-  // the same space and simultaneous ones never collide.
-  const maxLate = Math.max(0, ...[...lanes.values()].filter((l) => l > 0));
+  // Excursion lanes come from a pool on the pre-convergence side. By the time
+  // an excursion can happen, everyone there has merged into the spine and that
+  // space is free, while the joiner side is still filling up: allocating there
+  // made the departure curve cross incoming threads and their root avatars.
+  // A lane is taken for the stretch the detour spans and released after it, so
+  // a later excursion reuses it and simultaneous ones never collide.
+  const minEarly = Math.min(0, ...[...lanes.values()].filter((l) => l < 0));
   const freeFrom = new Map<number, number>();
   const excursionLane = new Map<string, number>();
   for (const draft of drafts) {
-    let lane = maxLate + 1;
+    let lane = minEarly - 1;
     while ((freeFrom.get(lane) ?? -1) > draft.fromIndex) {
-      lane += 1;
+      lane -= 1;
     }
     freeFrom.set(lane, draft.toIndex ?? seq.length);
     excursionLane.set(draft.moment.id, lane);

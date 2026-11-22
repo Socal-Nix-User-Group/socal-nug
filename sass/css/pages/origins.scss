@@ -102,11 +102,17 @@ html[data-theme=dark] .origins-layout {
 
 .origins-braid {
     background: var(--origins-surface);
-    border-radius: 10px;
+    border-radius: 0;
     // No padding: clientWidth includes it but the SVG's `width: 100%` resolves
     // against the content box, so any padding here scales the picture down by
     // that much. The drawing carries its own 40-unit margin instead.
     padding: 0;
+
+    // The picture is taller than a screen. Scroll it here rather than letting
+    // the page grow to a couple of thousand pixels.
+    max-height: 85vh;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
 
     // Map runs time across the page, so it needs room and a way to reach it.
     // overflow-x is drag-to-pan on touch for free, with native momentum.
@@ -163,6 +169,24 @@ html[data-theme=dark] .origins-layout {
 
 .origins-node {
     fill: var(--origins-trunk);
+    cursor: pointer;
+    transition: r 0.12s ease;
+
+    // A bigger invisible hit area than the dot, so a 4.5 unit node is still
+    // clickable.
+    stroke: rgba(0, 0, 0, 0);
+    stroke-width: 14;
+    paint-order: stroke;
+
+    &:hover {
+        fill: var(--origins-ink);
+    }
+
+    &.is-open {
+        fill: var(--origins-ink);
+        stroke: var(--origins-ink);
+        stroke-width: 3;
+    }
 
     &.is-side {
         fill: var(--origins-muted);
@@ -343,6 +367,78 @@ html[data-theme=dark] .origins-layout {
         border: 1px dashed currentColor;
         opacity: 0.7;
     }
+}
+
+// --- moment detail ----------------------------------------------------------
+
+.origins-detail {
+    margin-bottom: 0.75rem;
+}
+
+.origins-detail-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.6rem 0.7rem;
+    background: var(--origins-surface);
+    border-left: 4px solid var(--origins-trunk);
+}
+
+.origins-detail-head {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: start;
+    gap: 0.3rem;
+}
+
+.origins-detail-title {
+    font-weight: 700;
+    font-size: 0.82rem;
+    line-height: 1.25;
+}
+
+.origins-detail-date {
+    grid-column: 1;
+    font-size: 0.62rem;
+    opacity: 0.7;
+}
+
+.origins-detail-dismiss {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    background: none;
+    border: 0;
+    color: inherit;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.6;
+
+    &:hover {
+        opacity: 1;
+    }
+}
+
+.origins-detail-photo {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.origins-detail-blurb,
+.origins-detail-people {
+    font-size: 0.64rem;
+    margin: 0;
+    opacity: 0.85;
+}
+
+.origins-detail-people {
+    opacity: 0.65;
+}
+
+.origins-detail-link {
+    font-size: 0.64rem;
+    font-weight: 700;
 }
 
 // --- fallback and controls --------------------------------------------------

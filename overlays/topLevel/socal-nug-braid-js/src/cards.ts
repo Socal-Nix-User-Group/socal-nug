@@ -1,7 +1,7 @@
 import { formatFuzzyDate } from "./dates.ts";
 import { hueFor } from "./render.ts";
 import type { DocumentLike, ElementLike } from "./render.ts";
-import type { Braid, PlacedMoment, Thread } from "./types.ts";
+import type { Braid, Person, PlacedMoment, Thread } from "./types.ts";
 
 const XHTML = "http://www.w3.org/1999/xhtml";
 
@@ -46,6 +46,87 @@ function el(
     node.textContent = text;
   }
   return node;
+}
+
+/**
+ * The card for one moment, shown when its node is clicked.
+ *
+ * Click rather than hover, because these carry a photo and a paragraph and a
+ * link: things a reader wants to dwell on and click into, which a card that
+ * vanishes on mouse-out cannot offer. Hover is spent on highlighting who was
+ * there instead.
+ */
+export function detailFor(
+  placed: PlacedMoment,
+  people: ReadonlyMap<string, Person>,
+  doc: DocumentLike,
+): ElementLike {
+  const moment = placed.moment;
+  const card = el(doc, "div", {
+    class: "origins-detail-card",
+    "data-moment": moment.id,
+  });
+
+  const head = el(doc, "div", { class: "origins-detail-head" });
+  head.appendChild(
+    el(doc, "span", { class: "origins-detail-title" }, moment.title),
+  );
+  head.appendChild(
+    el(
+      doc,
+      "span",
+      { class: "origins-detail-date" },
+      formatFuzzyDate(moment.date),
+    ),
+  );
+  head.appendChild(
+    el(doc, "button", {
+      class: "origins-detail-dismiss",
+      type: "button",
+      "data-origins-dismiss": "",
+      "aria-label": "Close",
+    }, "×"),
+  );
+  card.appendChild(head);
+
+  if (moment.photo !== undefined && moment.photo !== "") {
+    card.appendChild(
+      el(doc, "img", {
+        class: "origins-detail-photo",
+        src: moment.photo,
+        alt: "",
+        loading: "lazy",
+      }),
+    );
+  }
+
+  if (moment.blurb !== undefined && moment.blurb !== "") {
+    card.appendChild(
+      el(doc, "p", { class: "origins-detail-blurb" }, moment.blurb),
+    );
+  }
+
+  const names = moment.people
+    .map((slug) => people.get(slug)?.name)
+    .filter((name): name is string => name !== undefined);
+  if (names.length > 0) {
+    card.appendChild(
+      el(doc, "p", { class: "origins-detail-people" }, names.join(", ")),
+    );
+  }
+
+  if (moment.permalink !== undefined && moment.permalink !== "") {
+    card.appendChild(
+      el(
+        doc,
+        "a",
+        { class: "origins-detail-link", href: moment.permalink },
+        "Event page",
+      ),
+    );
+  }
+
+  return card;
 }
 
 /**

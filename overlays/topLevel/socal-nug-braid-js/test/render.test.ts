@@ -401,6 +401,45 @@ test("a hop that stays in one lane is still straight", () => {
   assert.equal(d, "M100,0 C100,25 100,25 100,50");
 });
 
+// --- roots sit clear of nodes -----------------------------------------------
+
+test("faces are drawn after nodes, so no node can land on one", () => {
+  // paint order is the svg's child list, not the order elements were created
+  const { made } = draw();
+  const svg = made.find((n) => n.tag === "svg")!;
+  const kinds = svg.children.map((c) => (c.attrs.class ?? "").split(" ")[0]);
+  const lastNode = kinds.lastIndexOf("origins-node");
+  const firstRoot = kinds.indexOf("origins-root");
+  assert.ok(lastNode >= 0 && firstRoot >= 0, kinds.join(","));
+  assert.ok(
+    firstRoot > lastNode,
+    `first root at ${firstRoot} is painted before last node at ${lastNode}`,
+  );
+});
+
+test("a root clears its first node by the same gap at any canvas height", () => {
+  // a fraction of the axis would shrink with the canvas and let the node
+  // overlap the face on a short one
+  const gaps = [800, 2200].map((height) => {
+    const { doc, made } = stubDocument();
+    const projection = projectionFor(
+      "river",
+      { width: 800, height },
+      laneRangeOf(braid),
+    );
+    renderBraid(braid, projection, doc);
+    const root = withClass(made, "origins-root")[0];
+    const ty = Number(/translate\(\S+ ([\d.-]+)\)/.exec(root.attrs.transform)![1]);
+    const owner = braid.threads.find(
+      (t) => t.person.slug === root.attrs["data-person"],
+    )!;
+    const first = owner.segments[0].points[0];
+    return projection.project(first.t, first.lane)[1] - ty;
+  });
+  assert.equal(gaps[0], gaps[1]);
+  assert.ok(gaps[0] >= 40, `gap of ${gaps[0]} is tighter than an avatar`);
+});
+
 test("the lane range spans excursion lanes", () => {
   const [low, high] = laneRangeOf(braid);
   const excursion = braid.excursions[0].lane;
