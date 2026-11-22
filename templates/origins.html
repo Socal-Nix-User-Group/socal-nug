@@ -127,3 +127,10 @@
 </script>
 
 {% endblock content %}
+
+{% block custom_js %}
+{#- Committed to static/js/, so Netlify serves it as a plain asset and needs
+    no node toolchain. The braid-bundle-fresh check fails when the committed
+    file and a fresh esbuild of src/ disagree. -#}
+<script type="module" src="/js/braid.js"></script>
+{% endblock custom_js %}

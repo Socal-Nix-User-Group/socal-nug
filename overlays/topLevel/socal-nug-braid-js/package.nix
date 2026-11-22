@@ -14,6 +14,7 @@ stdenvNoCC.mkDerivation {
     fileset = lib.fileset.unions [
       ./src
       ./test
+      ./smoke
     ];
   };
 

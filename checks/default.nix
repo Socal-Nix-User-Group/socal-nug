@@ -70,6 +70,41 @@ inputs.nixpkgs.lib.mapAttrs (system: pkgs: {
         touch "$out"
       '';
 
+  # Netlify cannot run esbuild, so the bundle is committed and served as a static asset. This
+  # fails when the committed file and a fresh build of src/ disagree, the same shape as the
+  # netlify-zola-version check. Both can be deleted once the site is self-hosted.
+  braid-bundle-fresh = pkgs.runCommand "socal-nug-braid-bundle-fresh" { } ''
+    committed=${inputs.self}/static/js/braid.js
+    fresh=${pkgs.socal-nug-braid-js}/braid.js
+    if ! cmp -s "$committed" "$fresh"; then
+      echo "static/js/braid.js is stale." >&2
+      echo "  committed: $committed" >&2
+      echo "  fresh    : $fresh" >&2
+      echo "Rebuild with: nix build .#socal-nug-braid-js && cp result/braid.js static/js/braid.js" >&2
+      exit 1
+    fi
+    touch "$out"
+  '';
+
+  # The engine run against the repository's real data and the template's merge, rather than
+  # against fixtures. Without this, a plausible typo in data/moments.toml draws nonsense with
+  # the rest of the suite green.
+  braid-smoke =
+    pkgs.runCommand "socal-nug-braid-smoke"
+      {
+        nativeBuildInputs = [
+          pkgs.esbuild
+          pkgs.nodejs
+        ];
+      }
+      ''
+        esbuild ${pkgs.socal-nug-braid-js.src}/smoke/smoke.ts \
+          --bundle --format=esm --platform=node --target=node22 \
+          --outfile=smoke.mjs
+        node smoke.mjs ${pkgs.socal-nug-site}
+        touch "$out"
+      '';
+
   # The repository's moments file validates, and the validator rejects each way a moment can be
   # malformed. Fixtures resolve their person and event slugs against the real content.
   braid-data =
