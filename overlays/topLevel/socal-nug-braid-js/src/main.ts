@@ -47,8 +47,11 @@ declare const document: DocumentLike & {
 declare const window: { localStorage: StorageLike } | undefined;
 declare const console: { error(...args: unknown[]): void };
 
-const ROW = 46;
-const MIN_HEIGHT = 600;
+// River height is moments x ROW, floored at MIN_HEIGHT. Both were 46 and 600;
+// raised 25% for breathing room, which also eases label crowding since the
+// sweep has more axis to work with.
+const ROW = 57.5;
+const MIN_HEIGHT = 750;
 const FALLBACK_WIDTH = 900;
 const MORPH_MS = 420;
 // Subway runs time across the page, so its canvas has to grow sideways with

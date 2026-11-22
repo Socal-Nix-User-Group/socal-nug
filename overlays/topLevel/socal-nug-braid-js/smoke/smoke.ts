@@ -93,7 +93,7 @@ if (!Number.isFinite(low) || !Number.isFinite(high) || low > high) {
 // actually fits. Asserting only the abstract (t, lane) left every clipping bug
 // invisible to a passing suite.
 const VIEWPORTS = {
-  river: { width: 850, height: Math.max(600, braid.moments.length * 46) },
+  river: { width: 850, height: Math.max(750, braid.moments.length * 57.5) },
   subway: {
     width: Math.max(850, braid.moments.length * 170),
     height: Math.max(520, (high - low + 2) * 56),
