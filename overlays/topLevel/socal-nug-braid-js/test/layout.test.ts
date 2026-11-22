@@ -280,9 +280,59 @@ test("an excursion recruits: a newcomer joins there and rejoins with the others"
   assert.equal(thread("kyle").joinsTrunkAt, "nug4");
 });
 
+test("an excursion does not recruit someone whose story predates the spine", () => {
+  // being at a camp with members is not evidence of going to a meetup.
+  // Recruiting here would stamp a join date on somebody who has been around
+  // since before the group existed, inventing attendance the data never had.
+  const early = buildBraid(
+    [
+      at("tweag", "2021-01", ["daniel", "rok"]),
+      at("founded", "2023-04", ["daniel"], true),
+      at("camp", "2024-01", ["daniel", "rok"]),
+      at("nug", "2024-06", [], true),
+    ],
+    PEOPLE,
+  );
+  const e = early.excursions[0];
+  assert.deepEqual([...e.leaves], ["daniel"]);
+  assert.deepEqual([...e.recruits], ["rok"]);
+  assert.equal(
+    early.threads.find((t) => t.person.slug === "rok")!.joinsTrunkAt,
+    null,
+    "rok was never recorded at a trunk moment, so he has not joined one",
+  );
+});
+
 test("the trunk thins while people are away", () => {
   assert.equal(trunkFrom("nug3").away, 3);
   assert.equal(trunkFrom("snug-founded").away, 0);
+});
+
+test("an excursion avoids a lane a thread is still sitting on", () => {
+  // rok never reaches the spine, so he holds his lane the whole way down.
+  // Routing an excursion outside him would cross his line on the way out.
+  const held = buildBraid(
+    [
+      at("early", "2021-01", ["daniel", "rok"]),
+      at("founded", "2023-04", ["daniel"], true),
+      at("camp", "2024-01", ["daniel"]),
+      at("nug", "2024-06", [], true),
+    ],
+    PEOPLE,
+  );
+  const rokLane = assignLanes([
+    at("early", "2021-01", ["daniel", "rok"]),
+    at("founded", "2023-04", ["daniel"], true),
+    at("camp", "2024-01", ["daniel"]),
+    at("nug", "2024-06", [], true),
+  ]).get("rok");
+  assert.notEqual(held.excursions[0].lane, rokLane);
+});
+
+test("an excursion sits as close to the spine as it can", () => {
+  // the further out it goes the more threads its departure curve crosses
+  const e = braid.excursions.find((x) => x.moment.moment.id === "nix-camp")!;
+  assert.ok(e.lane >= -3, `excursion at ${e.lane} is further out than it needs`);
 });
 
 test("excursion lanes are released and reused by a later excursion", () => {
@@ -298,7 +348,12 @@ test("excursion lanes are released and reused by a later excursion", () => {
     PEOPLE,
   );
   assert.equal(two.excursions.length, 2);
-  assert.equal(two.excursions[0].lane, two.excursions[1].lane);
+  // the point is that lanes do not march outward one per excursion; a later
+  // one sits no further from the spine than an earlier one
+  assert.ok(
+    Math.abs(two.excursions[1].lane) <= Math.abs(two.excursions[0].lane),
+    `${two.excursions[1].lane} is further out than ${two.excursions[0].lane}`,
+  );
 });
 
 // --- backfill ---------------------------------------------------------------

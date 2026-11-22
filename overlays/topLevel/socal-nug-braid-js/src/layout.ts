@@ -67,6 +67,7 @@ export function buildBraid(
 ): Braid {
   const seq = ordered(moments);
   const lanes = assignLanes(seq);
+  const seen = firstSeen(seq);
   const trunkAt = seq.findIndex((m) => m.trunk);
 
   const indexOf = new Map(seq.map((m, i) => [m.id, i]));
@@ -121,9 +122,17 @@ export function buildBraid(
 
   // Pass two: a recruit joins the trunk where the excursion rejoins it, not at
   // the excursion itself, so their card reads truthfully.
+  //
+  // Only someone whose story starts at or after the spine does, though. Being
+  // at a camp alongside members is not evidence of going to a meetup, and
+  // recruiting somebody who has been around since before the group existed
+  // would stamp them with a join date the data never recorded. Their thread
+  // simply never reaches the spine, which is what the data actually says.
   for (const draft of drafts) {
     if (draft.toIndex === null) continue;
     for (const slug of draft.recruits) {
+      const arrived = seen.get(slug);
+      if (arrived === undefined || arrived < trunkAt) continue;
       if (!joinIndex.has(slug)) {
         joinIndex.set(slug, draft.toIndex);
       }
@@ -136,12 +145,30 @@ export function buildBraid(
   // made the departure curve cross incoming threads and their root avatars.
   // A lane is taken for the stretch the detour spans and released after it, so
   // a later excursion reuses it and simultaneous ones never collide.
-  const minEarly = Math.min(0, ...[...lanes.values()].filter((l) => l < 0));
+  /** Lanes a thread is still sitting on across a stretch of the picture. */
+  const occupiedAcross = (from: number, to: number | null): Set<number> => {
+    const end = to ?? seq.length;
+    const busy = new Set<number>();
+    for (const [slug, lane] of lanes) {
+      const arrived = seen.get(slug);
+      if (arrived === undefined) continue;
+      // Occupied from their first moment until they merge into the spine, or
+      // for good when they never do.
+      const leaves = joinIndex.get(slug) ?? seq.length;
+      if (arrived <= end && leaves >= from) busy.add(lane);
+    }
+    return busy;
+  };
+
   const freeFrom = new Map<number, number>();
   const excursionLane = new Map<string, number>();
   for (const draft of drafts) {
-    let lane = minEarly - 1;
-    while ((freeFrom.get(lane) ?? -1) > draft.fromIndex) {
+    const busy = occupiedAcross(draft.fromIndex, draft.toIndex);
+    // Work outward from the spine and stop at the first lane that is neither
+    // held by a thread nor still taken by an overlapping excursion. Every lane
+    // further out is another thread the departure curve has to cross.
+    let lane = -1;
+    while (busy.has(lane) || (freeFrom.get(lane) ?? -1) > draft.fromIndex) {
       lane -= 1;
     }
     freeFrom.set(lane, draft.toIndex ?? seq.length);
