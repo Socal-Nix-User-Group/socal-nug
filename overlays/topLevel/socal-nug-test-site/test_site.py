@@ -9,6 +9,7 @@ Uses only the standard library. The site is built into a temporary directory. Th
 about-page ordering test writes a temporary profile into the source's content/about/.
 """
 import hashlib
+import json
 import pathlib
 import re
 import shutil
@@ -152,6 +153,48 @@ class SiteBuild(unittest.TestCase):
         about = (self.out / 'about' / 'index.html').read_text()
         names = re.findall(r'<h4 class="title is-4">(.*?)</h4>', about)
         self.assertEqual(names, ['Daniel Baker', 'David Nuon', 'Rob Hernandez', 'Tristan Ross'])
+
+    # --- origins page ----------------------------------------------------------
+
+    def origins_data(self):
+        page = (self.out / 'origins' / 'index.html').read_text()
+        blob = re.search(
+            r'<script type="application/json" id="origins-data">(.*?)</script>',
+            page, re.S)
+        self.assertIsNotNone(blob, 'origins-data script missing')
+        return page, json.loads(blob.group(1))
+
+    def test_origins_carries_parseable_data(self):
+        _, data = self.origins_data()
+        # twenty meetups from content/events plus the moments file
+        self.assertGreaterEqual(len(data['moments']), 20)
+        self.assertGreaterEqual(len(data['people']), 6)
+
+    def test_origins_spine_comes_from_the_events_section(self):
+        _, data = self.origins_data()
+        spine = {m['id'] for m in data['moments'] if m['trunk']}
+        self.assertIn('2023-05-30', spine)
+        self.assertIn('2026-11-14', spine)
+
+    def test_a_join_record_merges_into_its_event(self):
+        _, data = self.origins_data()
+        nug3 = next(m for m in data['moments'] if m['id'] == '2023-09-19')
+        self.assertIn('tristan-ross', nug3['people'])
+
+    def test_a_dated_moment_is_not_duplicated_as_an_event(self):
+        _, data = self.origins_data()
+        ids = [m['id'] for m in data['moments']]
+        self.assertEqual(len(ids), len(set(ids)), 'duplicate moment ids')
+        self.assertNotIn('tristan-joins', ids)
+
+    def test_origins_has_a_fallback_list_in_the_source(self):
+        page, _ = self.origins_data()
+        self.assertIn('id="origins-fallback"', page)
+        self.assertIn('Joined the NixOS Discourse', page)
+        self.assertIn('NUG #1', page)
+
+    def test_origins_is_reachable_from_the_nav(self):
+        self.assertIn('href="/origins/"', self.index)
 
     def test_about_order_is_driven_by_weight_not_filename(self):
         # a probe whose filename sorts first but whose weight sorts last

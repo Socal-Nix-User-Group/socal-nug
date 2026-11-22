@@ -1,0 +1,129 @@
+{% extends "child.html" %}
+
+{% block content %}
+
+{% set about = get_section(path="about/_index.md") %}
+{% set events = get_section(path="events/_index.md") %}
+{% set data = load_data(path="data/moments.toml") %}
+{% set meetups = events.pages | sort(attribute="extra.event.date") %}
+{#- File order, not sorted: an anchored moment has no `date` to sort on, and
+    the engine orders everything itself. The file is written chronologically. -#}
+{% set moments = data.moment %}
+
+<h1 class="title is-1 mb-3">{{ page.title }}</h1>
+
+<div class="content">
+  {{ page.content | safe }}
+</div>
+
+{# The script replaces this with the drawing. Without the script it is the page. #}
+<div id="origins-braid" class="origins-braid"></div>
+
+<div id="origins-fallback" class="origins-fallback content">
+  <h2 class="title is-4">Before the group</h2>
+  <ol>
+    {%- for m in moments %}
+    {%- set anchored = m.event | default(value="") %}
+    {%- if anchored == "" %}
+    <li>
+      <time datetime="{{ m.date }}">{{ m.date }}</time> &mdash; {{ m.title }}
+      {%- if m.people | length > 0 %} ({{ m.people | join(sep=", ") }}){% endif %}
+      {%- if m.blurb %} {{ m.blurb }}{% endif %}
+    </li>
+    {%- endif %}
+    {%- endfor %}
+  </ol>
+
+  <h2 class="title is-4">Meetups</h2>
+  <ol>
+    {%- for e in meetups %}
+    <li>
+      <time datetime="{{ e.extra.event.date }}">{{ e.extra.event.date }}</time>
+      &mdash; <a href="{{ e.permalink }}">{{ e.title }}</a>
+    </li>
+    {%- endfor %}
+  </ol>
+</div>
+
+{#
+  Built by hand rather than by json_encode over a constructed object: Tera has
+  no object literal, so the structure is written out and only the values are
+  encoded. `safe` is required on every one of them, since json_encode escapes
+  for HTML and JSON.parse would choke on &quot;.
+#}
+<script type="application/json" id="origins-data">
+{
+  "people": [
+  {%- set_global sep = "" -%}
+  {%- for p in about.pages %}
+    {{ sep | safe }}{
+      "slug": {{ p.slug | json_encode | safe }},
+      "name": {{ p.extra.name | json_encode | safe }},
+      "alias": {{ p.extra.alias | json_encode | safe }},
+      "description": {{ p.extra.description | default(value="") | json_encode | safe }},
+      "imageUrl": {{ p.extra.image_url | default(value="") | json_encode | safe }},
+      "profileUrl": {{ p.extra.profile_url | default(value="") | json_encode | safe }},
+      "member": {{ p.extra.member | json_encode | safe }}
+    }
+    {%- set_global sep = "," -%}
+  {%- endfor %}
+  ],
+  "moments": [
+  {%- set_global sep = "" -%}
+
+  {#- The spine. Every event is a trunk moment, and any moment anchored to it
+      contributes its people. The meetup list is never copied into the data
+      file, so posting an event grows the braid with no other edit. -#}
+  {%- for e in meetups %}
+    {#- This Tera has no `concat`, so joiners accumulate as a space-separated
+        string and are split back out. Slugs never contain spaces. -#}
+    {%- set_global joiners = "" -%}
+    {%- for m in moments %}
+      {%- set anchored = m.event | default(value="") -%}
+      {%- if anchored == e.slug -%}
+        {%- for slug in m.people -%}
+          {%- set_global joiners = joiners ~ slug ~ " " -%}
+        {%- endfor -%}
+      {%- endif -%}
+    {%- endfor %}
+    {{ sep | safe }}{
+      "id": {{ e.slug | json_encode | safe }},
+      "date": {{ e.extra.event.date | json_encode | safe }},
+      "title": {{ e.title | json_encode | safe }},
+      "people": [
+        {%- set_global psep = "" -%}
+        {%- for slug in joiners | split(pat=" ") -%}
+          {%- if slug != "" -%}
+            {{ psep | safe }}{{ slug | json_encode | safe }}
+            {%- set_global psep = "," -%}
+          {%- endif -%}
+        {%- endfor -%}
+      ],
+      "trunk": true,
+      "permalink": {{ e.permalink | json_encode | safe }}
+    }
+    {%- set_global sep = "," -%}
+  {%- endfor %}
+
+  {#- Everything events cannot know. Anchored moments are skipped here; they
+      were merged into their event above. -#}
+  {%- for m in moments %}
+    {%- set anchored = m.event | default(value="") -%}
+    {%- if anchored == "" %}
+    {{ sep | safe }}{
+      "id": {{ m.id | json_encode | safe }},
+      "date": {{ m.date | json_encode | safe }},
+      "title": {{ m.title | json_encode | safe }},
+      "people": {{ m.people | default(value=[]) | json_encode | safe }},
+      "trunk": {{ m.trunk | default(value=false) | json_encode | safe }},
+      "blurb": {{ m.blurb | default(value="") | json_encode | safe }},
+      "photo": {{ m.photo | default(value="") | json_encode | safe }}
+    }
+    {%- set_global sep = "," -%}
+    {%- endif %}
+  {%- endfor %}
+  ]
+}
+</script>
+
+{% endblock content %}
