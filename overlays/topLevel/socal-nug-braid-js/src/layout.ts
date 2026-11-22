@@ -67,7 +67,6 @@ export function buildBraid(
 ): Braid {
   const seq = ordered(moments);
   const lanes = assignLanes(seq);
-  const seen = firstSeen(seq);
   const trunkAt = seq.findIndex((m) => m.trunk);
 
   const indexOf = new Map(seq.map((m, i) => [m.id, i]));
@@ -146,23 +145,50 @@ export function buildBraid(
     excursionLane.set(draft.moment.id, lane);
   }
 
-  const laneOfMoment = (moment: Moment): number => {
-    if (moment.trunk) return 0;
+  // Where each person currently is. Lanes are a trajectory, not a fixed row:
+  // people who carry on together after a shared moment travel on a lane
+  // between them from that point.
+  const at = new Map(lanes);
+  const lastSeen = new Map<string, number>();
+  seq.forEach((moment, index) => {
+    for (const slug of moment.people) lastSeen.set(slug, index);
+  });
+
+  const laneOfMoment = (moment: Moment, index: number): number => {
+    if (moment.trunk) {
+      for (const slug of moment.people) at.set(slug, 0);
+      return 0;
+    }
+
     const excursion = excursionLane.get(moment.id);
     if (excursion !== undefined) return excursion;
-    let senior: string | undefined;
-    for (const slug of moment.people) {
-      const at = seen.get(slug);
-      if (at === undefined) continue;
-      if (senior === undefined || at < seen.get(senior)!) senior = slug;
+
+    const present = moment.people.filter((slug) => at.has(slug));
+    if (present.length === 0) return 0;
+
+    const mean = (slugs: readonly string[]) =>
+      slugs.reduce((total, slug) => total + at.get(slug)!, 0) / slugs.length;
+
+    // Only people who appear again are actually travelling on from here. A
+    // one-off guest bends in and stops, and must not drag the lane of
+    // somebody whose story continues.
+    const carryOn = present.filter((slug) => lastSeen.get(slug)! > index);
+
+    if (carryOn.length >= 2) {
+      // A genuine merge. Nobody keeps their lane, so no thread reads as the
+      // axis the others joined: they all move to meet in between.
+      const merged = mean(carryOn);
+      for (const slug of carryOn) at.set(slug, merged);
+      return merged;
     }
-    return senior === undefined ? 0 : (lanes.get(senior) ?? 0);
+
+    return carryOn.length === 1 ? at.get(carryOn[0])! : mean(present);
   };
 
   const placed: PlacedMoment[] = seq.map((moment, index) => ({
     moment,
     t: tOf(index),
-    lane: laneOfMoment(moment),
+    lane: laneOfMoment(moment, index),
   }));
   const placedById = new Map(placed.map((p) => [p.moment.id, p]));
 

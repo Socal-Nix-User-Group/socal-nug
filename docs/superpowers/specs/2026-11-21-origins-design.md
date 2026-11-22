@@ -277,7 +277,9 @@ The pass computes abstract coordinates, not pixels:
    span 2023 to 2026, so a true axis leaves the left half nearly empty and crushes the half with
    the most in it. Every node still carries its real date in its label, so nothing is lost except
    the spacing, and the spacing was costing more than it paid for.
+
 1. `firstSeen[person]` is the date of their earliest moment.
+
 1. Lanes: people first seen before the trunk starts take lanes `-1, -2, -3...` ordered by
    `firstSeen`. People first seen at or after it take `+1, +2, +3...` ordered by `firstSeen`.
    Ordering by `firstSeen` means that backfilling someone's earlier history moves them outward,
@@ -286,8 +288,20 @@ The pass computes abstract coordinates, not pixels:
    out. The cost, accepted, is that a backfill changes more of the picture than the one thread it
    adds. A stable ordering key was considered and rejected, because it would put people in an
    order with no meaning.
-1. A trunk moment sits at lane 0. Any other moment sits in the lane of its most senior
-   participant, so a guest's moment attaches to the thread of the person they met.
+
+1. A trunk moment sits at lane 0. Lanes are otherwise a trajectory, not a fixed row:
+   when two or more participants of a non-trunk moment carry on past it, that is a merge, and
+   they all move to the mean of their current lanes and travel on together from there. When only
+   one carries on, the moment sits in that person's lane and the others bend in and stop, which
+   is the one-off guest case.
+
+   An earlier version placed every moment in the lane of its most senior participant. That was
+   wrong, and visibly so: whoever held the earliest recorded moment was senior at every shared
+   moment, so their thread ran dead straight down the page while every other thread bent into
+   it. The picture asserted that one person was the axis the group formed around, which is the
+   claim the anti-goals forbid. Merging to the mean costs nothing and makes the convergence
+   mutual, which is what actually happened.
+
 1. A person's thread begins in their own lane at the time of their first moment and visits each
    of their moments in date order, wherever that moment sits. At their first trunk moment it
    merges into the trunk. It does not end there: the thread stays addressable so it can leave
@@ -295,6 +309,7 @@ The pass computes abstract coordinates, not pixels:
    rather than an own-lane run plus separate stubs into other lanes, matters: anyone whose
    history includes a moment sitting in someone else's lane would otherwise render as a fork in
    their own thread.
+
 1. An excursion is a non-trunk moment dated at or after the trunk start whose participants are
    already in the trunk. It carries no flag and needs no schema change; the engine infers it from
    those two facts. Its participants' threads leave the trunk before the moment, meet at an
@@ -309,11 +324,13 @@ The pass computes abstract coordinates, not pixels:
    joins at the excursion node, and follows the others back in. Their first trunk moment is the
    trunk moment they rejoin at, not the excursion, so the badge and the card's join line stay
    truthful.
+
 1. Trunk thickness at each trunk moment is a function of the cumulative count of distinct people
    who have joined by then, less anyone away on an excursion at that time. The trunk visibly
    thins while a group is elsewhere, which is both accurate and the reason excursions exist in
    the design: without them the whole post-convergence half of the page is one undifferentiated
    rope.
+
 1. A label pass assigns each label a side, then sweeps for overlap and pushes colliding labels
    along the free axis, with a leader line where a label has moved far from its node.
 

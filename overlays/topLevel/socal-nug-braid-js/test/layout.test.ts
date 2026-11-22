@@ -74,8 +74,55 @@ test("a trunk moment sits at lane 0", () => {
   assert.equal(placed("nug3").lane, 0);
 });
 
-test("a shared moment sits in the most senior participant's lane", () => {
+// --- merging ----------------------------------------------------------------
+// Nobody owns a shared moment. Two people who carry on together afterwards
+// both move to a new lane between them, so neither reads as the axis the
+// other joined.
+
+test("two people who continue together merge into a lane between them", () => {
+  const lane = placed("code-and-coffee").lane;
+  assert.equal(lane, -3);
+  assert.notEqual(lane, lanes.get("daniel"));
+  assert.notEqual(lane, lanes.get("david"));
+});
+
+test("a merge lane is the mean of the merging lanes", () => {
+  // daniel and david arrive at -3 together, rob joins from -1
+  assert.equal(placed("scale-20x").lane, (-3 + -1 + -3) / 3);
+});
+
+test("a merged lane belongs to neither person who made it", () => {
+  const merged = placed("code-and-coffee").lane;
+  assert.notEqual(merged, lanes.get("daniel"));
+  assert.notEqual(merged, lanes.get("david"));
+  for (const slug of ["daniel", "david"]) {
+    const points = thread(slug).segments[0].points;
+    assert.ok(points.some((p) => p.lane === merged), slug);
+  }
+});
+
+test("nobody runs straight through the pre-convergence half", () => {
+  // the bug this replaced: the most senior participant kept their lane, so
+  // their line was straight and everyone else bent into it. Trunk moments are
+  // excluded, since every thread changes lane on reaching the spine.
+  for (const slug of ["daniel", "david"]) {
+    const seen = new Set(
+      thread(slug).segments[0].points
+        .filter((p) => !p.moment.trunk)
+        .map((p) => p.lane),
+    );
+    assert.ok(
+      seen.size > 1,
+      `${slug} holds one lane throughout, so it reads as the axis`,
+    );
+  }
+});
+
+test("a one-off guest bends in without moving the lane they join", () => {
+  // rok appears once and does not carry on, so merging would yank daniel's
+  // lane for an encounter that went nowhere
   assert.equal(placed("meets-rok").lane, lanes.get("daniel"));
+  assert.equal(thread("rok").lane, lanes.get("rok"));
 });
 
 // --- spacing ----------------------------------------------------------------
