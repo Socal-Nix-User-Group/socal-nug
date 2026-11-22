@@ -88,7 +88,12 @@ export const LABEL_HEIGHT = 14;
 /** Pixels per character at the label's 11px, near enough to reserve room. */
 const CHAR = 6.4;
 
-export const rootId = (slug: string): string => `root:${slug}`;
+const ROOT = "root:";
+/** The node a person's face sits on, a layer ahead of their first moment. */
+export const rootId = (slug: string): string => `${ROOT}${slug}`;
+/** The person a root node belongs to, or null for a moment's node. */
+export const rootSlug = (id: string): string | null =>
+  id.startsWith(ROOT) ? id.slice(ROOT.length) : null;
 
 /** Trunk thickness: a base plus a step per person present. */
 export function trunkWidth(joined: number, away: number): number {
