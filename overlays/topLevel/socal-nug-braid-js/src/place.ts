@@ -121,9 +121,10 @@ export function placedFrom(
  * ELK's straightness priority keeps it to within a few pixels of a column;
  * this takes the last few. Every trunk dot moves to the median of where ELK
  * put them, and the end of each edge attached to a moved dot moves with it,
- * so a line still meets its dot. Bends stay where ELK routed them: the move
- * is a few pixels and the edge eases into it. Edges keep at least their
- * routing clearance less that, which is why this is a snap and not a layout.
+ * so a line still meets its dot. The move is spread along the edge, bends
+ * included, rather than dumped into its last few pixels. Edges keep their
+ * routing clearance less a few pixels, which is why this is a snap and not a
+ * layout.
  */
 export function snapTrunk(
   laidOut: ElkGraph,
@@ -178,6 +179,20 @@ export function snapTrunk(
         };
       }
 
+      // One end moved. A bend between the ends moves by the share of the way
+      // it sits from the unmoved end to the moved one, along the time axis,
+      // so the move is spread along the line. Leaving bends put a whole snap
+      // into the last few pixels before a dot, which drew as a sharp cut.
+      const along = axis === "x" ? "y" : "x";
+      const from = section.startPoint[along];
+      const to = section.endPoint[along];
+      const share = (p: ElkPoint) => {
+        if (to === from) return 1;
+        const f = (p[along] - from) / (to - from);
+        return Math.min(1, Math.max(0, f));
+      };
+      const moveAt = (p: ElkPoint) =>
+        atEnd !== undefined ? atEnd * share(p) : atStart! * (1 - share(p));
       return {
         ...e,
         sections: [{
@@ -185,6 +200,9 @@ export function snapTrunk(
           startPoint: atStart === undefined
             ? section.startPoint
             : shifted(section.startPoint, atStart),
+          bendPoints: (section.bendPoints ?? []).map((p) =>
+            shifted(p, moveAt(p))
+          ),
           endPoint: atEnd === undefined
             ? section.endPoint
             : shifted(section.endPoint, atEnd),

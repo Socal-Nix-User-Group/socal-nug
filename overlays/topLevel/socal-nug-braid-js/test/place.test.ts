@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { graphFor, rootId } from "../src/graph.ts";
 import type { ElkGraph, ElkNode } from "../src/graph.ts";
-import { placeBraid, placedFrom } from "../src/place.ts";
+import { placeBraid, placedFrom, snapTrunk } from "../src/place.ts";
 import { at, braid, fakeLayout, PEOPLE } from "./fake-elk.ts";
 import { buildBraid } from "../src/layout.ts";
 
@@ -85,7 +85,9 @@ test("the root of every thread is placed", async () => {
 // ELK's straightness priority holds the trunk to within a few pixels of a
 // column. Snapping takes the last few: every trunk dot moves to the median of
 // where ELK put them, and the ends of edges attached to a moved dot move with
-// it, so a line still meets its dot. Bends stay where ELK routed them.
+// it, so a line still meets its dot. A bend between a moved end and an unmoved
+// one moves by the share of the way it sits from one to the other, so the
+// move is spread along the line rather than dumped into its last few pixels.
 
 const trunkIds = new Set(
   braid.moments.filter((m) => m.moment.trunk).map((m) => m.moment.id),
@@ -166,4 +168,58 @@ test("a lone trunk dot is left where it is", async () => {
   const n = raw.children.find((c) => c.id === "founded")!;
   const placed = await placeBraid(one, "river", fakeLayout);
   assert.equal(placed.moments.get("founded")!.x, n.x! + n.width / 2);
+});
+
+test("a bend near a snapped end moves most of the way with it", () => {
+  // ELK routed a hop with a bend 4px above its end; snapping the end 15px
+  // sideways and leaving the bend put the whole move in the last 4px of the
+  // line, which drew as a sharp cut into the dot. A bend moves by the share
+  // of the way it sits from the unmoved end to the moved one.
+  const graph = {
+    id: "root",
+    layoutOptions: {},
+    children: [
+      { id: "a", width: 18, height: 18, x: 100, y: 0 },
+      { id: "b", width: 18, height: 18, x: 130, y: 100 },
+      { id: "s", width: 13, height: 13, x: 194, y: 44 },
+    ],
+    edges: [
+      {
+        id: "trunk",
+        sources: ["a"],
+        targets: ["b"],
+        sections: [{
+          startPoint: { x: 109, y: 18 },
+          endPoint: { x: 139, y: 100 },
+        }],
+      },
+      {
+        id: "hop",
+        sources: ["s"],
+        targets: ["b"],
+        sections: [{
+          startPoint: { x: 200, y: 57 },
+          bendPoints: [{ x: 139, y: 96 }],
+          endPoint: { x: 139, y: 100 },
+        }],
+      },
+    ],
+    width: 300,
+    height: 200,
+  };
+  const out = snapTrunk(graph, new Set(["a", "b"]), "x");
+  const hop = out.edges.find((e) => e.id === "hop")!.sections![0];
+  // b's centre went from 139 to the median 124: a move of -15
+  assert.equal(hop.endPoint.x, 124);
+  // the bend sits 39/43 of the way from the start to the end, so it carries
+  // 39/43 of the move
+  const expected = 139 - 15 * (39 / 43);
+  assert.ok(
+    Math.abs(hop.bendPoints![0].x - expected) < 0.01,
+    `bend at ${hop.bendPoints![0].x}, expected ${expected.toFixed(2)}`,
+  );
+  // which leaves only a sliver of sideways travel in the last 4px
+  assert.ok(Math.abs(hop.endPoint.x - hop.bendPoints![0].x) < 2);
+  // the unmoved end is untouched
+  assert.deepEqual(hop.startPoint, { x: 200, y: 57 });
 });
