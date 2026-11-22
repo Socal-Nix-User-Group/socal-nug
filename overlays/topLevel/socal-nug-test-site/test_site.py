@@ -155,6 +155,13 @@ class SiteBuild(unittest.TestCase):
         about = (self.out / 'about' / 'index.html').read_text()
         self.assertNotIn('src=""', about)
 
+    def test_member_avatars_are_served_from_this_site(self):
+        # avatars live in the repo, so a page view makes no third-party request
+        about = (self.out / 'about' / 'index.html').read_text()
+        for src in re.findall(r'<img class="image"[^>]*src="([^"]*)"', about):
+            self.assertTrue(src.startswith('/'), f'external avatar: {src}')
+            self.assertTrue((self.out / src.lstrip('/')).is_file(), src)
+
     def test_guests_have_pages_but_are_not_in_the_members_grid(self):
         for slug in ('rok-garbas', 'ron-efroni'):
             self.assertTrue((self.out / 'about' / slug / 'index.html').exists(), slug)

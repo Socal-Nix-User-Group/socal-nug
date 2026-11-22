@@ -6,6 +6,6 @@ member = true
 name = "Morgan Jones"
 alias = "@numinit"
 description = ""
-image_url = "https://github.com/numinit.png"
+image_url = "/images/people/morgan-jones.png"
 profile_url = "https://github.com/numinit"
 +++
