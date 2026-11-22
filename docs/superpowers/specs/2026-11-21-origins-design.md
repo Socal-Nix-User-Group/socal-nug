@@ -283,21 +283,37 @@ The pass computes abstract coordinates, not pixels:
 
 1. `firstSeen[person]` is the date of their earliest moment.
 
-1. Lanes are allocated the way `git log --graph` draws a branch graph. A column is taken when a
-   strand first needs one, released the moment it merges away, and reused by whoever needs one
-   next. Someone whose story starts before the spine goes on one side of it, someone arriving
+1. Lanes are allocated roughly the way `git log --graph` draws a branch graph, with one
+   deliberate exception. A column is taken when a strand first needs one; merge and excursion
+   columns are released as soon as they are done with and reused by whoever needs one next.
+   Someone whose story starts before the spine goes on one side of it, someone arriving
    afterwards on the other.
+
+   **A person's starting column is theirs for the whole picture and is never reused.** This is
+   the exception, and it is not an aesthetic preference. A face is drawn a rank ahead of its
+   owner's first moment, in territory the allocation walk never books, so a recycled starting
+   column parks the new arrival's face on the previous occupant's line, which reads as a
+   connection that is not there. Reserving the column removes that class of overlap at the
+   source instead of nudging faces afterwards.
 
    This replaced a scheme that keyed every lane to arrival order, with the longest history
    furthest out. That scheme had three faults, and they compounded as people were added: columns
    were never reused, so the picture widened with every person; backfilling one early moment
    shifted the whole pre-convergence side; and merging to the mean of two lanes produced
-   fractional columns, so no two threads ever shared one and every line was its own diagonal. On
-   the real data, moving to on-demand allocation took the picture from nine columns to five and
-   removed fractional lanes entirely, at no cost in crossings.
+   fractional columns, so no two threads ever shared one and every line was its own diagonal.
+   Moving to on-demand allocation removed fractional lanes entirely and halved the width.
 
-   A column is now a drawing slot, not a statement about the person in it. Backfilling ten years
-   of somebody's history does not widen the picture, which is what makes it safe to keep adding.
+   **What reserving starting columns costs.** On the real data it takes the picture from 7
+   columns to 12 (span −7..4) and the River lane step from 55.3px to 31.6px, against a 36px
+   face, so adjacent columns are narrower than an avatar; the closest two faces end up 36.3px
+   apart and only because the renderer slides them. It buys crossings down from 6 to 1. Growth
+   is now one column per person, permanently, and backfilling an earlier root re-orders who
+   gets which column, pushing the rest out by one. The invariant that survives is that there is
+   exactly one starting column per person however much history any of them turns out to have.
+
+   This trade was made by eye, on a side-by-side render of both allocators over the real data,
+   not from the numbers. Revisit it if the roster grows much past a dozen: the lane step is the
+   thing that will give first.
 
 1. A trunk moment sits at lane 0. Lanes are otherwise a trajectory, not a fixed row:
    when two or more participants of a non-trunk moment carry on past it, that is a merge, and

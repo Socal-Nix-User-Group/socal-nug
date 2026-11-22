@@ -91,6 +91,15 @@ function allocateLanes(
     trunkAt >= 0 && (seen.get(slug) ?? 0) >= trunkAt ? 1 : -1;
 
   const none: ReadonlySet<number> = new Set();
+  /**
+   * Starting columns, held for the whole picture.
+   *
+   * A face is drawn a rank ahead of its owner's first moment, in territory
+   * the walk below never books, so handing a starting column on to the next
+   * arrival parks their face on the previous occupant's line. Keeping these
+   * costs columns; it buys a column that means one person all the way down.
+   */
+  const claimed = new Set<number>();
   const momentLane = new Map<string, number>();
   const excursionLane = new Map<string, number>();
 
@@ -110,9 +119,10 @@ function allocateLanes(
 
     for (const slug of moment.people) {
       if (!laneOf.has(slug)) {
-        const lane = alloc(sideFor(slug), none);
+        const lane = alloc(sideFor(slug), claimed);
         take(lane, slug);
         initial.set(slug, lane);
+        claimed.add(lane);
       }
     }
 
@@ -137,7 +147,7 @@ function allocateLanes(
 
       // held for the stretch the detour spans, so two overlapping excursions
       // cannot land on the same column
-      const lane = alloc(-1, none);
+      const lane = alloc(-1, claimed);
       held.set(lane, new Set([`excursion:${moment.id}`]));
       if (toIndex !== null) {
         releaseAt.set(toIndex, [...(releaseAt.get(toIndex) ?? []), lane]);
@@ -161,7 +171,7 @@ function allocateLanes(
     );
 
     if (carryOn.length >= 2) {
-      const avoid = new Set(carryOn.map((slug) => laneOf.get(slug)!));
+      const avoid = new Set([...carryOn.map((s) => laneOf.get(s)!), ...claimed]);
       for (const slug of carryOn) drop(slug);
       const lane = alloc(sideFor(carryOn[0]), avoid);
       for (const slug of carryOn) take(lane, slug);

@@ -62,11 +62,15 @@ test("columns are handed out from the spine outward as people appear", () => {
   assert.equal(lanes.get("rok"), -2);
 });
 
-test("a column is reused once the thread in it has gone", () => {
-  // rok's only moment ends at it, so david takes the column back
-  assert.equal(lanes.get("david"), lanes.get("rok"));
-  // tristan gives his up on reaching the spine, so kyle takes that one
-  assert.equal(lanes.get("kyle"), lanes.get("tristan"));
+test("a column freed by a merge is reused", () => {
+  // Starting columns are held for good, but merge and excursion columns are
+  // still recycled, which is what keeps the middle of the picture from
+  // marching outward one column per event.
+  const merge = placed("code-and-coffee").lane;
+  const excursion = braid.excursions.find((e) =>
+    e.moment.moment.id === "nix-camp"
+  )!.lane;
+  assert.equal(excursion, merge);
 });
 
 test("people who arrive after the spine take the other side of it", () => {
@@ -85,11 +89,14 @@ test("a trunk moment sits at lane 0", () => {
 // both move to a new lane between them, so neither reads as the axis the
 // other joined.
 
-test("two people who continue together merge into a lane between them", () => {
+test("two people who continue together merge into a column of their own", () => {
+  // Not a column between them: every starting column is spoken for, so the
+  // merge takes the innermost one that is neither held nor somebody's start.
   const lane = placed("code-and-coffee").lane;
-  assert.equal(lane, -3);
+  assert.equal(lane, -4);
   assert.notEqual(lane, lanes.get("daniel"));
   assert.notEqual(lane, lanes.get("david"));
+  assert.ok(![...lanes.values()].includes(lane));
 });
 
 test("every lane is a whole column, never a fraction", () => {
@@ -361,9 +368,16 @@ test("an excursion avoids a lane a thread is still sitting on", () => {
 });
 
 test("an excursion sits as close to the spine as it can", () => {
-  // the further out it goes the more threads its departure curve crosses
+  // the further out it goes the more threads its departure curve crosses, so
+  // it takes the innermost column that is free and not somebody's start
   const e = braid.excursions.find((x) => x.moment.moment.id === "nix-camp")!;
-  assert.ok(e.lane >= -3, `excursion at ${e.lane} is further out than it needs`);
+  const starts = new Set(lanes.values());
+  for (let lane = -1; lane > e.lane; lane -= 1) {
+    assert.ok(
+      starts.has(lane),
+      `excursion sat at ${e.lane} with ${lane} free and unclaimed`,
+    );
+  }
 });
 
 test("excursion lanes are released and reused by a later excursion", () => {
@@ -389,14 +403,53 @@ test("excursion lanes are released and reused by a later excursion", () => {
 
 // --- backfill ---------------------------------------------------------------
 
-test("backfilling an earlier root does not widen the picture", () => {
-  // the whole reason columns are allocated on demand and released on merge:
-  // adding years of somebody's history must not push everyone else outward.
-  // Under the old scheme every lane was keyed to arrival order, so one early
-  // moment shifted the entire pre-convergence side.
-  const columns = (moments: Moment[]) =>
-    new Set(buildBraid(moments, PEOPLE).moments.map((m) => m.lane)).size;
-  const before = columns(STORY);
-  const after = columns([at("rob-nix", "2019-04", ["rob"]), ...STORY]);
-  assert.ok(after <= before, `${before} columns became ${after}`);
+test("backfilling an earlier root costs no extra starting column", () => {
+  // Reserved starting columns mean one column per person and no more, however
+  // much history any of them turns out to have. What backfilling does change
+  // is the order they are handed out in: an earlier root takes the innermost
+  // column and pushes the rest out by one, which can cost the picture a column
+  // overall. That is the price of a column meaning one person; before this,
+  // columns were recycled and the total never grew, but a face could end up
+  // parked on somebody else's line.
+  const starts = (moments: Moment[]) => new Set(assignLanes(moments).values());
+  const before = starts(STORY);
+  const after = starts([at("rob-nix", "2019-04", ["rob"]), ...STORY]);
+  assert.equal(after.size, before.size);
+  assert.equal(after.size, PEOPLE.size);
+});
+test("a starting column belongs to one person for the whole picture", () => {
+  // A face is drawn a rank ahead of its first moment, in territory the
+  // allocator never booked, so a reused starting column parks one person's
+  // face on another person's line. Starting columns are therefore held for
+  // good; only merge and excursion columns are recycled.
+  const used = [...lanes.values()];
+  assert.equal(
+    new Set(used).size,
+    used.length,
+    `shared starting column: ${
+      [...lanes].map(([s, l]) => `${s}:${l}`).join(" ")
+    }`,
+  );
+});
+
+test("an excursion never lands on somebody's starting column", () => {
+  const starts = new Set(lanes.values());
+  for (const excursion of braid.excursions) {
+    assert.ok(
+      !starts.has(excursion.lane),
+      `excursion ${excursion.moment.moment.id} took a starting column`,
+    );
+  }
+});
+
+test("a merge never lands on a starting column its people do not own", () => {
+  for (const moment of braid.moments) {
+    if (moment.moment.trunk || moment.lane === 0) continue;
+    const owner = [...lanes].find(([, lane]) => lane === moment.lane);
+    if (owner === undefined) continue;
+    assert.ok(
+      moment.moment.people.includes(owner[0]),
+      `${moment.moment.id} sits in ${owner[0]}'s column without them`,
+    );
+  }
 });
