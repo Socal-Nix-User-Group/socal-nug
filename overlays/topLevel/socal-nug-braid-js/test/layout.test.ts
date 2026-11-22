@@ -62,15 +62,24 @@ test("columns are handed out from the spine outward as people appear", () => {
   assert.equal(lanes.get("rok"), -2);
 });
 
-test("a column freed by a merge is reused", () => {
-  // Starting columns are held for good, but merge and excursion columns are
-  // still recycled, which is what keeps the middle of the picture from
-  // marching outward one column per event.
-  const merge = placed("code-and-coffee").lane;
-  const excursion = braid.excursions.find((e) =>
-    e.moment.moment.id === "nix-camp"
-  )!.lane;
-  assert.equal(excursion, merge);
+test("no column but the spine is shared by two moments at once", () => {
+  // Starting columns are held for good; merge and excursion columns are
+  // recycled. Either way, two things never occupy one column at the same
+  // rank, which is the property all the reuse rules exist to protect.
+  const seen = new Map<string, number[]>();
+  for (const moment of braid.moments) {
+    if (moment.lane === 0) continue;
+    const at = seen.get(String(moment.lane)) ?? [];
+    at.push(moment.t);
+    seen.set(String(moment.lane), at);
+  }
+  for (const [lane, times] of seen) {
+    assert.equal(
+      new Set(times).size,
+      times.length,
+      `lane ${lane} holds two moments at one rank`,
+    );
+  }
 });
 
 test("people who arrive after the spine take the other side of it", () => {
@@ -347,23 +356,18 @@ test("the trunk thins while people are away", () => {
 });
 
 test("an excursion avoids a lane a thread is still sitting on", () => {
-  // rok never reaches the spine, so he holds his lane the whole way down.
-  // Routing an excursion outside him would cross his line on the way out.
-  const held = buildBraid(
-    [
-      at("early", "2021-01", ["daniel", "rok"]),
-      at("founded", "2023-04", ["daniel"], true),
-      at("camp", "2024-01", ["daniel"]),
-      at("nug", "2024-06", [], true),
-    ],
-    PEOPLE,
-  );
-  const rokLane = assignLanes([
+  // rok never reaches the spine and has a moment of his own after the detour
+  // starts, so his column is still occupied across it. Routing the detour
+  // through him would cross his line on the way out and back.
+  const story = [
     at("early", "2021-01", ["daniel", "rok"]),
     at("founded", "2023-04", ["daniel"], true),
     at("camp", "2024-01", ["daniel"]),
+    at("rok-late", "2024-03", ["rok"]),
     at("nug", "2024-06", [], true),
-  ]).get("rok");
+  ];
+  const held = buildBraid(story, PEOPLE);
+  const rokLane = assignLanes(story).get("rok");
   assert.notEqual(held.excursions[0].lane, rokLane);
 });
 
@@ -432,14 +436,35 @@ test("a starting column belongs to one person for the whole picture", () => {
   );
 });
 
-test("an excursion never lands on somebody's starting column", () => {
-  const starts = new Set(lanes.values());
-  for (const excursion of braid.excursions) {
-    assert.ok(
-      !starts.has(excursion.lane),
-      `excursion ${excursion.moment.moment.id} took a starting column`,
-    );
-  }
+test("an excursion borrows a starting column whose owner has joined", () => {
+  // A starting column is only occupied while its owner is approaching the
+  // spine. Skipping every one of them regardless pushed excursions out past
+  // the whole roster, and a detour that far out crosses everything on its way
+  // there and back.
+  const e = braid.excursions.find((x) => x.moment.moment.id === "nix-camp")!;
+  assert.equal(e.lane, -1);
+});
+
+test("an excursion keeps off a starting column still being approached", () => {
+  // kyle's first moment is the excursion itself and he joins after it, so his
+  // column is live across it; the excursion must not sit in it.
+  const late = buildBraid(
+    [
+      at("daniel-nix", "2021-10", ["daniel"]),
+      at("founded", "2023-04", ["daniel"], true),
+      at("camp", "2023-10", ["daniel", "kyle"]),
+      at("nug4", "2024-01-25", ["kyle"], true),
+    ],
+    PEOPLE,
+  );
+  const e = late.excursions[0];
+  const kyle = assignLanes([
+    at("daniel-nix", "2021-10", ["daniel"]),
+    at("founded", "2023-04", ["daniel"], true),
+    at("camp", "2023-10", ["daniel", "kyle"]),
+    at("nug4", "2024-01-25", ["kyle"], true),
+  ]).get("kyle");
+  assert.notEqual(e.lane, kyle);
 });
 
 test("a merge never lands on a starting column its people do not own", () => {

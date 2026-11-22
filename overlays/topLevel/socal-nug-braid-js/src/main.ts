@@ -1,7 +1,7 @@
 import { detailFor, rosterFor } from "./cards.ts";
 import { buildBraid } from "./layout.ts";
 import { parseData } from "./parse.ts";
-import { projectionFor } from "./projections.ts";
+import { projectionFor, riverWidthFor } from "./projections.ts";
 import type { Mode } from "./projections.ts";
 import { laneRangeOf, renderBraid } from "./render.ts";
 import type { DocumentLike, ElementLike } from "./render.ts";
@@ -52,6 +52,10 @@ declare const console: { error(...args: unknown[]): void };
 // bound; see .origins-braid in origins.scss.
 const ROW = 46;
 const MIN_HEIGHT = 600;
+// What a River lane is worth in pixels. A face is 36 across, so anything near
+// that leaves avatars sitting on the lines either side of them. The canvas
+// widens to honour this and the container pans, exactly as Subway does.
+const RIVER_LANE = 52;
 const FALLBACK_WIDTH = 900;
 const MORPH_MS = 420;
 // Subway runs time across the page, so its canvas has to grow sideways with
@@ -100,7 +104,7 @@ function boot(): void {
       : FALLBACK_WIDTH;
     if (next === "river") {
       return {
-        width: available,
+        width: Math.max(available, riverWidthFor(lanes, RIVER_LANE)),
         height: Math.max(MIN_HEIGHT, braid.moments.length * ROW),
       };
     }

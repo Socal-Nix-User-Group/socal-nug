@@ -114,19 +114,17 @@ html[data-theme=dark] .origins-layout {
     overflow-y: auto;
     overscroll-behavior-y: contain;
 
-    // Map runs time across the page, so it needs room and a way to reach it.
-    // overflow-x is drag-to-pan on touch for free, with native momentum.
-    // Map's canvas is deliberately wider than this container, so let it keep
-    // its intrinsic width and pan to it. On touch that is drag-to-pan for
-    // free, with native momentum.
-    &[data-mode="subway"] {
-        overflow-x: auto;
-        overscroll-behavior-x: contain;
+    // Both modes ask for the canvas they need rather than squeezing into this
+    // container: Map because time runs across the page, River because its
+    // lanes have to stay wider than the faces standing in them. Either way the
+    // canvas can be wider than here, so let it keep its intrinsic width and
+    // pan to it. On touch that is drag-to-pan for free, with native momentum.
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
 
-        .origins-svg {
-            width: auto;
-            max-width: none;
-        }
+    .origins-svg {
+        width: auto;
+        max-width: none;
     }
 }
 

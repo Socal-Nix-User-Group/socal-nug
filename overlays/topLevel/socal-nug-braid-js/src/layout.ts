@@ -90,7 +90,6 @@ function allocateLanes(
   const sideFor = (slug: string): 1 | -1 =>
     trunkAt >= 0 && (seen.get(slug) ?? 0) >= trunkAt ? 1 : -1;
 
-  const none: ReadonlySet<number> = new Set();
   /**
    * Starting columns, held for the whole picture.
    *
@@ -145,9 +144,27 @@ function allocateLanes(
       const after = trunkIndices.filter((i) => i > index);
       const toIndex = after.length > 0 ? after[0] : null;
 
+      // A starting column is only occupied while its owner is approaching the
+      // spine: a face at the top, a line down to wherever they join. Once
+      // they are on the spine nothing is drawn in it, so a detour may borrow
+      // it. Skipping every starting column regardless pushed detours out past
+      // the whole roster, and one that far out crosses everything on its way
+      // there and back.
+      const spanFrom = before[before.length - 1];
+      const spanTo = toIndex ?? seq.length - 1;
+      const approached = new Set(
+        [...initial]
+          .filter(([slug]) => {
+            const from = (seen.get(slug) ?? 0) - 1;
+            const to = joinIndex.get(slug) ?? lastSeen.get(slug) ?? from;
+            return from <= spanTo && to >= spanFrom;
+          })
+          .map(([, lane]) => lane),
+      );
+
       // held for the stretch the detour spans, so two overlapping excursions
       // cannot land on the same column
-      const lane = alloc(-1, claimed);
+      const lane = alloc(-1, approached);
       held.set(lane, new Set([`excursion:${moment.id}`]));
       if (toIndex !== null) {
         releaseAt.set(toIndex, [...(releaseAt.get(toIndex) ?? []), lane]);

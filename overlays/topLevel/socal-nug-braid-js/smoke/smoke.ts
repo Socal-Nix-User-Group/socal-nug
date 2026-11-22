@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { buildBraid } from "../src/layout.ts";
 import { parseData } from "../src/parse.ts";
 import { LABEL_WIDTH, laneRangeOf, renderBraid } from "../src/render.ts";
-import { projectionFor } from "../src/projections.ts";
+import { projectionFor, riverWidthFor } from "../src/projections.ts";
 import { extentOf, layoutLabels } from "../src/labels.ts";
 
 /**
@@ -93,7 +93,10 @@ if (!Number.isFinite(low) || !Number.isFinite(high) || low > high) {
 // actually fits. Asserting only the abstract (t, lane) left every clipping bug
 // invisible to a passing suite.
 const VIEWPORTS = {
-  river: { width: 850, height: Math.max(600, braid.moments.length * 46) },
+  river: {
+    width: Math.max(850, riverWidthFor([low, high], 52)),
+    height: Math.max(600, braid.moments.length * 46),
+  },
   subway: {
     width: Math.max(850, braid.moments.length * 170),
     height: Math.max(520, (high - low + 2) * 56),

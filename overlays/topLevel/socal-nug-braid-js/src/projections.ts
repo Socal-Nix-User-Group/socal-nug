@@ -45,6 +45,24 @@ const LABEL_RESERVE = 150;
 const LABEL_MIN_FREE = 460;
 const MIN_STEP = 16;
 
+/**
+ * The canvas River needs so each lane gets `step` pixels.
+ *
+ * River used to take exactly the width of its container, so every column the
+ * picture gained made its lanes thinner, until the gap between two columns was
+ * narrower than the faces sitting in them. Subway has always asked for the
+ * canvas it needs and let the container pan to it; this is River doing the
+ * same. Callers take the larger of this and the container width, so a picture
+ * that already fits is left alone.
+ */
+export function riverWidthFor(
+  laneRange: readonly [number, number],
+  step: number,
+): number {
+  const reach = Math.max(1, -laneRange[0], laneRange[1]);
+  return Math.ceil(2 * (reach * step + PAD + LABEL_RESERVE + LABEL_GAP));
+}
+
 export function projectionFor(
   mode: Mode,
   viewport: Viewport,

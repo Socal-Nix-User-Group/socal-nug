@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { projectionFor } from "../src/projections.ts";
+import { projectionFor, riverWidthFor } from "../src/projections.ts";
 
 const VIEW = { width: 800, height: 600 };
 const RANGE: readonly [number, number] = [-4, 3];
@@ -85,4 +85,39 @@ test("river flips the label side for lanes left of the spine", () => {
 test("the viewBox covers the viewport", () => {
   assert.deepEqual([...river.viewBox], [0, 0, VIEW.width, VIEW.height]);
   assert.deepEqual([...map.viewBox], [0, 0, VIEW.width, VIEW.height]);
+});
+
+// --- river canvas width ------------------------------------------------------
+// River used to take exactly the container's width, so the more columns the
+// picture grew the thinner its lanes got, until faces were wider than the gap
+// between them. Subway already asks for the canvas it needs and pans; River
+// now does the same.
+
+test("river asks for a canvas that gives each lane the step it wants", () => {
+  for (const range of [[-7, 4], [-4, 2], [-1, 1]] as const) {
+    const width = riverWidthFor(range, 52);
+    const projection = projectionFor("river", { width, height: 1600 }, range);
+    const step = projection.project(0, 1)[0] - projection.project(0, 0)[0];
+    assert.ok(
+      step >= 51.5,
+      `lanes ${range[0]}..${range[1]} got ${step.toFixed(1)}px, wanted 52`,
+    );
+  }
+});
+
+test("a wider canvas still leaves room for the outermost label", () => {
+  const range: readonly [number, number] = [-7, 4];
+  const width = riverWidthFor(range, 52);
+  const projection = projectionFor("river", { width, height: 1600 }, range);
+  assert.ok(projection.showLabels);
+  const [outer] = projection.project(0, range[0]);
+  const anchor = projection.labelAnchor(range[0]);
+  assert.ok(
+    outer + anchor.dx - 150 >= 0,
+    `outermost label starts at ${outer + anchor.dx - 150}`,
+  );
+});
+
+test("more columns asks for more canvas, never less", () => {
+  assert.ok(riverWidthFor([-7, 4], 52) > riverWidthFor([-2, 1], 52));
 });
