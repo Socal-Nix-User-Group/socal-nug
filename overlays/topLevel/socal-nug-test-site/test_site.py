@@ -231,6 +231,15 @@ class SiteBuild(unittest.TestCase):
         self.assertIn('data-origins-mode="river"', page)
         self.assertIn('data-origins-mode="subway"', page)
 
+    def test_origins_ships_the_layout_engine_it_loads(self):
+        page = (self.out / 'origins' / 'index.html').read_text()
+        self.assertIn('src="/js/vendor/elk.bundled.js"', page)
+        # the classic script has to come before the module that uses it
+        self.assertLess(
+            page.index('/js/vendor/elk.bundled.js'), page.index('/js/braid.js'))
+        self.assertTrue((self.out / 'js' / 'vendor' / 'elk.bundled.js').exists())
+        self.assertTrue((self.out / 'js' / 'vendor' / 'elk.LICENSE.md').exists())
+
     def test_origins_has_no_rail_beside_the_map(self):
         # cards open inside the map now; a rail beside it cost River a column
         # it could not spare once the lanes were wide enough to read

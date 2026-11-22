@@ -175,6 +175,11 @@
 {% endblock content %}
 
 {% block custom_js %}
+{#- Eclipse Layout Kernel lays the braid out. Vendored rather than fetched
+    from a CDN, since the site is heading for self-hosting; the elk-vendored
+    check fails if the committed file is not the pinned upstream release. A
+    classic script, so its global is there before the module below runs. -#}
+<script src="/js/vendor/elk.bundled.js"></script>
 {#- Committed to static/js/, so Netlify serves it as a plain asset and needs
     no node toolchain. The braid-bundle-fresh check fails when the committed
     file and a fresh esbuild of src/ disagree. -#}

@@ -103,6 +103,24 @@ inputs.nixpkgs.lib.mapAttrs (system: pkgs: {
     touch "$out"
   '';
 
+  # The layout engine the page loads is a vendored copy of a pinned upstream release, so a
+  # self-hosted site needs no CDN. This fails if what is committed is not that release, byte
+  # for byte, which is the only way a vendored file stays honest about where it came from.
+  elk-vendored =
+    let
+      upstream = pkgs.fetchurl {
+        url = "https://cdn.jsdelivr.net/npm/elkjs@0.12.1/lib/elk.bundled.js";
+        hash = "sha256-sQMrfP0qV8VMbw6DaddmXhmleZVPfNIKba4o8ZEuoNc=";
+      };
+    in
+    pkgs.runCommand "socal-nug-elk-vendored" { } ''
+      if ! cmp -s ${inputs.self}/static/js/vendor/elk.bundled.js ${upstream}; then
+        echo "static/js/vendor/elk.bundled.js is not elkjs 0.12.1's lib/elk.bundled.js" >&2
+        exit 1
+      fi
+      touch "$out"
+    '';
+
   # The engine run against the repository's real data and the template's merge, rather than
   # against fixtures. Without this, a plausible typo in data/moments.toml draws nonsense with
   # the rest of the suite green.
