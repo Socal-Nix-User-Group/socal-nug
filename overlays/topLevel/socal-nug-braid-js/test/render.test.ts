@@ -219,6 +219,96 @@ test("a detour's straight run is centred on its moment", () => {
   assert.ok(Math.abs(points[points.length - 1][0] - spineX) < 0.5);
 });
 
+/** Points along a flow() path, sampling each cubic. */
+function sampleOf(d: string): Array<[number, number]> {
+  const out: Array<[number, number]> = [];
+  let cur: [number, number] = [0, 0];
+  for (const part of d.match(/[MC][^MC]*/g) ?? []) {
+    const v = part.slice(1).trim().split(/[\s,]+/).map(Number);
+    if (part[0] === "M") {
+      cur = [v[0], v[1]];
+      out.push(cur);
+      continue;
+    }
+    const [x1, y1, x2, y2, x3, y3] = v;
+    for (let i = 1; i <= 24; i += 1) {
+      const k = i / 24;
+      const u = 1 - k;
+      out.push([
+        u * u * u * cur[0] + 3 * u * u * k * x1 + 3 * u * k * k * x2 +
+        k * k * k * x3,
+        u * u * u * cur[1] + 3 * u * u * k * y1 + 3 * u * k * k * y2 +
+        k * k * k * y3,
+      ]);
+    }
+    cur = [x3, y3];
+  }
+  return out;
+}
+
+test("someone not yet in the group visits a detour and returns to their own lane", () => {
+  // Connor was at SCaLE 21x before he joined. His line went out to the dot,
+  // then held the detour lane to the meetup he joined at, straight through
+  // "Met Morgan Jones", which had reused that lane. It read as Connor having
+  // met Morgan. The allocator never gave him that lane; the renderer did.
+  const people = new Map<string, Person>([
+    ["daniel", person("daniel", true)],
+    ["connor", person("connor", true)],
+    ["morgan", person("morgan", true)],
+  ]);
+  const story = buildBraid(
+    [
+      at("daniel-nix", "2021-01", ["daniel"]),
+      at("connor-nix", "2021-06", ["connor"]),
+      at("founded", "2023-01", ["daniel"], true),
+      at("nug2", "2023-03", [], true),
+      at("camp", "2023-04", ["daniel", "connor"]),
+      at("nug3", "2023-05", [], true),
+      at("meets-morgan", "2023-06", ["daniel", "morgan"]),
+      at("nug4", "2023-07", ["connor", "morgan"], true),
+    ],
+    people,
+  );
+  const { doc, made } = stubDocument();
+  const projection = projectionFor(
+    "river",
+    { width: 800, height: 900 },
+    laneRangeOf(story),
+  );
+  renderBraid(story, projection, doc);
+
+  const meets = story.moments.find((m) => m.moment.id === "meets-morgan")!;
+  const [dotX, dotY] = projection.project(meets.t, meets.lane);
+  const connor = withClass(made, "is-approach").find((p) =>
+    p.attrs["data-person"] === "connor"
+  )!;
+  const closest = Math.min(
+    ...sampleOf(connor.attrs.d).map(([x, y]) => Math.hypot(x - dotX, y - dotY)),
+  );
+  assert.ok(
+    closest > 12,
+    `connor's line passes ${closest.toFixed(1)}px from a dot he was not at`,
+  );
+
+  // and between the two detours he is back in his own column
+  const own = projection.project(0, story.threads.find((t) =>
+    t.person.slug === "connor"
+  )!.lane)[0];
+  const nug3 = story.moments.find((m) => m.moment.id === "nug3")!;
+  const nug4 = story.moments.find((m) => m.moment.id === "nug4")!;
+  const [, between] = projection.project((nug3.t + nug4.t) / 2, 0);
+  const near = sampleOf(connor.attrs.d).filter(([, y]) =>
+    Math.abs(y - between) < 3
+  );
+  assert.ok(near.length > 0, "no sample between nug3 and nug4");
+  assert.ok(
+    near.every(([x]) => Math.abs(x - own) < 1),
+    `between nug3 and nug4 connor is at x=${
+      near.map(([x]) => x.toFixed(0))
+    }, own lane ${own}`,
+  );
+});
+
 test("a person with a picture gets an image", () => {
   const { doc, made } = stubDocument();
   avatarFor(PEOPLE.get("daniel")!, doc);

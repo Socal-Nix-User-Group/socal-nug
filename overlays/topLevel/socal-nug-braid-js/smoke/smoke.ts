@@ -263,6 +263,36 @@ for (const mode of ["river", "subway"] as const) {
       r: +n.attrs.r,
     }));
 
+  // A line through a dot its person was not at reads as their having been
+  // there. This is what put Connor at the moment Daniel met Morgan: his line
+  // held a detour lane the allocator had never given him, straight through
+  // the next detour to reuse it. Trunk dots are the group itself and every
+  // detour leaves from one and returns to one, so they are not checked.
+  const wasAt = new Map(
+    braid.moments.map((m) => [m.moment.id, new Set(m.moment.people)]),
+  );
+  const trunkIds = new Set(
+    braid.moments.filter((m) => m.moment.trunk).map((m) => m.moment.id),
+  );
+  const dots = circles.filter((c) => !trunkIds.has(c.id));
+  for (const path of made) {
+    if (path.tag !== "path" || path.attrs["data-person"] === undefined) {
+      continue;
+    }
+    const slug = path.attrs["data-person"];
+    for (const [x, y] of sample(path.attrs.d)) {
+      for (const dot of dots) {
+        if (wasAt.get(dot.id)?.has(slug)) continue;
+        if (Math.hypot(x - dot.x, y - dot.y) < dot.r + 6) {
+          fail(
+            `${mode}: ${slug}'s thread runs through ${dot.id}, ` +
+              `which they were not at, near ${x.toFixed(0)},${y.toFixed(0)}`,
+          );
+        }
+      }
+    }
+  }
+
   for (const label of made) {
     if (label.tag !== "text" || label.attrs.class !== "origins-label") continue;
     const x = +label.attrs.x;

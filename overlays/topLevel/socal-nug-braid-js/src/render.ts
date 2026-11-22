@@ -278,8 +278,16 @@ export function renderBraid(
    * of the gaps either side of the moment allows, so it is symmetric about
    * the dot. A detour with no trunk moment after it runs up to the dot and
    * stops.
+   *
+   * Somebody already in the group leaves the spine and returns to it. Somebody
+   * not yet in it leaves their own lane and returns there, or to the spine
+   * when the meetup the detour ends at is the one they joined.
    */
-  const detour = (excursion: Braid["excursions"][number]) => {
+  const detour = (
+    excursion: Braid["excursions"][number],
+    leaveFrom = 0,
+    returnTo = leaveFrom,
+  ) => {
     const { from, to, lane } = excursion;
     const node = excursion.moment;
     const before = node.t - from.t;
@@ -289,11 +297,11 @@ export function renderBraid(
     const half = reach - jog;
 
     const out: Array<readonly [number, number]> = [
-      projection.project(from.t, 0),
+      projection.project(from.t, leaveFrom),
     ];
-    // only when there is spine to run along before leaving it
+    // only when there is a run along the lane before leaving it
     if (node.t - half - jog > from.t) {
-      out.push(projection.project(node.t - half - jog, 0));
+      out.push(projection.project(node.t - half - jog, leaveFrom));
     }
     out.push(projection.project(node.t - half, lane));
     if (to === null) {
@@ -301,8 +309,8 @@ export function renderBraid(
     } else {
       out.push(
         projection.project(node.t + half, lane),
-        projection.project(node.t + half + jog, 0),
-        projection.project(to.t, 0),
+        projection.project(node.t + half + jog, returnTo),
+        projection.project(to.t, returnTo),
       );
     }
     return out;
@@ -377,44 +385,72 @@ export function renderBraid(
   /** Every pixel point one thread is drawn through, segment by segment. */
   const traceOf = (thread: Braid["threads"][number]) =>
     thread.segments.map((segment) => {
-      const steps: Array<{ t: number; lane: number }> = [];
+      const visitOf = (point: PlacedMoment) =>
+        braid.excursions.find((e) => e.moment.moment.id === point.moment.id);
 
       if (segment.kind === "excursion") {
         // Whoever is on an excursion is already inside the trunk, so the
         // detour leaves from the spine and returns to it. Starting from their
         // old pre-convergence lane would sweep a line across the whole page.
-        const excursion = braid.excursions.find(
-          (e) => e.moment.moment.id === segment.points[0].moment.id,
-        );
+        const excursion = visitOf(segment.points[0]);
         if (excursion === undefined) {
           return { segment, points: [] as (readonly [number, number])[] };
         }
         return { segment, points: detour(excursion) };
-      } else {
-        // An approach begins in the person's own lane, so a thread whose
-        // first moment sits in somebody else's lane still reads as theirs.
-        const first = segment.points[0];
-        steps.push({
-          t: Math.max(0, first.t - originBack),
-          lane: thread.lane,
-        });
-        for (const point of segment.points) {
-          steps.push({ t: point.t, lane: point.lane });
-        }
-        // A thread must visibly reach the spine it joins. Someone recruited at
-        // an excursion is named in no trunk moment, so without this their line
-        // stops out in the margin while their card says where they joined.
-        const joined = thread.joinsTrunkAt;
-        const last = segment.points[segment.points.length - 1];
-        if (joined !== null && last.moment.id !== joined) {
-          const target = braid.moments.find((m) => m.moment.id === joined);
-          if (target !== undefined) {
-            steps.push({ t: target.t, lane: target.lane });
-          }
-        }
       }
 
-      return { segment, points: holdThenJog(steps) };
+      // An approach begins in the person's own lane, so a thread whose first
+      // moment sits in somebody else's lane still reads as theirs.
+      const first = segment.points[0];
+      let lane = thread.lane;
+      let steps: Array<{ t: number; lane: number }> = [
+        { t: Math.max(0, first.t - originBack), lane },
+      ];
+      const out: Array<readonly [number, number]> = [];
+      // after a detour, the first step is the detour's last point again
+      let resumed = false;
+      const flush = () => {
+        out.push(...holdThenJog(steps).slice(resumed ? 1 : 0));
+      };
+
+      for (const point of segment.points) {
+        const visit = visitOf(point);
+        if (visit === undefined) {
+          steps.push({ t: point.t, lane: point.lane });
+          lane = point.lane;
+          continue;
+        }
+        // Somebody not yet in the group, at a detour. The same shape as
+        // everyone else there, but from their own lane and back to it rather
+        // than from the spine. Treating the dot as a plain step held the
+        // detour lane afterwards, which the allocator had never given them,
+        // and parked them on whatever detour reused that lane next. That read
+        // as their having been there too.
+        const back =
+          visit.to !== null && visit.to.moment.id === thread.joinsTrunkAt
+            ? 0
+            : lane;
+        steps.push({ t: visit.from.t, lane });
+        flush();
+        out.push(...detour(visit, lane, back).slice(1));
+        lane = visit.to === null ? visit.lane : back;
+        steps = [{ t: visit.to === null ? visit.moment.t : visit.to.t, lane }];
+        resumed = true;
+      }
+
+      // A thread must visibly reach the spine it joins. Someone recruited at
+      // an excursion is named in no trunk moment, so without this their line
+      // stops out in the margin while their card says where they joined.
+      const joined = thread.joinsTrunkAt;
+      const last = segment.points[segment.points.length - 1];
+      if (joined !== null && last.moment.id !== joined) {
+        const target = braid.moments.find((m) => m.moment.id === joined);
+        if (target !== undefined) {
+          steps.push({ t: target.t, lane: target.lane });
+        }
+      }
+      flush();
+      return { segment, points: out };
     });
 
   // A column one person frees and the next one takes is the whole point of the
