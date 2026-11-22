@@ -193,6 +193,20 @@ class SiteBuild(unittest.TestCase):
         self.assertIn('Joined the NixOS Discourse', page)
         self.assertIn('NUG #1', page)
 
+    def test_origins_ships_the_bundle_and_its_controls(self):
+        page = (self.out / 'origins' / 'index.html').read_text()
+        self.assertIn('src="/js/braid.js"', page)
+        self.assertTrue((self.out / 'js' / 'braid.js').exists())
+        self.assertIn('id="origins-toggle"', page)
+        self.assertIn('id="origins-roster"', page)
+        self.assertIn('data-origins-mode="river"', page)
+        self.assertIn('data-origins-mode="map"', page)
+
+    def test_origins_toggle_is_hidden_until_the_script_reveals_it(self):
+        page = (self.out / 'origins' / 'index.html').read_text()
+        toggle = page.split('id="origins-toggle"')[1].split('>')[0]
+        self.assertIn('is-hidden', toggle)
+
     def test_origins_is_reachable_from_the_nav(self):
         self.assertIn('href="/origins/"', self.index)
 

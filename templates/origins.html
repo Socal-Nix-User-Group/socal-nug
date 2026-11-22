@@ -16,8 +16,25 @@
   {{ page.content | safe }}
 </div>
 
-{# The script replaces this with the drawing. Without the script it is the page. #}
-<div id="origins-braid" class="origins-braid"></div>
+{#- Hidden until the script reveals it, like the theme switcher, so a reader
+    with no JavaScript is not shown a control that does nothing. -#}
+<div id="origins-toggle" class="origins-toggle buttons has-addons is-hidden"
+     role="group" aria-label="Braid layout">
+  <button class="button is-small" type="button" data-origins-mode="river"
+          aria-pressed="true">River</button>
+  <button class="button is-small" type="button" data-origins-mode="map"
+          aria-pressed="false">Map</button>
+</div>
+
+<div class="origins-layout">
+  {# The script replaces this with the drawing. Without the script it is the page. #}
+  <div id="origins-braid" class="origins-braid"></div>
+
+  {#- The roster exists in both projections and is the keyboard path to every
+      card, because the braid's SVG is aria-hidden and nothing inside it is a
+      usable tab stop. -#}
+  <div id="origins-roster" class="origins-roster-rail"></div>
+</div>
 
 <div id="origins-fallback" class="origins-fallback content">
   <h2 class="title is-4">Before the group</h2>
