@@ -155,6 +155,18 @@ test("a person with a picture gets an image", () => {
   assert.ok(made.some((n) => n.tag === "image"));
 });
 
+test("attribute names are SVG spellings, not underscored", () => {
+  const { made } = draw();
+  for (const node of made) {
+    for (const name of Object.keys(node.attrs)) {
+      assert.ok(
+        !name.includes("_"),
+        `${node.tag} has attribute ${name}; SVG uses hyphens`,
+      );
+    }
+  }
+});
+
 test("a guest with an empty image_url gets an initial, never an image", () => {
   const { doc, made } = stubDocument();
   avatarFor(PEOPLE.get("rok")!, doc);

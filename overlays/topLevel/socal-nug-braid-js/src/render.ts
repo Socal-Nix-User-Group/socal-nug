@@ -76,7 +76,7 @@ export function avatarFor(person: Person, doc: DocumentLike): ElementLike {
         y: -AVATAR,
         width: AVATAR * 2,
         height: AVATAR * 2,
-        clip_path: "circle()",
+        "clip-path": "circle()",
         class: "origins-avatar-image",
       }),
     );
