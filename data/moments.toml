@@ -37,10 +37,10 @@ title = "Started at Tweag"
 people = ["daniel-baker"]
 
 [[moment]]
-id = "meets-rok"
-date = "2022-03" # CONFIRM: "shortly after" starting at Tweag
-title = "Met Rok Garbas"
-people = ["daniel-baker", "rok-garbas"]
+id = "meets-connor"
+date = "2022-03" # CONFIRM: "let's say March"
+title = "Met Connor Baker at Tweag"
+people = ["daniel-baker", "connor-baker"]
 
 [[moment]]
 id = "code-and-coffee"
@@ -65,16 +65,6 @@ title = "NixCon 2022"
 people = ["daniel-baker", "connor-baker"]
 link = "https://2022.nixcon.org/"
 
-# --- Ron: influence without presence ---------------------------------------
-# Ron reserved the booth but was not there, so this is a moment on his own
-# thread, sitting next to the thing it caused.
-
-[[moment]]
-id = "ron-books-booth"
-date = "2023-02" # CONFIRM: shortly before SCaLE 20x
-title = "Reserved the Nix booth at SCaLE 20x"
-people = ["ron-efroni"]
-
 # --- Convergence -----------------------------------------------------------
 
 [[moment]]
@@ -95,9 +85,20 @@ blurb = "A group chat called 'Cool Guys from SCaLE'."
 # --- Joins and excursions --------------------------------------------------
 
 [[moment]]
+id = "jared-joins"
+event = "2023-05-30"
+people = ["jared-baur"]
+
+[[moment]]
 id = "tristan-joins"
 event = "2023-09-19"
 people = ["tristan-ross"]
+
+[[moment]]
+id = "meets-morgan"
+date = "2024-05-06"
+title = "Met Morgan Jones"
+people = ["daniel-baker", "morgan-jones"]
 
 # No `trunk` key on any of these: dated after the spine starts and naming
 # people already in it, so the engine reads them as excursions.

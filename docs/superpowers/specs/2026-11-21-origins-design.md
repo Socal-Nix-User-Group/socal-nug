@@ -152,7 +152,7 @@ People stay in `content/about/*.md` and gain one required field, under `[extra]`
 
 ```toml
 [extra]
-member = true   # or false for guests such as Rok Garbas and Ron Efroni
+member = true   # or false for someone in the story who is not in the group
 ```
 
 - It must be under `[extra]`. A top-level `member = true` builds with no error and is undefined
@@ -173,8 +173,9 @@ the braid reads people from. A thin guest page is the cheaper cost.
 
 Guests may fill in `image_url` and `description` or leave them empty. The page handles both.
 
-Initial guests, cleared for inclusion: Rok Garbas (`https://github.com/garbas`) and Ron Efroni
-(`https://github.com/refroni`), both with `extra.member = false`.
+There are no guests in the data at present. The mechanism stays, because the braid is meant to
+be able to show people who are part of the story without listing them as members of the group,
+and `test_site.py` proves the About filter with a probe rather than leaving it untested.
 
 Daniel Baker, "Dan" and `@djacu` are one person with one slug, `daniel-baker`. The anniversary
 post's "Dan, Daniel and Ben" is three separate people: Daniel Baker, Daniel Fullmer, and Ben.
@@ -243,7 +244,9 @@ moment with both, a moment with neither, and an `event` that does not resolve to
 - A person named only in a `blurb` needs no profile. `braid-data` validates `people` entries, not
   prose. Ben was on the SCaLE 20x booth and gets no thread; he is named in the telling and that
   is all.
-- Influence without presence is modelled as a separate moment, not a new field. Ron Efroni
+- Influence without presence is modelled as a separate moment, not a new field. The worked
+  example below has since been removed from the data, but the rule stands for the next time
+  somebody causes something they were not at. Ron Efroni
   reserved the Nix booth at SCaLE 20x but was not there. That is a moment on Ron's thread
   (`people = ["ron-efroni"]`) dated shortly before the booth itself. Ron's thread exists, sits
   next to the moment it caused, and the picture never claims he was in the room. A `caused_by`

@@ -162,14 +162,27 @@ class SiteBuild(unittest.TestCase):
             self.assertTrue(src.startswith('/'), f'external avatar: {src}')
             self.assertTrue((self.out / src.lstrip('/')).is_file(), src)
 
-    def test_guests_have_pages_but_are_not_in_the_members_grid(self):
-        for slug in ('rok-garbas', 'ron-efroni'):
-            self.assertTrue((self.out / 'about' / slug / 'index.html').exists(), slug)
-        about = (self.out / 'about' / 'index.html').read_text()
-        names = re.findall(r'<h4 class="title is-4">(.*?)</h4>', about)
+    def test_a_guest_has_a_page_but_is_not_in_the_members_grid(self):
+        # there are no guests in the data at the moment, so the filter is
+        # proved with a probe rather than left untested
+        probe = ROOT / 'content' / 'about' / 'zzz-guest-probe.md'
+        probe.write_text('+++\nweight = 98\n[extra]\nmember = false\n'
+                         'name = "Guest Probe"\nalias = "@guestprobe"\n+++\n')
+        tmp = pathlib.Path(tempfile.mkdtemp(prefix='socal-nug-guest-'))
+        try:
+            build(tmp)
+            out = tmp / 'public'
+            about = (out / 'about' / 'index.html').read_text()
+            names = re.findall(r'<h4 class="title is-4">(.*?)</h4>', about)
+            has_page = (out / 'about' / 'zzz-guest-probe' / 'index.html').is_file()
+        finally:
+            probe.unlink()
+            shutil.rmtree(tmp, ignore_errors=True)
         self.assertEqual(names, self.MEMBERS)
-        for guest in ('Rok Garbas', 'Ron Efroni'):
-            self.assertNotIn(guest, about)
+        self.assertNotIn('Guest Probe', about)
+        # a guest still gets a page: the braid reads people from this section,
+        # and render = false would drop them out of it entirely
+        self.assertTrue(has_page)
 
     # --- origins page ----------------------------------------------------------
 
