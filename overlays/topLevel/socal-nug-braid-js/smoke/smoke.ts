@@ -1,18 +1,21 @@
 import { readFileSync } from "node:fs";
+import ELK from "./elk.bundled.js";
+import { drawPlaced } from "../src/draw.ts";
+import { LABEL_MAX } from "../src/graph.ts";
 import { buildBraid } from "../src/layout.ts";
 import { parseData } from "../src/parse.ts";
-import { LABEL_WIDTH, laneRangeOf, renderBraid } from "../src/render.ts";
-import { projectionFor, riverWidthFor } from "../src/projections.ts";
-import { extentOf, layoutLabels } from "../src/labels.ts";
+import { placeBraid } from "../src/place.ts";
 
 /**
- * The only check that runs on the repository's real data and on the
- * template's merge, rather than on fixtures. Everything else in the engine
- * suite builds its own moments, so a plausible typo in data/moments.toml
- * could otherwise produce a nonsense picture with the whole suite green.
+ * The only check that runs on the repository's real data, through the real
+ * layout engine, and on the template's merge, rather than on fixtures.
+ * Everything else in the engine suite builds its own moments and fakes the
+ * layout, so a plausible typo in data/moments.toml, or a layout ELK is happy
+ * with that the renderer is not, could otherwise ship with the suite green.
  *
  * It reads the built page rather than the TOML because node has no TOML
- * parser, and because reading the page tests the Tera merge too.
+ * parser, and because reading the page tests the Tera merge too. ELK is the
+ * vendored copy the page loads, put beside this script by the check.
  */
 
 declare const process: {
@@ -47,12 +50,6 @@ if (braid.moments.length === 0) {
   fail("the braid has no moments");
 }
 
-for (const placed of braid.moments) {
-  if (!Number.isFinite(placed.t) || !Number.isFinite(placed.lane)) {
-    fail(`${placed.moment.id} has a non-finite position`);
-  }
-}
-
 for (const thread of braid.threads) {
   if (thread.segments.length === 0) {
     fail(`${thread.person.slug} has no drawn segment`);
@@ -84,77 +81,10 @@ for (const segment of braid.trunk) {
   previous = segment.joined;
 }
 
-const [low, high] = laneRangeOf(braid);
-if (!Number.isFinite(low) || !Number.isFinite(high) || low > high) {
-  fail(`lane range is broken: ${low}..${high}`);
-}
-
-// Project the real data through both modes and check that what would be drawn
-// actually fits. Asserting only the abstract (t, lane) left every clipping bug
-// invisible to a passing suite.
-const VIEWPORTS = {
-  river: {
-    width: Math.max(850, riverWidthFor([low, high], 52)),
-    height: Math.max(600, braid.moments.length * 46),
-  },
-  subway: {
-    width: Math.max(850, braid.moments.length * 170),
-    height: Math.max(520, (high - low + 2) * 56),
-  },
-} as const;
-
-for (const mode of ["river", "subway"] as const) {
-  const viewport = VIEWPORTS[mode];
-  const projection = projectionFor(mode, viewport, [low, high]);
-  const [, , boxWidth, boxHeight] = projection.viewBox;
-
-  for (const placed of braid.moments) {
-    const [x, y] = projection.project(placed.t, placed.lane);
-    if (x < 0 || x > boxWidth || y < 0 || y > boxHeight) {
-      fail(
-        `${mode}: ${placed.moment.id} at ${x},${y} is outside 0,0..${boxWidth},${boxHeight}`,
-      );
-    }
-  }
-
-  if (!projection.showLabels) continue;
-
-  // Exactly the call the renderer makes, so this measures what is drawn.
-  const boxes = braid.moments.map((placed) => {
-    const [x, y] = projection.project(placed.t, placed.lane);
-    const anchor = projection.labelAnchor(placed.lane);
-    return {
-      id: placed.moment.id,
-      x: x + anchor.dx,
-      y: y + anchor.dy,
-      w: LABEL_WIDTH,
-      h: 14,
-      anchorX: x,
-      anchorY: y,
-      anchor: anchor.anchor,
-    };
-  });
-
-  for (
-    const box of layoutLabels(boxes, mode === "river" ? "y" : "x", {
-      width: boxWidth,
-      height: boxHeight,
-    })
-  ) {
-    const [left, right] = extentOf(box);
-    if (left < 0 || right > boxWidth) {
-      fail(
-        `${mode}: label for ${box.id} spans ${left}..${right}, outside 0..${boxWidth}`,
-      );
-    }
-  }
-}
-
 // --- what the picture actually looks like ------------------------------------
-// Everything above measures (t, lane) and label extents. All of it was green
-// while a thread ran straight through somebody's face and two labels sat
-// across one, because none of it rendered. This does: it draws the real braid
-// through the real renderer and measures the SVG that comes out.
+// Draw the real braid through the real ELK and the real renderer, and
+// measure the SVG that comes out. Measuring the abstract model left every
+// overlap invisible to a passing suite.
 
 interface Recorded {
   tag: string;
@@ -220,11 +150,32 @@ function sample(d: string): Array<readonly [number, number]> {
 
 const AVATAR = 18;
 const LABEL_HEIGHT = 14;
+const elk = new (ELK as unknown as new () => {
+  layout(graph: unknown): Promise<unknown>;
+})();
 
 for (const mode of ["river", "subway"] as const) {
-  const projection = projectionFor(mode, VIEWPORTS[mode], [low, high]);
+  const placed = await placeBraid(
+    braid,
+    mode,
+    (graph) => elk.layout(graph) as never,
+  );
+  if (!(placed.width > 0 && placed.height > 0)) {
+    fail(`${mode}: ELK gave the picture no size`);
+  }
+  for (const m of braid.moments) {
+    if (!placed.moments.has(m.moment.id)) {
+      fail(`${mode}: ${m.moment.id} was not placed`);
+    }
+  }
+  for (const thread of braid.threads) {
+    if (!placed.roots.has(thread.person.slug)) {
+      fail(`${mode}: ${thread.person.slug}'s face was not placed`);
+    }
+  }
+
   const { doc, made } = recorder();
-  renderBraid(braid, projection, doc as never);
+  drawPlaced(placed, braid, doc as never);
 
   const faces = made
     .filter((n) => n.tag === "g" && n.attrs.class === "origins-root")
@@ -234,7 +185,41 @@ for (const mode of ["river", "subway"] as const) {
       return { slug: n.attrs["data-person"], x: +at[1], y: +at[2] };
     });
 
+  const circles = made
+    .filter((n) => n.tag === "circle" && n.attrs["data-moment"] !== undefined)
+    .map((n) => ({
+      id: n.attrs["data-moment"],
+      x: +n.attrs.cx,
+      y: +n.attrs.cy,
+      r: +n.attrs.r,
+    }));
+
+  // Everything drawn is on the canvas.
+  for (const c of circles) {
+    if (c.x < 0 || c.x > placed.width || c.y < 0 || c.y > placed.height) {
+      fail(`${mode}: ${c.id} at ${c.x},${c.y} is off the canvas`);
+    }
+  }
+  for (const f of faces) {
+    if (
+      f.x - AVATAR < 0 || f.x + AVATAR > placed.width ||
+      f.y - AVATAR < 0 || f.y + AVATAR > placed.height
+    ) {
+      fail(`${mode}: ${f.slug}'s face at ${f.x},${f.y} is clipped`);
+    }
+  }
+
   // A line through someone's face reads as a connection that is not there.
+  // A line through a dot its person was not at reads as their having been
+  // there. Trunk dots are the group itself and every detour leaves from one
+  // and returns to one, so they are not checked.
+  const wasAt = new Map(
+    braid.moments.map((m) => [m.moment.id, new Set(m.moment.people)]),
+  );
+  const trunkIds = new Set(
+    braid.moments.filter((m) => m.moment.trunk).map((m) => m.moment.id),
+  );
+  const dots = circles.filter((c) => !trunkIds.has(c.id));
   for (const path of made) {
     if (path.tag !== "path" || path.attrs["data-person"] === undefined) {
       continue;
@@ -250,37 +235,6 @@ for (const mode of ["river", "subway"] as const) {
           );
         }
       }
-    }
-  }
-
-  // A label across a face or a node hides the thing it is naming.
-  const circles = made
-    .filter((n) => n.tag === "circle" && n.attrs["data-moment"] !== undefined)
-    .map((n) => ({
-      id: n.attrs["data-moment"],
-      x: +n.attrs.cx,
-      y: +n.attrs.cy,
-      r: +n.attrs.r,
-    }));
-
-  // A line through a dot its person was not at reads as their having been
-  // there. This is what put Connor at the moment Daniel met Morgan: his line
-  // held a detour lane the allocator had never given him, straight through
-  // the next detour to reuse it. Trunk dots are the group itself and every
-  // detour leaves from one and returns to one, so they are not checked.
-  const wasAt = new Map(
-    braid.moments.map((m) => [m.moment.id, new Set(m.moment.people)]),
-  );
-  const trunkIds = new Set(
-    braid.moments.filter((m) => m.moment.trunk).map((m) => m.moment.id),
-  );
-  const dots = circles.filter((c) => !trunkIds.has(c.id));
-  for (const path of made) {
-    if (path.tag !== "path" || path.attrs["data-person"] === undefined) {
-      continue;
-    }
-    const slug = path.attrs["data-person"];
-    for (const [x, y] of sample(path.attrs.d)) {
       for (const dot of dots) {
         if (wasAt.get(dot.id)?.has(slug)) continue;
         if (Math.hypot(x - dot.x, y - dot.y) < dot.r + 6) {
@@ -293,23 +247,20 @@ for (const mode of ["river", "subway"] as const) {
     }
   }
 
+  // A label across a face or a node hides the thing it is naming, and one
+  // off the canvas is not there at all.
   for (const label of made) {
     if (label.tag !== "text" || label.attrs.class !== "origins-label") continue;
     const x = +label.attrs.x;
     const y = +label.attrs.y;
     const anchor = label.attrs["text-anchor"];
-    const left = anchor === "end"
-      ? x - LABEL_WIDTH
-      : anchor === "middle"
-      ? x - LABEL_WIDTH / 2
-      : x;
-    const box = {
-      left,
-      right: left + LABEL_WIDTH,
-      top: y - LABEL_HEIGHT,
-      bottom: y,
-    };
+    const w = Math.min(LABEL_MAX, label.text.length * 6.4);
+    const left = anchor === "end" ? x - w : anchor === "middle" ? x - w / 2 : x;
+    const box = { left, right: left + w, top: y - LABEL_HEIGHT, bottom: y };
 
+    if (box.left < 0 || box.right > placed.width || box.top < 0) {
+      fail(`${mode}: label "${label.text}" runs off the canvas`);
+    }
     for (const face of faces) {
       if (
         box.left < face.x + AVATAR && box.right > face.x - AVATAR &&
@@ -333,5 +284,5 @@ console.log(
   `origins smoke: ${braid.moments.length} moments, ` +
     `${braid.threads.length} threads, ` +
     `${braid.excursions.length} excursions, ` +
-    `trunk ${braid.trunk.length} segments, lanes ${low}..${high}`,
+    `trunk ${braid.trunk.length} segments, laid out by ELK in both modes`,
 );

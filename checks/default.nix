@@ -133,8 +133,12 @@ inputs.nixpkgs.lib.mapAttrs (system: pkgs: {
         ];
       }
       ''
+        # The layout engine is the vendored copy the page loads, left outside the
+        # bundle and put beside it, so the check runs exactly what ships.
+        cp ${inputs.self}/static/js/vendor/elk.bundled.js .
         esbuild ${pkgs.socal-nug-braid-js.src}/smoke/smoke.ts \
           --bundle --format=esm --platform=node --target=node22 \
+          --external:./elk.bundled.js \
           --outfile=smoke.mjs
         node smoke.mjs ${pkgs.socal-nug-site}
         touch "$out"

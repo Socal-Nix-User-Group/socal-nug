@@ -1,10 +1,10 @@
 import { detailFor, personCardFor } from "./cards.ts";
+import { drawPlaced } from "./draw.ts";
+import type { ElkGraph, Mode } from "./graph.ts";
 import { buildBraid } from "./layout.ts";
 import { parseData } from "./parse.ts";
+import { placeBraid } from "./place.ts";
 import { placePopup } from "./popup.ts";
-import { projectionFor, riverWidthFor } from "./projections.ts";
-import type { Mode } from "./projections.ts";
-import { laneRangeOf, renderBraid } from "./render.ts";
 import type { DocumentLike, ElementLike } from "./render.ts";
 import { readMode, writeMode } from "./toggle.ts";
 import type { StorageLike } from "./toggle.ts";
@@ -65,24 +65,13 @@ const XHTML = "http://www.w3.org/1999/xhtml";
 declare const window: { localStorage: StorageLike } | undefined;
 declare const console: { error(...args: unknown[]): void };
 
-// River height is moments x ROW, floored at MIN_HEIGHT. The picture is taller
-// than the page, so its container scrolls rather than the page growing without
-// bound; see .origins-braid in origins.scss.
-const ROW = 46;
-const MIN_HEIGHT = 600;
-// What a River lane is worth in pixels. A face is 36 across, so anything near
-// that leaves avatars sitting on the lines either side of them. The canvas
-// widens to honour this and the container pans, exactly as Subway does.
-const RIVER_LANE = 52;
-const FALLBACK_WIDTH = 900;
+/** The Eclipse Layout Kernel, which the page loads as a classic script. */
+declare const ELK: new () => {
+  layout(graph: ElkGraph): Promise<ElkGraph>;
+};
+
+/** How long the dots take to slide between the two layouts. */
 const MORPH_MS = 420;
-// Subway runs time across the page, so its canvas has to grow sideways with
-// the number of moments and downwards with the number of lanes. Using River's
-// per-row metric for both gave it a portrait canvas, which is the one shape a
-// horizontal map must not have, and left nothing for overflow-x to pan.
-const SUBWAY_COL = 170;
-const SUBWAY_LANE = 56;
-const SUBWAY_MIN_HEIGHT = 520;
 
 function storage(): StorageLike | null {
   try {
@@ -111,10 +100,11 @@ function boot(): void {
 
   const cast = data.people;
   const braid = buildBraid(data.moments, cast);
-  const lanes = laneRangeOf(braid);
   const store = storage();
   let mode: Mode = readMode(store);
-  let previous = new Map<string, { x: number; y: number }>();
+  let previous: ReadonlyMap<string, { x: number; y: number }> = new Map();
+  const elk = new ELK();
+  let drawing = 0;
 
   // The one card, opened beside whatever was clicked. It lives inside the
   // scrolling map so it pans with it, and is put back after every redraw
@@ -123,49 +113,21 @@ function boot(): void {
   popup.setAttribute("class", "origins-popup");
   popup.hidden = true;
 
-  function viewportFor(next: Mode): { width: number; height: number } {
-    const available = mount!.clientWidth > 0
-      ? mount!.clientWidth
-      : FALLBACK_WIDTH;
-    if (next === "river") {
-      return {
-        width: Math.max(available, riverWidthFor(lanes, RIVER_LANE)),
-        height: Math.max(MIN_HEIGHT, braid.moments.length * ROW),
-      };
-    }
-    const spread = lanes[1] - lanes[0] + 2;
-    return {
-      width: Math.max(available, braid.moments.length * SUBWAY_COL),
-      height: Math.max(SUBWAY_MIN_HEIGHT, spread * SUBWAY_LANE),
-    };
-  }
+  async function draw(next: Mode, animate: boolean): Promise<void> {
+    // Layout is asynchronous and a reader can switch modes faster than ELK
+    // lays out, so a drawing that was overtaken is dropped rather than
+    // landing on top of the newer one.
+    const token = ++drawing;
+    const placed = await placeBraid(braid, next, (graph) => elk.layout(graph));
+    if (token !== drawing) return;
 
-  function positionsFor(next: Mode): Map<string, { x: number; y: number }> {
-    const projection = projectionFor(next, viewportFor(next), lanes);
-    const out = new Map<string, { x: number; y: number }>();
-    for (const placed of braid.moments) {
-      const [x, y] = projection.project(placed.t, placed.lane);
-      out.set(placed.moment.id, { x, y });
-    }
-    return out;
-  }
-
-  function draw(next: Mode, animate: boolean): void {
-    // Set the mode before measuring. The two modes give the braid different
-    // widths - Subway is full bleed, River loses a 20rem rail - and reading
-    // clientWidth first measures the layout we are leaving. Rendering a
-    // viewBox that wide and then letting the container shrink makes the SVG
-    // scale down, and `height: auto` drags the height down with it.
     mount!.setAttribute("data-mode", next);
+    mount!.replaceChildren(drawPlaced(placed, braid, document), popup);
 
-    // Reading clientWidth here forces the reflow, so this is the new width.
-    const projection = projectionFor(next, viewportFor(next), lanes);
-    mount!.replaceChildren(renderBraid(braid, projection, document), popup);
-
-    const now = positionsFor(next);
+    const now = placed.moments;
     if (animate) {
-      // The two projections are the same points read differently, so a switch
-      // is an interpolation. Transforms animate reliably; path `d` does not.
+      // The two layouts place the same dots, so a switch slides each from
+      // where it was to where it is. Transforms animate reliably; `d` does not.
       for (const node of mount!.querySelectorAll("[data-moment]")) {
         const id = node.dataset.moment;
         const from = id === undefined ? undefined : previous.get(id);
@@ -312,7 +274,7 @@ function boot(): void {
     if (event.key === "Escape") closePopup();
   });
 
-  draw(mode, false);
+  void draw(mode, false);
 
   const buttons = document.getElementById("origins-toggle");
   if (buttons !== null) {
@@ -323,7 +285,7 @@ function boot(): void {
         if (next === mode) return;
         mode = next;
         writeMode(store, mode);
-        draw(mode, true);
+        void draw(mode, true);
         for (const other of buttons.querySelectorAll("[data-origins-mode]")) {
           other.setAttribute(
             "aria-pressed",
