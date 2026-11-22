@@ -360,6 +360,31 @@ Each projection also supplies its own label anchor rules, since River has free h
 beside nodes and Map does not. That labelling difference is the real cost of supporting both; the
 geometry is shared.
 
+#### Keeping markers apart
+
+Lane allocation decides where things go; it does not decide whether they fit. Three kinds of
+overlap are resolved afterwards, in this order, because each one is drawn on top of the last:
+
+1. **Label against label.** A sweep along the free axis, then a clamp back inside the canvas.
+1. **Avatar against another person's thread.** A column one person frees and the next one takes
+   is the point of the git-style allocator, but it leaves the newcomer's face parked in a column
+   somebody else's line is still running down. A line through a face reads as a connection that
+   is not there, so a face that lands on another thread steps aside: across the lanes first,
+   away from the spine, then back along the time axis, which also clears the case where the
+   offending line is crossing the column rather than sharing it. The thread's own first point
+   moves with it, so the line still starts at the face.
+1. **Label against avatar or node.** Both are already on the canvas and cannot move, so a label
+   that lands on one walks along the sweep axis until it clears. It keeps whatever position it
+   has if the canvas edge stops it first: a label slightly over a circle beats a label shoved
+   off the page.
+
+Steps 2 and 3 are bounded searches, not solvers. A picture dense enough to defeat them degrades
+by leaving one marker slightly overlapped, never by looping or by pushing something off-canvas.
+
+Labels crossing *lines* are not resolved and are not meant to be. With threads holding their
+columns, a label beside a node will sometimes cross a line running past it; that reads fine,
+and the alternatives (leader lines, or labels pushed far from what they name) read worse.
+
 ### Toggle and responsive behaviour
 
 - Buttons in the page, choice persisted in `localStorage`, following the existing theme switcher
