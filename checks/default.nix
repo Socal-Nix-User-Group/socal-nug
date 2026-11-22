@@ -50,6 +50,26 @@ inputs.nixpkgs.lib.mapAttrs (system: pkgs: {
         touch "$out"
       '';
 
+  # The layout engine's unit tests. esbuild compiles each test file and its imports to ESM, and
+  # node's built-in runner executes them. No npm, no test-runner dependency.
+  braid-engine =
+    pkgs.runCommand "socal-nug-braid-engine-check"
+      {
+        nativeBuildInputs = [
+          pkgs.esbuild
+          pkgs.nodejs
+        ];
+      }
+      ''
+        # The source is a read-only store path, so compile out of it into the build dir.
+        # .mjs so node loads the ESM output as ESM; a bare .js would be read as CommonJS.
+        esbuild ${pkgs.socal-nug-braid-js.src}/test/*.test.ts \
+          --bundle --format=esm --platform=node --target=node22 \
+          --out-extension:.js=.mjs --outdir=compiled
+        node --test compiled/*.test.mjs
+        touch "$out"
+      '';
+
   # The repository's moments file validates, and the validator rejects each way a moment can be
   # malformed. Fixtures resolve their person and event slugs against the real content.
   braid-data =

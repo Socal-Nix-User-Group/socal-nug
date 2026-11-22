@@ -6,6 +6,7 @@ inputs.nixpkgs.lib.mapAttrs (_system: pkgs: {
     socal-nug-make-event-ical
     socal-nug-verify-post
     socal-nug-braid-data
+    socal-nug-braid-js
     socal-nug-test-site
     socal-nug-logos
     zizmor
