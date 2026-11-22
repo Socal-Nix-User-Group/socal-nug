@@ -28,14 +28,14 @@ test("defaults to river when nothing is stored", () => {
 
 test("round-trips a stored mode", () => {
   const storage = memory();
-  writeMode(storage, "map");
-  assert.equal(readMode(storage), "map");
+  writeMode(storage, "subway");
+  assert.equal(readMode(storage), "subway");
   writeMode(storage, "river");
   assert.equal(readMode(storage), "river");
 });
 
 test("reads a mode written by a previous visit", () => {
-  assert.equal(readMode(memory({ [MODE_KEY]: "map" })), "map");
+  assert.equal(readMode(memory({ [MODE_KEY]: "subway" })), "subway");
 });
 
 test("returns river when storage throws on read", () => {
@@ -43,15 +43,16 @@ test("returns river when storage throws on read", () => {
 });
 
 test("never throws when storage throws on write", () => {
-  assert.doesNotThrow(() => writeMode(hostile, "map"));
+  assert.doesNotThrow(() => writeMode(hostile, "subway"));
 });
 
 test("returns river when there is no storage at all", () => {
   assert.equal(readMode(null), "river");
-  assert.doesNotThrow(() => writeMode(null, "map"));
+  assert.doesNotThrow(() => writeMode(null, "subway"));
 });
 
 test("ignores a stored value that is not a mode", () => {
-  assert.equal(readMode(memory({ [MODE_KEY]: "subway" })), "river");
+  assert.equal(readMode(memory({ [MODE_KEY]: "tube" })), "river");
+  assert.equal(readMode(memory({ [MODE_KEY]: "map" })), "river");
   assert.equal(readMode(memory({ [MODE_KEY]: "" })), "river");
 });

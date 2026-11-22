@@ -94,13 +94,13 @@ if (!Number.isFinite(low) || !Number.isFinite(high) || low > high) {
 // invisible to a passing suite.
 const VIEWPORTS = {
   river: { width: 850, height: Math.max(600, braid.moments.length * 46) },
-  map: {
+  subway: {
     width: Math.max(850, braid.moments.length * 170),
     height: Math.max(520, (high - low + 2) * 56),
   },
 } as const;
 
-for (const mode of ["river", "map"] as const) {
+for (const mode of ["river", "subway"] as const) {
   const viewport = VIEWPORTS[mode];
   const projection = projectionFor(mode, viewport, [low, high]);
   const [, , boxWidth, boxHeight] = projection.viewBox;

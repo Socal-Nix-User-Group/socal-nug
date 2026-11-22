@@ -1,4 +1,4 @@
-export type Mode = "river" | "map";
+export type Mode = "river" | "subway";
 
 export interface Viewport {
   readonly width: number;

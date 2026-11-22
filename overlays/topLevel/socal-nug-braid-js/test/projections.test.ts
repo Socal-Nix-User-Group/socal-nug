@@ -6,7 +6,7 @@ const VIEW = { width: 800, height: 600 };
 const RANGE: readonly [number, number] = [-4, 3];
 
 const river = projectionFor("river", VIEW, RANGE);
-const map = projectionFor("map", VIEW, RANGE);
+const map = projectionFor("subway", VIEW, RANGE);
 
 test("river runs time down the y axis and lanes across x", () => {
   const [, early] = river.project(0, 0);

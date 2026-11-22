@@ -21,7 +21,7 @@ export function readMode(storage: StorageLike | null): Mode {
   }
   try {
     const stored = storage.getItem(MODE_KEY);
-    return stored === "river" || stored === "map" ? stored : DEFAULT;
+    return stored === "river" || stored === "subway" ? stored : DEFAULT;
   } catch {
     return DEFAULT;
   }

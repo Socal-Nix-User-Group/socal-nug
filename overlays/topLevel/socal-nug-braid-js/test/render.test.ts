@@ -5,11 +5,13 @@ import { buildBraid } from "../src/layout.ts";
 import { projectionFor } from "../src/projections.ts";
 import {
   avatarFor,
+  flow,
   hueFor,
   LABEL_WIDTH,
   laneRangeOf,
   PALETTE_SIZE,
   renderBraid,
+  yearTicks,
 } from "../src/render.ts";
 import type { DocumentLike, ElementLike } from "../src/render.ts";
 import type { Moment, Person } from "../src/types.ts";
@@ -232,7 +234,7 @@ function extentOf(node: Node, width: number): [number, number] {
   return [x, x + width];
 }
 
-for (const mode of ["river", "map"] as const) {
+for (const mode of ["river", "subway"] as const) {
   test(`every ${mode} label sits inside the viewBox`, () => {
     const { doc, made } = stubDocument();
     const viewport = mode === "river"
@@ -317,13 +319,69 @@ test("a thread that joins the trunk visibly reaches it", () => {
       (n.attrs.class ?? "").includes("is-approach"),
   )!;
   const spine = projection.project(0, 0)[0];
+  // Paths are cubic, so the last point is the final coordinate pair.
   const lastX = Number(
-    path.attrs.d.split("L").pop()!.split(",")[0],
+    path.attrs.d.trim().split(/\s+/).pop()!.split(",")[0],
   );
   assert.ok(
     Math.abs(lastX - spine) < 1,
     `p6's thread ends at ${lastX}, spine is ${spine}`,
   );
+});
+
+// --- year ticks and label text ----------------------------------------------
+
+test("one tick per year that has moments, in order", () => {
+  const years = yearTicks(big.moments).map((t) => t.year);
+  assert.deepEqual(years, [2021, 2022, 2023, 2024, 2025]);
+});
+
+test("a year tick sits before that year's first moment", () => {
+  const ticks = yearTicks(big.moments);
+  for (const tick of ticks) {
+    const first = big.moments.find(
+      (m) => new Date(m.moment.date.start).getUTCFullYear() === tick.year,
+    )!;
+    assert.ok(tick.t <= first.t, `${tick.year} tick at ${tick.t} vs ${first.t}`);
+    assert.ok(tick.t >= 0 && tick.t <= 1);
+  }
+});
+
+test("a single moment still yields one tick", () => {
+  const one = buildBraid([at("only", "2021", ["daniel"], true)], PEOPLE);
+  assert.deepEqual(yearTicks(one.moments).map((t) => t.year), [2021]);
+});
+
+test("the picture draws a tick and a year label for each", () => {
+  const { made } = draw();
+  const expected = yearTicks(braid.moments).length;
+  assert.equal(withClass(made, "origins-year-tick").length, expected);
+  assert.equal(withClass(made, "origins-year").length, expected);
+});
+
+test("labels carry the title only, with no date", () => {
+  const { made } = draw();
+  for (const label of withClass(made, "origins-label")) {
+    assert.ok(!label.text.includes("·"), label.text);
+    assert.ok(!/\d{4}/.test(label.text), `${label.text} still has a year`);
+  }
+});
+
+test("threads are curved, not cornered", () => {
+  const { made } = draw();
+  const multi = withClass(made, "origins-thread").filter(
+    (n) => (n.attrs.d.match(/C/g) ?? []).length > 0,
+  );
+  assert.ok(multi.length > 0, "expected cubic segments in thread paths");
+  for (const path of withClass(made, "origins-thread")) {
+    assert.ok(!path.attrs.d.includes("L"), `${path.attrs.d} has a corner`);
+  }
+});
+
+test("a hop that stays in one lane is still straight", () => {
+  // control points sit on the time axis, so no lane change means no bulge
+  const d = flow([[100, 0], [100, 50]], "y");
+  assert.equal(d, "M100,0 C100,25 100,25 100,50");
 });
 
 test("the lane range spans excursion lanes", () => {

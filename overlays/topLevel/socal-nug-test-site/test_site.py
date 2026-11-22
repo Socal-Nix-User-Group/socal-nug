@@ -200,7 +200,7 @@ class SiteBuild(unittest.TestCase):
         self.assertIn('id="origins-toggle"', page)
         self.assertIn('id="origins-roster"', page)
         self.assertIn('data-origins-mode="river"', page)
-        self.assertIn('data-origins-mode="map"', page)
+        self.assertIn('data-origins-mode="subway"', page)
 
     def test_origins_toggle_is_hidden_until_the_script_reveals_it(self):
         page = (self.out / 'origins' / 'index.html').read_text()

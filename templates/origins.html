@@ -22,11 +22,11 @@
      role="group" aria-label="Braid layout">
   <button class="button is-small" type="button" data-origins-mode="river"
           aria-pressed="true">River</button>
-  <button class="button is-small" type="button" data-origins-mode="map"
-          aria-pressed="false">Map</button>
+  <button class="button is-small" type="button" data-origins-mode="subway"
+          aria-pressed="false">Subway</button>
 </div>
 
-<div class="origins-layout">
+<div class="origins-layout" id="origins-layout" data-mode="river">
   {# The script replaces this with the drawing. Without the script it is the page. #}
   <div id="origins-braid" class="origins-braid"></div>
 

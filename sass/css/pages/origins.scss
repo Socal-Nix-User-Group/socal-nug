@@ -34,6 +34,23 @@
     @media screen and (max-width: 1023px) {
         grid-template-columns: minmax(0, 1fr);
     }
+
+    // Subway is already the full width of the page, so a side rail would take
+    // a third of the axis the picture most needs. The roster drops below it
+    // as a grid instead.
+    &[data-mode="subway"] {
+        grid-template-columns: minmax(0, 1fr);
+
+        .origins-roster-rail {
+            position: static;
+        }
+
+        .origins-roster {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+            gap: 0.5rem;
+        }
+    }
 }
 
 // Zola compiles every file under sass/ on its own as well as through
@@ -93,7 +110,7 @@ html[data-theme=dark] .origins-layout {
     // Map's canvas is deliberately wider than this container, so let it keep
     // its intrinsic width and pan to it. On touch that is drag-to-pan for
     // free, with native momentum.
-    &[data-mode="map"] {
+    &[data-mode="subway"] {
         overflow-x: auto;
         overscroll-behavior-x: contain;
 
@@ -164,6 +181,22 @@ html[data-theme=dark] .origins-layout {
     opacity: 0.75;
 }
 
+// Dates live here rather than on every label, which keeps labels short and
+// still gives a reader somewhere to anchor in time.
+.origins-year-tick {
+    stroke: var(--origins-line);
+    stroke-width: 1;
+    stroke-dasharray: 4 6;
+}
+
+.origins-year {
+    fill: var(--origins-ink);
+    font-size: 11px;
+    font-weight: 700;
+    opacity: 0.4;
+    letter-spacing: 0.04em;
+}
+
 .origins-avatar-ring {
     fill: none;
     stroke: var(--origins-thread, var(--origins-muted));
@@ -220,7 +253,8 @@ html[data-theme=dark] .origins-layout {
     gap: 0.6rem;
     align-items: flex-start;
     padding: 0.5rem 0.6rem;
-    border-radius: 8px;
+    // Square for now. The card treatment is getting redesigned.
+    border-radius: 0;
     background: var(--origins-surface);
     border-left: 4px solid var(--origins-thread, var(--origins-muted));
     transition: background 0.15s ease;

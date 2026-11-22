@@ -51,13 +51,13 @@ const ROW = 46;
 const MIN_HEIGHT = 600;
 const FALLBACK_WIDTH = 900;
 const MORPH_MS = 420;
-// Map runs time across the page, so its canvas has to grow sideways with the
-// number of moments and downwards with the number of lanes. Using River's
-// per-row metric for both gave Map a portrait canvas, which is the one shape a
+// Subway runs time across the page, so its canvas has to grow sideways with
+// the number of moments and downwards with the number of lanes. Using River's
+// per-row metric for both gave it a portrait canvas, which is the one shape a
 // horizontal map must not have, and left nothing for overflow-x to pan.
-const MAP_COL = 170;
-const MAP_LANE = 56;
-const MAP_MIN_HEIGHT = 520;
+const SUBWAY_COL = 170;
+const SUBWAY_LANE = 56;
+const SUBWAY_MIN_HEIGHT = 520;
 
 function storage(): StorageLike | null {
   try {
@@ -102,8 +102,8 @@ function boot(): void {
     }
     const spread = lanes[1] - lanes[0] + 2;
     return {
-      width: Math.max(available, braid.moments.length * MAP_COL),
-      height: Math.max(MAP_MIN_HEIGHT, spread * MAP_LANE),
+      width: Math.max(available, braid.moments.length * SUBWAY_COL),
+      height: Math.max(SUBWAY_MIN_HEIGHT, spread * SUBWAY_LANE),
     };
   }
 
@@ -122,6 +122,9 @@ function boot(): void {
 
     mount!.replaceChildren(renderBraid(braid, projection, document));
     mount!.setAttribute("data-mode", next);
+    // The layout carries it too, so the roster can move below the braid as a
+    // grid in Subway instead of eating a third of the width as a side rail.
+    document.getElementById("origins-layout")?.setAttribute("data-mode", next);
 
     const now = positionsFor(next);
     if (animate) {
@@ -195,7 +198,7 @@ function boot(): void {
     for (const button of buttons.querySelectorAll("[data-origins-mode]")) {
       button.addEventListener("click", (event) => {
         const next = event.currentTarget.dataset.originsMode;
-        if (next !== "river" && next !== "map") return;
+        if (next !== "river" && next !== "subway") return;
         if (next === mode) return;
         mode = next;
         writeMode(store, mode);

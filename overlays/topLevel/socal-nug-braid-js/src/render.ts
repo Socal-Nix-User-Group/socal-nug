@@ -1,4 +1,3 @@
-import { formatFuzzyDate } from "./dates.ts";
 import { layoutLabels } from "./labels.ts";
 import type { AnchoredBox } from "./labels.ts";
 import type { Projection } from "./projections.ts";
@@ -24,6 +23,9 @@ const AVATAR = 18;
 /** What a label claims beside its node. projections.ts reserves the same. */
 export const LABEL_WIDTH = 150;
 const LABEL_HEIGHT = 14;
+/** How far a hop's control points sit along the time axis. 0 is a corner. */
+const EASE = 0.5;
+const YEAR_GUTTER = 34;
 
 function make(
   doc: DocumentLike,
@@ -47,6 +49,42 @@ export const PALETTE_SIZE = 12;
 /** Palette slot for the nth thread, or -1 once the palette runs out. */
 export function hueFor(index: number): number {
   return index < PALETTE_SIZE ? index : -1;
+}
+
+export interface YearTick {
+  readonly year: number;
+  readonly t: number;
+}
+
+/**
+ * One tick per year that has moments, sitting in the gap before that year's
+ * first moment.
+ *
+ * Spacing is by rank, so there is no linear time axis to hang a real scale on
+ * and no position to give a year with nothing in it. A tick per populated year
+ * is what rank spacing can honestly say: it tells you which stretch of the
+ * picture is which year, and nothing more.
+ */
+export function yearTicks(
+  moments: readonly PlacedMoment[],
+): readonly YearTick[] {
+  const yearOf = (m: PlacedMoment) =>
+    new Date(m.moment.date.start).getUTCFullYear();
+
+  const ticks: YearTick[] = [];
+  let previous: PlacedMoment | undefined;
+
+  for (const placed of moments) {
+    const year = yearOf(placed);
+    if (previous === undefined) {
+      ticks.push({ year, t: Math.max(0, placed.t - 0.012) });
+    } else if (year !== yearOf(previous)) {
+      ticks.push({ year, t: (previous.t + placed.t) / 2 });
+    }
+    previous = placed;
+  }
+
+  return ticks;
 }
 
 /** Every lane the picture uses, person lanes and excursion lanes alike. */
@@ -108,6 +146,38 @@ function polyline(
     .join(" ");
 }
 
+/**
+ * A path that eases into and out of every point instead of turning corners.
+ *
+ * Each hop is a cubic whose control points sit on the time axis, so a hop that
+ * stays in one lane is still a straight line while one that changes lane is an
+ * S-curve. That is what makes a thread look like it flows into the spine
+ * rather than meeting it at an angle.
+ */
+export function flow(
+  points: readonly (readonly [number, number])[],
+  axis: "x" | "y",
+): string {
+  if (points.length === 0) return "";
+  let d = `M${round(points[0][0])},${round(points[0][1])}`;
+  for (let i = 1; i < points.length; i += 1) {
+    const [x0, y0] = points[i - 1];
+    const [x1, y1] = points[i];
+    if (axis === "y") {
+      const ease = (y1 - y0) * EASE;
+      d += ` C${round(x0)},${round(y0 + ease)}` +
+        ` ${round(x1)},${round(y1 - ease)}` +
+        ` ${round(x1)},${round(y1)}`;
+    } else {
+      const ease = (x1 - x0) * EASE;
+      d += ` C${round(x0 + ease)},${round(y0)}` +
+        ` ${round(x1 - ease)},${round(y1)}` +
+        ` ${round(x1)},${round(y1)}`;
+    }
+  }
+  return d;
+}
+
 const round = (n: number) => Math.round(n * 100) / 100;
 
 export function renderBraid(
@@ -129,6 +199,31 @@ export function renderBraid(
   });
 
   const place = (m: PlacedMoment) => projection.project(m.t, m.lane);
+  const timeAxis = projection.mode === "river" ? "y" : "x";
+
+  // --- year markers ---------------------------------------------------------
+  // Dashed ticks across the picture, so the dates stay off the labels but the
+  // reader still gets a sense of where in time they are.
+  for (const tick of yearTicks(braid.moments)) {
+    const [x, y] = projection.project(tick.t, 0);
+    svg.appendChild(
+      make(doc, "path", {
+        class: "origins-year-tick",
+        d: timeAxis === "y"
+          ? `M0,${round(y)} L${round(width)},${round(y)}`
+          : `M${round(x)},0 L${round(x)},${round(height)}`,
+        fill: "none",
+      }),
+    );
+    const label = make(doc, "text", {
+      class: "origins-year",
+      x: timeAxis === "y" ? 6 : round(x) + 6,
+      y: timeAxis === "y" ? round(y) - 5 : YEAR_GUTTER - 14,
+      "text-anchor": "start",
+    });
+    label.textContent = String(tick.year);
+    svg.appendChild(label);
+  }
 
   // --- trunk, thinning where people are away --------------------------------
   for (const segment of braid.trunk) {
@@ -196,7 +291,7 @@ export function renderBraid(
           class: `origins-thread ${kind} is-${segment.kind}`,
           "data-person": thread.person.slug,
           "data-hue": hue,
-          d: polyline(points),
+          d: flow(points, timeAxis),
           fill: "none",
         }),
       );
@@ -225,8 +320,8 @@ export function renderBraid(
       make(doc, "path", {
         class: "origins-excursion",
         d: to === null
-          ? polyline([from, node])
-          : polyline([from, node, to]),
+          ? flow([from, node], timeAxis)
+          : flow([from, node, to], timeAxis),
         fill: "none",
       }),
     );
@@ -280,9 +375,9 @@ export function renderBraid(
       y: round(box.y),
       "text-anchor": box.anchor,
     });
-    label.textContent = `${moment.moment.title} · ${
-      formatFuzzyDate(moment.moment.date)
-    }`;
+    // Title only. The date lives on the year ticks, which keeps labels short
+    // enough to fit and keeps the dates off to the side.
+    label.textContent = moment.moment.title;
     svg.appendChild(label);
   }
 
