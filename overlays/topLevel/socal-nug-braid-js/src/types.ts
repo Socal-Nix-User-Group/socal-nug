@@ -36,8 +36,18 @@ export interface Moment {
   readonly photo?: string;
   /** This site's page for the moment, for meetups that have one. */
   readonly permalink?: string;
-  /** Somebody else's site, for events like Nix Camp and NixCon. */
-  readonly link?: string;
+  /**
+   * Somebody else's sites, for events like Nix Camp and NixCon. A list,
+   * because one moment can be two places at once: PlanetNix ran alongside
+   * SCaLE 22x, and the card names each.
+   */
+  readonly links?: readonly Link[];
+}
+
+/** One outbound link, named so a card can tell two apart. */
+export interface Link {
+  readonly title: string;
+  readonly url: string;
 }
 
 /**

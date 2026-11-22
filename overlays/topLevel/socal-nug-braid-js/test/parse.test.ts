@@ -103,3 +103,54 @@ test("rejects a person with no slug, naming the field", () => {
     /slug/,
   );
 });
+
+// --- outside links ----------------------------------------------------------
+// A moment can point at more than one place: an outside event and the host it
+// ran alongside. Each link carries its own title, so the card can name them.
+
+test("outside links come back as titled records", () => {
+  const { moments } = parseData({
+    ...PAYLOAD,
+    moments: [{
+      id: "scale-21x",
+      date: "2024-03-14",
+      title: "SCaLE 21x / NixCon NA",
+      people: ["daniel-baker"],
+      links: [
+        { title: "NixCon NA", url: "https://2024-na.nixcon.org/" },
+        { title: "SCaLE 21x", url: "https://www.socallinuxexpo.org/scale/21x/" },
+      ],
+    }],
+  });
+  assert.deepEqual(moments[0].links, [
+    { title: "NixCon NA", url: "https://2024-na.nixcon.org/" },
+    { title: "SCaLE 21x", url: "https://www.socallinuxexpo.org/scale/21x/" },
+  ]);
+});
+
+test("a moment with no links has none, not an empty list", () => {
+  const { moments } = parseData(PAYLOAD);
+  assert.equal(moments[0].links, undefined);
+  const { moments: emitted } = parseData({
+    ...PAYLOAD,
+    moments: [{ ...PAYLOAD.moments[0], links: [] }],
+  });
+  assert.equal(emitted[0].links, undefined);
+});
+
+test("a link without a url is rejected, naming the moment and the field", () => {
+  assert.throws(
+    () =>
+      parseData({
+        ...PAYLOAD,
+        moments: [{
+          id: "x",
+          date: "2024",
+          title: "X",
+          people: [],
+          links: [{ title: "Nowhere" }],
+        }],
+      }),
+    /x.*links\[0\]\.url/,
+  );
+});

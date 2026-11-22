@@ -56,14 +56,14 @@ id = "nix-camp-2022"
 date = "2022-09-12"
 title = "Nix Camp 2022"
 people = ["rob-hernandez"]
-link = "https://nix.camp/"
+links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
 
 [[moment]]
 id = "nixcon-2022"
 date = "2022-10-20"
 title = "NixCon 2022"
 people = ["daniel-baker", "connor-baker"]
-link = "https://2022.nixcon.org/"
+links = [{ title = "NixCon 2022", url = "https://2022.nixcon.org/" }]
 
 # --- Convergence -----------------------------------------------------------
 
@@ -123,28 +123,93 @@ id = "nix-camp-2023"
 date = "2023-09-24"
 title = "Nix Camp 2023"
 people = ["daniel-baker", "rob-hernandez", "david-nuon", "kyle-risse"]
-link = "https://nix.camp/"
+links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
+
+# SCaLE runs co-located events alongside the main conference. One moment per
+# year, linking to both: the same days, the same building.
+[[moment]]
+id = "scale-21x"
+date = "2024-03-14"
+title = "SCaLE 21x / NixCon NA"
+# CONFIRM: "I think everyone was there". Morgan is left off: the record says
+# Daniel met Morgan on 2024-05-06, two months after this.
+people = [
+  "daniel-baker",
+  "david-nuon",
+  "rob-hernandez",
+  "jared-baur",
+  "tristan-ross",
+  "kyle-risse",
+  "connor-baker",
+]
+blurb = "NixCon North America ran alongside SCaLE 21x, 14 to 17 March."
+links = [
+  { title = "NixCon NA", url = "https://2024-na.nixcon.org/" },
+  { title = "SCaLE 21x", url = "https://www.socallinuxexpo.org/scale/21x/" },
+]
 
 [[moment]]
 id = "nix-camp-2024"
 date = "2024-09-02"
 title = "Nix Camp 2024"
 people = ["daniel-baker", "david-nuon"]
-link = "https://nix.camp/"
+links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
+
+[[moment]]
+id = "scale-22x"
+date = "2025-03-06"
+title = "SCaLE 22x / PlanetNix"
+# CONFIRM: "I think everyone was there"
+people = [
+  "daniel-baker",
+  "david-nuon",
+  "rob-hernandez",
+  "jared-baur",
+  "tristan-ross",
+  "kyle-risse",
+  "connor-baker",
+  "morgan-jones",
+]
+blurb = "PlanetNix ran alongside SCaLE 22x, 6 to 9 March."
+links = [
+  { title = "PlanetNix", url = "https://planetnix.com/" },
+  { title = "SCaLE 22x", url = "https://www.socallinuxexpo.org/scale/22x/" },
+]
 
 [[moment]]
 id = "nix-camp-2025"
 date = "2025-08-27"
 title = "Nix Camp 2025"
 people = ["daniel-baker", "rob-hernandez", "connor-baker", "jared-baur"]
-link = "https://nix.camp/"
+links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
 
 [[moment]]
 id = "nixcon-2025"
 date = "2025-09-05"
 title = "NixCon 2025"
 people = ["daniel-baker", "rob-hernandez", "connor-baker", "jared-baur"]
-link = "https://2025.nixcon.org/"
+links = [{ title = "NixCon 2025", url = "https://2025.nixcon.org/" }]
+
+[[moment]]
+id = "scale-23x"
+date = "2026-03-05"
+title = "SCaLE 23x / PlanetNix"
+# CONFIRM: "I think everyone was there"
+people = [
+  "daniel-baker",
+  "david-nuon",
+  "rob-hernandez",
+  "jared-baur",
+  "tristan-ross",
+  "kyle-risse",
+  "connor-baker",
+  "morgan-jones",
+]
+blurb = "PlanetNix ran alongside SCaLE 23x, 5 to 8 March."
+links = [
+  { title = "PlanetNix", url = "https://planetnix.com/" },
+  { title = "SCaLE 23x", url = "https://www.socallinuxexpo.org/scale/23x" },
+]
 
 [[moment]]
 id = "nixcon-2026"
@@ -157,4 +222,4 @@ people = [
   "morgan-jones",
   "tristan-ross",
 ]
-link = "https://2026.nixcon.org/"
+links = [{ title = "NixCon 2026", url = "https://2026.nixcon.org/" }]

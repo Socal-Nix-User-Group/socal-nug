@@ -108,8 +108,9 @@ export function detailFor(
     );
   }
 
-  // A meetup links to its own page here; an outside event like Nix Camp or
-  // NixCon links to whoever runs it.
+  // A meetup links to its own page here. An outside event links to whoever
+  // runs it, and to the host it ran alongside when there was one: PlanetNix
+  // and SCaLE are one moment and two places, so each link carries a name.
   if (moment.permalink !== undefined && moment.permalink !== "") {
     card.appendChild(
       el(
@@ -119,14 +120,15 @@ export function detailFor(
         "Event page",
       ),
     );
-  } else if (moment.link !== undefined && moment.link !== "") {
+  }
+  for (const link of moment.links ?? []) {
     card.appendChild(
       el(doc, "a", {
         class: "origins-detail-link",
-        href: moment.link,
+        href: link.url,
         rel: "noopener",
         target: "_blank",
-      }, "Visit the site"),
+      }, link.title),
     );
   }
 

@@ -1,5 +1,5 @@
 import { parseFuzzyDate } from "./dates.ts";
-import type { Moment, Person } from "./types.ts";
+import type { Link, Moment, Person } from "./types.ts";
 
 /**
  * Turn the page's `#origins-data` JSON into typed records.
@@ -57,6 +57,24 @@ function toPerson(raw: unknown, index: number): Person {
   };
 }
 
+/**
+ * Titled outbound links. Absent and empty both come back as undefined, like
+ * every other optional field; the template emits `[]` for a moment with none.
+ */
+function toLinks(raw: unknown, id: string): readonly Link[] | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  const list = asArray(raw, `moment ${id}: links`);
+  if (list.length === 0) return undefined;
+  return list.map((entry, i) => {
+    const where = `moment ${id}: links[${i}]`;
+    const record = asRecord(entry, where);
+    return {
+      title: asString(record.title, `${where}.title`),
+      url: asString(record.url, `${where}.url`),
+    };
+  });
+}
+
 function toMoment(raw: unknown, index: number): Moment {
   const where = `moments[${index}]`;
   const record = asRecord(raw, where);
@@ -84,7 +102,7 @@ function toMoment(raw: unknown, index: number): Moment {
     blurb: optionalString(record.blurb, `moment ${id}: blurb`),
     photo: optionalString(record.photo, `moment ${id}: photo`),
     permalink: optionalString(record.permalink, `moment ${id}: permalink`),
-    link: optionalString(record.link, `moment ${id}: link`),
+    links: toLinks(record.links, id),
   };
 }
 

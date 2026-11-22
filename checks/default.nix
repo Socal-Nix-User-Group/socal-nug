@@ -188,6 +188,7 @@ inputs.nixpkgs.lib.mapAttrs (system: pkgs: {
         expect_fail duplicate-id.toml           twice
         expect_fail unknown-event.toml          1999-01-01
         expect_fail no-trunk.toml               trunk
+        expect_fail bad-links.toml              'links[0]'
         expect_warn trunk-is-earliest.toml      warning
         expect_clean valid.toml
 

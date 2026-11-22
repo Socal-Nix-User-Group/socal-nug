@@ -204,6 +204,7 @@ title = "Started at Tweag"
 people = ["daniel-baker"]
 blurb = "..."                                  # optional
 photo = "/blog/one-year-snug/..."              # optional
+links = [{ title = "...", url = "https://..." }]  # optional; one moment can be two places at once
 
 # A moment anchored to an event resolves date and title from the event page.
 [[moment]]
@@ -543,7 +544,8 @@ defined so that both themes work, following the dark mode work from #97.
 - Popover positioning and dismissal.
 - Breakpoint values, and whether the roster rail sits left or right of the braid.
 - Whether thread colours are assigned in the data or derived from a palette by lane index.
-- Whether a freestanding moment may carry an optional outbound `link`, and what it points at.
+- Settled: a freestanding moment may carry `links`, a list of `{ title, url }`, because one
+  moment can be two places at once (PlanetNix ran alongside SCaLE 22x) and the card names each.
   Event-anchored moments take their permalink from the event and need nothing.
 - Exact attribute names within the conventions of the existing overlay.
 

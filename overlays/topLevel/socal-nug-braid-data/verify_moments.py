@@ -124,6 +124,23 @@ def check_events(entries, known):
     return problems
 
 
+def check_links(entries):
+    problems = []
+    for m in entries:
+        links = m.get('links', [])
+        if not isinstance(links, list):
+            problems.append(f'{m["id"]}: links must be a list')
+            continue
+        for i, link in enumerate(links):
+            ok = (isinstance(link, dict)
+                  and isinstance(link.get('title'), str)
+                  and isinstance(link.get('url'), str))
+            if not ok:
+                problems.append(
+                    f'{m["id"]}: links[{i}] needs a title and a url')
+    return problems
+
+
 @click.command()
 @click.argument('moments')
 @click.option('--about', required=True,
@@ -140,6 +157,7 @@ def verify_moments(moments, about, events):
         check_ids(entries),
         check_people(entries, person_slugs(about)),
         check_events(entries, event_slugs(events)),
+        check_links(entries),
     ):
         if problems:
             fail(problems)

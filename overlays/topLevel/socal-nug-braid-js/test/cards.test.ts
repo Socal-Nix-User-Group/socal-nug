@@ -204,3 +204,22 @@ test("a detail card carries a dismiss control", () => {
   assert.ok(made.some((n) => n.attrs["data-origins-dismiss"] !== undefined));
 });
 
+
+test("a detail card renders every outside link with its own title", () => {
+  const { doc, made } = stubDocument();
+  const links = [
+    { title: "NixCon NA", url: "https://2024-na.nixcon.org/" },
+    { title: "SCaLE 21x", url: "https://www.socallinuxexpo.org/scale/21x/" },
+  ];
+  detailFor(
+    { ...placed("meets-rok"), moment: { ...placed("meets-rok").moment, links } },
+    PEOPLE,
+    doc,
+  );
+  const anchors = made.filter((n) => n.tag === "a");
+  assert.deepEqual(
+    anchors.map((a) => [a.text, a.attrs.href]),
+    links.map((l) => [l.title, l.url]),
+  );
+  assert.ok(anchors.every((a) => a.attrs.rel === "noopener"));
+});
