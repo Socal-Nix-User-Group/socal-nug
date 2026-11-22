@@ -283,14 +283,21 @@ The pass computes abstract coordinates, not pixels:
 
 1. `firstSeen[person]` is the date of their earliest moment.
 
-1. Lanes: people first seen before the trunk starts take lanes `-1, -2, -3...` ordered by
-   `firstSeen`. People first seen at or after it take `+1, +2, +3...` ordered by `firstSeen`.
-   Ordering by `firstSeen` means that backfilling someone's earlier history moves them outward,
-   away from the trunk, and shifts everyone between. That is a real change driven by real new
-   information, and it is the behaviour to want: whoever has the longest history sits furthest
-   out. The cost, accepted, is that a backfill changes more of the picture than the one thread it
-   adds. A stable ordering key was considered and rejected, because it would put people in an
-   order with no meaning.
+1. Lanes are allocated the way `git log --graph` draws a branch graph. A column is taken when a
+   strand first needs one, released the moment it merges away, and reused by whoever needs one
+   next. Someone whose story starts before the spine goes on one side of it, someone arriving
+   afterwards on the other.
+
+   This replaced a scheme that keyed every lane to arrival order, with the longest history
+   furthest out. That scheme had three faults, and they compounded as people were added: columns
+   were never reused, so the picture widened with every person; backfilling one early moment
+   shifted the whole pre-convergence side; and merging to the mean of two lanes produced
+   fractional columns, so no two threads ever shared one and every line was its own diagonal. On
+   the real data, moving to on-demand allocation took the picture from nine columns to five and
+   removed fractional lanes entirely, at no cost in crossings.
+
+   A column is now a drawing slot, not a statement about the person in it. Backfilling ten years
+   of somebody's history does not widen the picture, which is what makes it safe to keep adding.
 
 1. A trunk moment sits at lane 0. Lanes are otherwise a trajectory, not a fixed row:
    when two or more participants of a non-trunk moment carry on past it, that is a merge, and

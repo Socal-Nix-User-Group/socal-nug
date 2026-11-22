@@ -28,6 +28,8 @@ const EASE = 0.5;
 const YEAR_GUTTER = 34;
 /** Pixels between a root avatar and the first node on its thread. */
 const ROOT_GAP = AVATAR + 24;
+/** How late a thread jogs out of its column, as a fraction of the time axis. */
+const JOG = 0.011;
 
 function make(
   doc: DocumentLike,
@@ -209,6 +211,29 @@ export function renderBraid(
   const place = (m: PlacedMoment) => projection.project(m.t, m.lane);
   const timeAxis = projection.mode === "river" ? "y" : "x";
 
+  /**
+   * Hold the column, then jog across at the last moment.
+   *
+   * Drawing straight from one point to the next makes a thread drift
+   * diagonally across everything in between, which is unreadable once there is
+   * a gap of a few years. git's graph stays in its column and turns only where
+   * something happens, and that is most of why it is legible.
+   */
+  const holdThenJog = (steps: readonly { t: number; lane: number }[]) => {
+    const out: Array<readonly [number, number]> = [];
+    steps.forEach((step, i) => {
+      const previous = steps[i - 1];
+      if (previous !== undefined && previous.lane !== step.lane) {
+        const gap = step.t - previous.t;
+        out.push(
+          projection.project(step.t - Math.min(JOG, gap / 2), previous.lane),
+        );
+      }
+      out.push(projection.project(step.t, step.lane));
+    });
+    return out;
+  };
+
   // --- year markers ---------------------------------------------------------
   // Dashed ticks across the picture, so the dates stay off the labels but the
   // reader still gets a sense of where in time they are.
@@ -270,6 +295,11 @@ export function renderBraid(
       : ([Math.max(0, laneX - ROOT_GAP), laneY] as const);
   };
 
+  // ROOT_GAP is in pixels; express it as a slice of the time axis so the
+  // thread's first step can be given in (t, lane) like every other step.
+  const alongPixels = timeAxis === "y" ? height : width;
+  const originBack = ROOT_GAP / Math.max(1, alongPixels - 2 * ROOT_GAP);
+
   braid.threads.forEach((thread, index) => {
     const kind = thread.person.member ? "is-member" : "is-guest";
     // Colour comes from a palette slot, not from the slug, so adding a person
@@ -277,7 +307,8 @@ export function renderBraid(
     // roster does the identifying instead.
     const hue = String(hueFor(index));
     for (const segment of thread.segments) {
-      const points: (readonly [number, number])[] = [];
+      let points: (readonly [number, number])[] = [];
+      const steps: Array<{ t: number; lane: number }> = [];
 
       if (segment.kind === "excursion") {
         // Whoever is on an excursion is already inside the trunk, so the
@@ -287,17 +318,26 @@ export function renderBraid(
           (e) => e.moment.moment.id === segment.points[0].moment.id,
         );
         if (excursion !== undefined) {
-          points.push(place(excursion.from));
-          points.push(...segment.points.map(place));
-          if (excursion.to !== null) {
-            points.push(place(excursion.to));
+          steps.push({ t: excursion.from.t, lane: 0 });
+          for (const point of segment.points) {
+            steps.push({ t: point.t, lane: point.lane });
           }
+          if (excursion.to !== null) {
+            steps.push({ t: excursion.to.t, lane: 0 });
+          }
+          points = holdThenJog(steps);
         }
       } else {
         // An approach begins in the person's own lane, so a thread whose
         // first moment sits in somebody else's lane still reads as theirs.
-        points.push(originOf(thread));
-        points.push(...segment.points.map(place));
+        const first = segment.points[0];
+        steps.push({
+          t: Math.max(0, first.t - originBack),
+          lane: thread.lane,
+        });
+        for (const point of segment.points) {
+          steps.push({ t: point.t, lane: point.lane });
+        }
         // A thread must visibly reach the spine it joins. Someone recruited at
         // an excursion is named in no trunk moment, so without this their line
         // stops out in the margin while their card says where they joined.
@@ -306,9 +346,10 @@ export function renderBraid(
         if (joined !== null && last.moment.id !== joined) {
           const target = braid.moments.find((m) => m.moment.id === joined);
           if (target !== undefined) {
-            points.push(place(target));
+            steps.push({ t: target.t, lane: target.lane });
           }
         }
+        points = holdThenJog(steps);
       }
 
       if (points.length < 2) continue;

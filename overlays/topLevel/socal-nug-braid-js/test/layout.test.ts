@@ -57,16 +57,22 @@ const trunkFrom = (id: string) =>
 
 // --- lanes ------------------------------------------------------------------
 
-test("people seen before the trunk take negative lanes, earliest outermost", () => {
-  assert.equal(lanes.get("daniel"), -4);
-  assert.equal(lanes.get("rok"), -3);
-  assert.equal(lanes.get("david"), -2);
-  assert.equal(lanes.get("rob"), -1);
+test("columns are handed out from the spine outward as people appear", () => {
+  assert.equal(lanes.get("daniel"), -1);
+  assert.equal(lanes.get("rok"), -2);
 });
 
-test("people first seen at or after the trunk take positive lanes", () => {
-  assert.equal(lanes.get("tristan"), 1);
-  assert.equal(lanes.get("kyle"), 2);
+test("a column is reused once the thread in it has gone", () => {
+  // rok's only moment ends at it, so david takes the column back
+  assert.equal(lanes.get("david"), lanes.get("rok"));
+  // tristan gives his up on reaching the spine, so kyle takes that one
+  assert.equal(lanes.get("kyle"), lanes.get("tristan"));
+});
+
+test("people who arrive after the spine take the other side of it", () => {
+  assert.ok(lanes.get("tristan")! > 0);
+  assert.ok(lanes.get("kyle")! > 0);
+  assert.ok(lanes.get("daniel")! < 0);
 });
 
 test("a trunk moment sits at lane 0", () => {
@@ -86,9 +92,15 @@ test("two people who continue together merge into a lane between them", () => {
   assert.notEqual(lane, lanes.get("david"));
 });
 
-test("a merge lane is the mean of the merging lanes", () => {
-  // daniel and david arrive at -3 together, rob joins from -1
-  assert.equal(placed("scale-20x").lane, (-3 + -1 + -3) / 3);
+test("every lane is a whole column, never a fraction", () => {
+  // averaging two lanes on a merge meant nobody ever shared a column and
+  // every line was its own diagonal
+  for (const moment of braid.moments) {
+    assert.ok(
+      Number.isInteger(moment.lane),
+      `${moment.moment.id} sits at ${moment.lane}`,
+    );
+  }
 });
 
 test("a merged lane belongs to neither person who made it", () => {
@@ -377,10 +389,14 @@ test("excursion lanes are released and reused by a later excursion", () => {
 
 // --- backfill ---------------------------------------------------------------
 
-test("backfilling an earlier root moves that person outward", () => {
-  const before = Math.abs(assignLanes(STORY).get("rob")!);
-  const after = Math.abs(
-    assignLanes([at("rob-nix", "2019-04", ["rob"]), ...STORY]).get("rob")!,
-  );
-  assert.ok(after > before, `${after} should exceed ${before}`);
+test("backfilling an earlier root does not widen the picture", () => {
+  // the whole reason columns are allocated on demand and released on merge:
+  // adding years of somebody's history must not push everyone else outward.
+  // Under the old scheme every lane was keyed to arrival order, so one early
+  // moment shifted the entire pre-convergence side.
+  const columns = (moments: Moment[]) =>
+    new Set(buildBraid(moments, PEOPLE).moments.map((m) => m.lane)).size;
+  const before = columns(STORY);
+  const after = columns([at("rob-nix", "2019-04", ["rob"]), ...STORY]);
+  assert.ok(after <= before, `${before} columns became ${after}`);
 });

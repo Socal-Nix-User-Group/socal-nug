@@ -31,66 +31,69 @@ function firstSeen(seq: readonly Moment[]): Map<string, number> {
 }
 
 /**
- * Lanes either side of the spine. People whose story starts before the trunk
- * sit on the negative side with the longest history furthest out, so
- * backfilling someone's earlier past moves them outward. Later joiners take
- * the positive side in the order they arrive.
+ * Lanes, allocated the way git draws a branch graph.
+ *
+ * A column is taken when a strand first needs one, released the moment it
+ * merges away, and reused by whoever needs one next. That keeps the picture
+ * compact however much history is added, and it means a column is a drawing
+ * slot rather than a statement about the person in it.
+ *
+ * The one place this departs from git: a merge takes a column neither party
+ * was sitting in. Git lets the target branch continue, which is fine for refs
+ * but reads as prominence when the lines are people. Letting one thread hold
+ * its column through every merge is how the earliest person ends up a dead
+ * straight line with everyone bending into them.
  */
-export function assignLanes(moments: readonly Moment[]): Map<string, number> {
-  const seq = ordered(moments);
-  const seen = firstSeen(seq);
+function allocateLanes(
+  seq: readonly Moment[],
+  seen: ReadonlyMap<string, number>,
+  joinIndex: ReadonlyMap<string, number>,
+) {
   const trunkAt = seq.findIndex((m) => m.trunk);
-
-  const byArrival = [...seen.entries()].sort(
-    (a, b) => a[1] - b[1] || (a[0] < b[0] ? -1 : 1),
-  );
-
-  const early: string[] = [];
-  const late: string[] = [];
-  for (const [slug, index] of byArrival) {
-    if (trunkAt >= 0 && index >= trunkAt) {
-      late.push(slug);
-    } else {
-      early.push(slug);
-    }
-  }
-
-  const lanes = new Map<string, number>();
-  early.forEach((slug, i) => lanes.set(slug, -(early.length - i)));
-  late.forEach((slug, i) => lanes.set(slug, i + 1));
-  return lanes;
-}
-
-export function buildBraid(
-  moments: readonly Moment[],
-  people: ReadonlyMap<string, Person>,
-): Braid {
-  const seq = ordered(moments);
-  const lanes = assignLanes(seq);
-  const seen = firstSeen(seq);
-  const trunkAt = seq.findIndex((m) => m.trunk);
-
-  const indexOf = new Map(seq.map((m, i) => [m.id, i]));
-  const span = seq.length - 1;
-  const tOf = (i: number) => (span <= 0 ? 0.5 : i / span);
-
-  // Pass one: joining the trunk by being named in a trunk moment.
-  const joinIndex = new Map<string, number>();
-  seq.forEach((moment, index) => {
-    if (!moment.trunk) return;
-    for (const slug of moment.people) {
-      if (!joinIndex.has(slug)) {
-        joinIndex.set(slug, index);
-      }
-    }
-  });
-
   const trunkIndices = seq
     .map((m, i) => (m.trunk ? i : -1))
     .filter((i) => i >= 0);
 
-  // An excursion is a non-trunk moment after the spine starts whose people are
-  // already in it. Nothing in the data says so; it follows from those two facts.
+  const lastSeen = new Map<string, number>();
+  seq.forEach((moment, index) => {
+    for (const slug of moment.people) lastSeen.set(slug, index);
+  });
+
+  const laneOf = new Map<string, number>();
+  const initial = new Map<string, number>();
+  const held = new Map<number, Set<string>>();
+  const releaseAt = new Map<number, number[]>();
+
+  const take = (lane: number, slug: string) => {
+    laneOf.set(slug, lane);
+    if (!held.has(lane)) held.set(lane, new Set());
+    held.get(lane)!.add(slug);
+  };
+  const drop = (slug: string) => {
+    const lane = laneOf.get(slug);
+    if (lane === undefined) return;
+    const sharing = held.get(lane);
+    sharing?.delete(slug);
+    if (sharing !== undefined && sharing.size === 0) held.delete(lane);
+  };
+  const vacant = (lane: number) => lane !== 0 && !held.has(lane);
+
+  /** Innermost free column on a side, skipping any the caller rules out. */
+  const alloc = (side: 1 | -1, avoid: ReadonlySet<number>): number => {
+    let step = 1;
+    while (!vacant(side * step) || avoid.has(side * step)) step += 1;
+    return side * step;
+  };
+
+  // Someone whose story starts before the spine goes on one side of it,
+  // someone who arrives afterwards on the other.
+  const sideFor = (slug: string): 1 | -1 =>
+    trunkAt >= 0 && (seen.get(slug) ?? 0) >= trunkAt ? 1 : -1;
+
+  const none: ReadonlySet<number> = new Set();
+  const momentLane = new Map<string, number>();
+  const excursionLane = new Map<string, number>();
+
   type Draft = {
     moment: Moment;
     index: number;
@@ -100,113 +103,122 @@ export function buildBraid(
     toIndex: number | null;
   };
   const drafts: Draft[] = [];
+
   seq.forEach((moment, index) => {
-    if (moment.trunk || trunkAt < 0 || index < trunkAt) return;
-    const leaves = moment.people.filter((slug) => {
-      const joined = joinIndex.get(slug);
-      return joined !== undefined && joined <= index;
-    });
-    if (leaves.length === 0) return;
-    const recruits = moment.people.filter((slug) => !leaves.includes(slug));
-    const before = trunkIndices.filter((i) => i < index);
-    const after = trunkIndices.filter((i) => i > index);
-    drafts.push({
-      moment,
-      index,
-      leaves,
-      recruits,
-      fromIndex: before[before.length - 1],
-      toIndex: after.length > 0 ? after[0] : null,
-    });
-  });
+    // an excursion gives its column back when its threads rejoin the spine
+    for (const lane of releaseAt.get(index) ?? []) held.delete(lane);
 
-  // There is no second pass. Being at an excursion alongside members never
-  // grants a join: that is a guess about meetup attendance, and it put join
-  // dates on two people who had never been recorded at one. A join comes from
-  // a trunk moment naming you, which a join record in data/moments.toml
-  // produces. Somebody with no such record has a thread that never reaches the
-  // spine, which is visibly missing data rather than quietly wrong data.
-
-  // Excursion lanes come from a pool on the pre-convergence side. By the time
-  // an excursion can happen, everyone there has merged into the spine and that
-  // space is free, while the joiner side is still filling up: allocating there
-  // made the departure curve cross incoming threads and their root avatars.
-  // A lane is taken for the stretch the detour spans and released after it, so
-  // a later excursion reuses it and simultaneous ones never collide.
-  /** Lanes a thread is still sitting on across a stretch of the picture. */
-  const occupiedAcross = (from: number, to: number | null): Set<number> => {
-    const end = to ?? seq.length;
-    const busy = new Set<number>();
-    for (const [slug, lane] of lanes) {
-      const arrived = seen.get(slug);
-      if (arrived === undefined) continue;
-      // Occupied from their first moment until they merge into the spine, or
-      // for good when they never do.
-      const leaves = joinIndex.get(slug) ?? seq.length;
-      if (arrived <= end && leaves >= from) busy.add(lane);
+    for (const slug of moment.people) {
+      if (!laneOf.has(slug)) {
+        const lane = alloc(sideFor(slug), none);
+        take(lane, slug);
+        initial.set(slug, lane);
+      }
     }
-    return busy;
-  };
 
-  const freeFrom = new Map<number, number>();
-  const excursionLane = new Map<string, number>();
-  for (const draft of drafts) {
-    const busy = occupiedAcross(draft.fromIndex, draft.toIndex);
-    // Work outward from the spine and stop at the first lane that is neither
-    // held by a thread nor still taken by an overlapping excursion. Every lane
-    // further out is another thread the departure curve has to cross.
-    let lane = -1;
-    while (busy.has(lane) || (freeFrom.get(lane) ?? -1) > draft.fromIndex) {
-      lane -= 1;
-    }
-    freeFrom.set(lane, draft.toIndex ?? seq.length);
-    excursionLane.set(draft.moment.id, lane);
-  }
-
-  // Where each person currently is. Lanes are a trajectory, not a fixed row:
-  // people who carry on together after a shared moment travel on a lane
-  // between them from that point.
-  const at = new Map(lanes);
-  const lastSeen = new Map<string, number>();
-  seq.forEach((moment, index) => {
-    for (const slug of moment.people) lastSeen.set(slug, index);
-  });
-
-  const laneOfMoment = (moment: Moment, index: number): number => {
     if (moment.trunk) {
-      for (const slug of moment.people) at.set(slug, 0);
-      return 0;
+      momentLane.set(moment.id, 0);
+      for (const slug of moment.people) {
+        drop(slug);
+        take(0, slug);
+      }
+      return;
     }
 
-    const excursion = excursionLane.get(moment.id);
-    if (excursion !== undefined) return excursion;
+    const leaves = moment.people.filter(
+      (slug) => (joinIndex.get(slug) ?? Number.POSITIVE_INFINITY) <= index,
+    );
 
-    const present = moment.people.filter((slug) => at.has(slug));
-    if (present.length === 0) return 0;
+    if (trunkAt >= 0 && index >= trunkAt && leaves.length > 0) {
+      const recruits = moment.people.filter((slug) => !leaves.includes(slug));
+      const before = trunkIndices.filter((i) => i < index);
+      const after = trunkIndices.filter((i) => i > index);
+      const toIndex = after.length > 0 ? after[0] : null;
 
-    const mean = (slugs: readonly string[]) =>
-      slugs.reduce((total, slug) => total + at.get(slug)!, 0) / slugs.length;
+      // held for the stretch the detour spans, so two overlapping excursions
+      // cannot land on the same column
+      const lane = alloc(-1, none);
+      held.set(lane, new Set([`excursion:${moment.id}`]));
+      if (toIndex !== null) {
+        releaseAt.set(toIndex, [...(releaseAt.get(toIndex) ?? []), lane]);
+      }
 
-    // Only people who appear again are actually travelling on from here. A
-    // one-off guest bends in and stops, and must not drag the lane of
-    // somebody whose story continues.
-    const carryOn = present.filter((slug) => lastSeen.get(slug)! > index);
+      momentLane.set(moment.id, lane);
+      excursionLane.set(moment.id, lane);
+      drafts.push({
+        moment,
+        index,
+        leaves,
+        recruits,
+        fromIndex: before[before.length - 1],
+        toIndex,
+      });
+      return;
+    }
+
+    const carryOn = moment.people.filter(
+      (slug) => (lastSeen.get(slug) ?? -1) > index,
+    );
 
     if (carryOn.length >= 2) {
-      // A genuine merge. Nobody keeps their lane, so no thread reads as the
-      // axis the others joined: they all move to meet in between.
-      const merged = mean(carryOn);
-      for (const slug of carryOn) at.set(slug, merged);
-      return merged;
+      const avoid = new Set(carryOn.map((slug) => laneOf.get(slug)!));
+      for (const slug of carryOn) drop(slug);
+      const lane = alloc(sideFor(carryOn[0]), avoid);
+      for (const slug of carryOn) take(lane, slug);
+      momentLane.set(moment.id, lane);
+    } else if (carryOn.length === 1) {
+      momentLane.set(moment.id, laneOf.get(carryOn[0])!);
+    } else {
+      momentLane.set(moment.id, laneOf.get(moment.people[0]) ?? 0);
     }
 
-    return carryOn.length === 1 ? at.get(carryOn[0])! : mean(present);
-  };
+    // whoever stops here gives their column back
+    for (const slug of moment.people) {
+      if ((lastSeen.get(slug) ?? -1) === index) drop(slug);
+    }
+  });
 
+  return { initial, momentLane, excursionLane, drafts };
+}
+
+/** The column each person's thread starts in. */
+export function assignLanes(moments: readonly Moment[]): Map<string, number> {
+  const seq = ordered(moments);
+  return allocateLanes(seq, firstSeen(seq), joinsFrom(seq)).initial;
+}
+
+/** Joins come only from a trunk moment naming you. Nothing is inferred. */
+function joinsFrom(seq: readonly Moment[]): Map<string, number> {
+  const joinIndex = new Map<string, number>();
+  seq.forEach((moment, index) => {
+    if (!moment.trunk) return;
+    for (const slug of moment.people) {
+      if (!joinIndex.has(slug)) joinIndex.set(slug, index);
+    }
+  });
+  return joinIndex;
+}
+
+export function buildBraid(
+  moments: readonly Moment[],
+  people: ReadonlyMap<string, Person>,
+): Braid {
+  const seq = ordered(moments);
+  const seen = firstSeen(seq);
+  const indexOf = new Map(seq.map((m, i) => [m.id, i]));
+  const span = seq.length - 1;
+  const tOf = (i: number) => (span <= 0 ? 0.5 : i / span);
+
+  const joinIndex = joinsFrom(seq);
+  const { initial, momentLane, excursionLane, drafts } = allocateLanes(
+    seq,
+    seen,
+    joinIndex,
+  );
   const placed: PlacedMoment[] = seq.map((moment, index) => ({
     moment,
     t: tOf(index),
-    lane: laneOfMoment(moment, index),
+    lane: momentLane.get(moment.id) ?? 0,
   }));
   const placedById = new Map(placed.map((p) => [p.moment.id, p]));
 
@@ -239,7 +251,7 @@ export function buildBraid(
 
     threads.push({
       person,
-      lane: lanes.get(slug) ?? 0,
+      lane: initial.get(slug) ?? 0,
       segments,
       joinsTrunkAt: joined === undefined ? null : seq[joined].id,
     });
