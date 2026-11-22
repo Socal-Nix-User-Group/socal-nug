@@ -6,6 +6,7 @@ import { projectionFor } from "../src/projections.ts";
 import {
   avatarFor,
   hueFor,
+  LABEL_WIDTH,
   laneRangeOf,
   PALETTE_SIZE,
   renderBraid,
@@ -198,6 +199,131 @@ test("past the palette, threads fall back to the muted slot", () => {
   assert.equal(hueFor(PALETTE_SIZE - 1), PALETTE_SIZE - 1);
   assert.equal(hueFor(PALETTE_SIZE), -1);
   assert.equal(hueFor(PALETTE_SIZE + 50), -1);
+});
+
+// A braid the size of the real one: the clipping bugs only appear at scale.
+const BIG_PEOPLE = new Map<string, Person>(
+  Array.from({ length: 7 }, (_, i) => [
+    `p${i}`,
+    person(`p${i}`, i < 4, i < 2 ? "https://example.com/a.png" : ""),
+  ]),
+);
+
+const BIG_MOMENTS: Moment[] = [
+  at("root-0", "2021-10-23", ["p0"]),
+  at("root-1", "2022-02-21", ["p0"]),
+  at("root-2", "2022-03", ["p0", "p4"]),
+  at("root-3", "2022-08-27", ["p0", "p1"]),
+  at("root-4", "2023-02", ["p5"]),
+  at("root-5", "2023-03", ["p0", "p1", "p2"]),
+  at("founded", "2023-04", ["p0", "p1", "p2"], true),
+  ...Array.from({ length: 20 }, (_, i) =>
+    at(`nug-${i}`, `202${4 + Math.floor(i / 10)}-${String((i % 10) + 1).padStart(2, "0")}-05`, i === 3 ? ["p3"] : [], true)),
+  at("camp", "2024-06", ["p0", "p1", "p6"]),
+];
+
+const big = buildBraid(BIG_MOMENTS, BIG_PEOPLE);
+
+function extentOf(node: Node, width: number): [number, number] {
+  const x = Number(node.attrs.x);
+  const anchor = node.attrs["text-anchor"];
+  if (anchor === "end") return [x - width, x];
+  if (anchor === "middle") return [x - width / 2, x + width / 2];
+  return [x, x + width];
+}
+
+for (const mode of ["river", "map"] as const) {
+  test(`every ${mode} label sits inside the viewBox`, () => {
+    const { doc, made } = stubDocument();
+    const viewport = mode === "river"
+      ? { width: 850, height: 1300 }
+      : { width: 850, height: 1300 };
+    const projection = projectionFor(mode, viewport, laneRangeOf(big));
+    renderBraid(big, projection, doc);
+    const [, , boxWidth] = projection.viewBox;
+    const offenders = withClass(made, "origins-label")
+      .map((n) => ({ n, span: extentOf(n, LABEL_WIDTH) }))
+      .filter(({ span }) => span[0] < 0 || span[1] > boxWidth);
+    assert.deepEqual(
+      offenders.map((o) => `${o.n.text} @ ${o.span.join("..")}`),
+      [],
+    );
+  });
+
+  test(`every ${mode} node sits inside the viewBox`, () => {
+    const { doc, made } = stubDocument();
+    const projection = projectionFor(
+      mode,
+      { width: 850, height: 1300 },
+      laneRangeOf(big),
+    );
+    renderBraid(big, projection, doc);
+    const [, , w, h] = projection.viewBox;
+    for (const node of withClass(made, "origins-node")) {
+      const cx = Number(node.attrs.cx);
+      const cy = Number(node.attrs.cy);
+      assert.ok(cx >= 0 && cx <= w, `cx ${cx} outside 0..${w}`);
+      assert.ok(cy >= 0 && cy <= h, `cy ${cy} outside 0..${h}`);
+    }
+  });
+}
+
+test("labels are dropped rather than clipped when the axis is too narrow", () => {
+  const { doc, made } = stubDocument();
+  const projection = projectionFor(
+    "river",
+    { width: 360, height: 1300 },
+    laneRangeOf(big),
+  );
+  renderBraid(big, projection, doc);
+  assert.equal(projection.showLabels, false);
+  assert.equal(withClass(made, "origins-label").length, 0);
+});
+
+test("an excursion segment leaves from the trunk, not from its old lane", () => {
+  const { doc, made } = stubDocument();
+  const projection = projectionFor(
+    "river",
+    { width: 850, height: 1300 },
+    laneRangeOf(big),
+  );
+  renderBraid(big, projection, doc);
+  const excursion = big.excursions[0];
+  const spine = projection.project(excursion.from.t, 0)[0];
+  for (const path of withClass(made, "origins-thread")) {
+    if (!(path.attrs.class ?? "").includes("is-excursion")) continue;
+    const startX = Number(path.attrs.d.slice(1).split(",")[0]);
+    assert.ok(
+      Math.abs(startX - spine) < 1,
+      `${path.attrs["data-person"]} leaves at ${startX}, spine is ${spine}`,
+    );
+  }
+});
+
+test("a thread that joins the trunk visibly reaches it", () => {
+  const { doc, made } = stubDocument();
+  const projection = projectionFor(
+    "river",
+    { width: 850, height: 1300 },
+    laneRangeOf(big),
+  );
+  renderBraid(big, projection, doc);
+  // p6 is recruited at the excursion and rejoins at the next trunk moment
+  const recruit = big.threads.find((t) => t.person.slug === "p6")!;
+  assert.notEqual(recruit.joinsTrunkAt, null);
+  const path = withClass(made, "origins-thread").find(
+    (n) =>
+      n.attrs["data-person"] === "p6" &&
+      (n.attrs.class ?? "").includes("is-approach"),
+  )!;
+  const spine = projection.project(0, 0)[0];
+  const lastX = Number(
+    path.attrs.d.split("L").pop()!.split(",")[0],
+  );
+  assert.ok(
+    Math.abs(lastX - spine) < 1,
+    `p6's thread ends at ${lastX}, spine is ${spine}`,
+  );
 });
 
 test("the lane range spans excursion lanes", () => {

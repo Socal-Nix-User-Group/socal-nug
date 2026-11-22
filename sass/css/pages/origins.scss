@@ -90,12 +90,16 @@ html[data-theme=dark] .origins-layout {
 
     // Map runs time across the page, so it needs room and a way to reach it.
     // overflow-x is drag-to-pan on touch for free, with native momentum.
+    // Map's canvas is deliberately wider than this container, so let it keep
+    // its intrinsic width and pan to it. On touch that is drag-to-pan for
+    // free, with native momentum.
     &[data-mode="map"] {
         overflow-x: auto;
         overscroll-behavior-x: contain;
 
         .origins-svg {
-            min-width: 60rem;
+            width: auto;
+            max-width: none;
         }
     }
 }
@@ -104,6 +108,7 @@ html[data-theme=dark] .origins-layout {
     display: block;
     width: 100%;
     height: auto;
+    max-width: 100%;
 }
 
 .origins-trunk {

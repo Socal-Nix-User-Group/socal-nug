@@ -19,12 +19,19 @@ export interface LabelAnchor {
 export interface Projection {
   readonly mode: Mode;
   readonly viewBox: readonly [number, number, number, number];
+  /** False when the free axis is too narrow to fit a label beside a node. */
+  readonly showLabels: boolean;
   project(t: number, lane: number): readonly [number, number];
   labelAnchor(lane: number): LabelAnchor;
 }
 
 const PAD = 40;
 const LABEL_GAP = 14;
+/** Must match render.ts's LABEL_WIDTH; it is what a label claims beside a node. */
+const LABEL_RESERVE = 150;
+/** Below this the lanes would have no room left, so labels are dropped. */
+const LABEL_MIN_FREE = 460;
+const MIN_STEP = 16;
 
 export function projectionFor(
   mode: Mode,
@@ -38,7 +45,14 @@ export function projectionFor(
   // Lane 0 is centred, so the furthest lane in either direction decides the
   // step. laneRange has to include excursion lanes or they land off canvas.
   const reach = Math.max(1, -laneRange[0], laneRange[1]);
-  const step = (free / 2 - PAD) / reach;
+  const showLabels = free >= LABEL_MIN_FREE;
+
+  // River hangs labels off the side of a node, along the same axis the lanes
+  // run on. Without reserving their width the outermost lane sits exactly at
+  // PAD and every label on it runs off the edge. Map stacks labels across the
+  // time axis instead, so its lanes need no reserve.
+  const reserve = mode === "river" && showLabels ? LABEL_RESERVE + LABEL_GAP : 0;
+  const step = Math.max(MIN_STEP, (free / 2 - PAD - reserve) / reach);
   const runway = along - 2 * PAD;
 
   const viewBox: readonly [number, number, number, number] = [
@@ -52,6 +66,7 @@ export function projectionFor(
     return {
       mode,
       viewBox,
+      showLabels,
       project: (t, lane) => [centre + lane * step, PAD + t * runway],
       labelAnchor: (lane) =>
         lane < 0
@@ -63,6 +78,7 @@ export function projectionFor(
   return {
     mode,
     viewBox,
+    showLabels,
     project: (t, lane) => [PAD + t * runway, centre + lane * step],
     labelAnchor: () => ({ anchor: "middle", dx: 0, dy: -LABEL_GAP }),
   };

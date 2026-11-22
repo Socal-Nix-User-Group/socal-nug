@@ -51,6 +51,13 @@ const ROW = 46;
 const MIN_HEIGHT = 600;
 const FALLBACK_WIDTH = 900;
 const MORPH_MS = 420;
+// Map runs time across the page, so its canvas has to grow sideways with the
+// number of moments and downwards with the number of lanes. Using River's
+// per-row metric for both gave Map a portrait canvas, which is the one shape a
+// horizontal map must not have, and left nothing for overflow-x to pan.
+const MAP_COL = 170;
+const MAP_LANE = 56;
+const MAP_MIN_HEIGHT = 520;
 
 function storage(): StorageLike | null {
   try {
@@ -83,14 +90,25 @@ function boot(): void {
   let mode: Mode = readMode(store);
   let previous = new Map<string, { x: number; y: number }>();
 
-  function positionsFor(next: Mode): Map<string, { x: number; y: number }> {
-    const width = mount!.clientWidth > 0
+  function viewportFor(next: Mode): { width: number; height: number } {
+    const available = mount!.clientWidth > 0
       ? mount!.clientWidth
       : FALLBACK_WIDTH;
-    const projection = projectionFor(next, {
-      width,
-      height: Math.max(MIN_HEIGHT, braid.moments.length * ROW),
-    }, lanes);
+    if (next === "river") {
+      return {
+        width: available,
+        height: Math.max(MIN_HEIGHT, braid.moments.length * ROW),
+      };
+    }
+    const spread = lanes[1] - lanes[0] + 2;
+    return {
+      width: Math.max(available, braid.moments.length * MAP_COL),
+      height: Math.max(MAP_MIN_HEIGHT, spread * MAP_LANE),
+    };
+  }
+
+  function positionsFor(next: Mode): Map<string, { x: number; y: number }> {
+    const projection = projectionFor(next, viewportFor(next), lanes);
     const out = new Map<string, { x: number; y: number }>();
     for (const placed of braid.moments) {
       const [x, y] = projection.project(placed.t, placed.lane);
@@ -100,13 +118,7 @@ function boot(): void {
   }
 
   function draw(next: Mode, animate: boolean): void {
-    const width = mount!.clientWidth > 0
-      ? mount!.clientWidth
-      : FALLBACK_WIDTH;
-    const projection = projectionFor(next, {
-      width,
-      height: Math.max(MIN_HEIGHT, braid.moments.length * ROW),
-    }, lanes);
+    const projection = projectionFor(next, viewportFor(next), lanes);
 
     mount!.replaceChildren(renderBraid(braid, projection, document));
     mount!.setAttribute("data-mode", next);

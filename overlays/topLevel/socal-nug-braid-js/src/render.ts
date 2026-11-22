@@ -1,6 +1,6 @@
 import { formatFuzzyDate } from "./dates.ts";
-import { resolveCollisions } from "./labels.ts";
-import type { LabelBox } from "./labels.ts";
+import { layoutLabels } from "./labels.ts";
+import type { AnchoredBox } from "./labels.ts";
 import type { Projection } from "./projections.ts";
 import type { Braid, PlacedMoment, Person } from "./types.ts";
 
@@ -21,7 +21,8 @@ export interface DocumentLike {
 
 const SVG = "http://www.w3.org/2000/svg";
 const AVATAR = 18;
-const LABEL_WIDTH = 150;
+/** What a label claims beside its node. projections.ts reserves the same. */
+export const LABEL_WIDTH = 150;
 const LABEL_HEIGHT = 14;
 
 function make(
@@ -115,8 +116,13 @@ export function renderBraid(
   doc: DocumentLike,
 ): ElementLike {
   const [, , width, height] = projection.viewBox;
+  // Intrinsic size as well as a viewBox: Map's canvas is wider than its
+  // container on purpose, and the CSS needs a real width to let overflow-x
+  // pan to it rather than squashing it to fit.
   const svg = make(doc, "svg", {
     viewBox: projection.viewBox.join(" "),
+    width: round(width),
+    height: round(height),
     class: `origins-svg is-${projection.mode}`,
     "aria-hidden": "true",
     role: "presentation",
@@ -145,18 +151,52 @@ export function renderBraid(
     // roster does the identifying instead.
     const hue = String(hueFor(index));
     for (const segment of thread.segments) {
-      // Each segment starts from the person's own lane, so a thread whose
-      // first moment sits in somebody else's lane still reads as theirs.
-      const origin = projection.project(
-        Math.max(0, segment.points[0].t - 0.02),
-        thread.lane,
-      );
+      const points: (readonly [number, number])[] = [];
+
+      if (segment.kind === "excursion") {
+        // Whoever is on an excursion is already inside the trunk, so the
+        // detour leaves from the spine and returns to it. Starting from their
+        // old pre-convergence lane would sweep a line across the whole page.
+        const excursion = braid.excursions.find(
+          (e) => e.moment.moment.id === segment.points[0].moment.id,
+        );
+        if (excursion !== undefined) {
+          points.push(place(excursion.from));
+          points.push(...segment.points.map(place));
+          if (excursion.to !== null) {
+            points.push(place(excursion.to));
+          }
+        }
+      } else {
+        // An approach begins in the person's own lane, so a thread whose
+        // first moment sits in somebody else's lane still reads as theirs.
+        points.push(
+          projection.project(
+            Math.max(0, segment.points[0].t - 0.02),
+            thread.lane,
+          ),
+        );
+        points.push(...segment.points.map(place));
+        // A thread must visibly reach the spine it joins. Someone recruited at
+        // an excursion is named in no trunk moment, so without this their line
+        // stops out in the margin while their card says where they joined.
+        const joined = thread.joinsTrunkAt;
+        const last = segment.points[segment.points.length - 1];
+        if (joined !== null && last.moment.id !== joined) {
+          const target = braid.moments.find((m) => m.moment.id === joined);
+          if (target !== undefined) {
+            points.push(place(target));
+          }
+        }
+      }
+
+      if (points.length < 2) continue;
       svg.appendChild(
         make(doc, "path", {
           class: `origins-thread ${kind} is-${segment.kind}`,
           "data-person": thread.person.slug,
           "data-hue": hue,
-          d: polyline([origin, ...segment.points.map(place)]),
+          d: polyline(points),
           fill: "none",
         }),
       );
@@ -209,8 +249,14 @@ export function renderBraid(
   }
 
   // --- labels, swept apart along the free axis ------------------------------
+  // Below a threshold there is no room for text beside a node, so labels drop
+  // and the roster does the naming. A clipped label is worse than none.
+  if (!projection.showLabels) {
+    return svg;
+  }
+
   const axis = projection.mode === "river" ? "y" : "x";
-  const boxes: LabelBox[] = braid.moments.map((moment) => {
+  const boxes: AnchoredBox[] = braid.moments.map((moment) => {
     const [x, y] = place(moment);
     const anchor = projection.labelAnchor(moment.lane);
     return {
@@ -221,18 +267,18 @@ export function renderBraid(
       h: LABEL_HEIGHT,
       anchorX: x,
       anchorY: y,
+      anchor: anchor.anchor,
     };
   });
   const byId = new Map(braid.moments.map((m) => [m.moment.id, m]));
 
-  for (const box of resolveCollisions(boxes, axis)) {
+  for (const box of layoutLabels(boxes, axis, { width, height })) {
     const moment = byId.get(box.id)!;
-    const anchor = projection.labelAnchor(moment.lane);
     const label = make(doc, "text", {
       class: "origins-label",
       x: round(box.x),
       y: round(box.y),
-      "text-anchor": anchor.anchor,
+      "text-anchor": box.anchor,
     });
     label.textContent = `${moment.moment.title} · ${
       formatFuzzyDate(moment.moment.date)
@@ -240,8 +286,6 @@ export function renderBraid(
     svg.appendChild(label);
   }
 
-  void width;
-  void height;
   return svg;
 }
 

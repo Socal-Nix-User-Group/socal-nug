@@ -70,6 +70,23 @@ inputs.nixpkgs.lib.mapAttrs (system: pkgs: {
         touch "$out"
       '';
 
+  # esbuild strips types without checking them, so TypeScript would be documentation only
+  # without this. tsc comes from nixpkgs and needs no npm.
+  braid-types =
+    pkgs.runCommand "socal-nug-braid-types"
+      {
+        nativeBuildInputs = [ pkgs.typescript ];
+      }
+      ''
+        cp -r ${pkgs.socal-nug-braid-js.src}/. .
+        chmod -R u+w .
+        tsc --noEmit --strict \
+          --target es2022 --module esnext --moduleResolution bundler \
+          --allowImportingTsExtensions --skipLibCheck \
+          src/*.ts
+        touch "$out"
+      '';
+
   # Netlify cannot run esbuild, so the bundle is committed and served as a static asset. This
   # fails when the committed file and a fresh build of src/ disagree, the same shape as the
   # netlify-zola-version check. Both can be deleted once the site is self-hosted.

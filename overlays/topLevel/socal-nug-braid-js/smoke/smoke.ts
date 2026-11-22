@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import { buildBraid } from "../src/layout.ts";
 import { parseData } from "../src/parse.ts";
-import { laneRangeOf } from "../src/render.ts";
+import { LABEL_WIDTH, laneRangeOf } from "../src/render.ts";
+import { projectionFor } from "../src/projections.ts";
+import { extentOf, layoutLabels } from "../src/labels.ts";
 
 /**
  * The only check that runs on the repository's real data and on the
@@ -85,6 +87,64 @@ for (const segment of braid.trunk) {
 const [low, high] = laneRangeOf(braid);
 if (!Number.isFinite(low) || !Number.isFinite(high) || low > high) {
   fail(`lane range is broken: ${low}..${high}`);
+}
+
+// Project the real data through both modes and check that what would be drawn
+// actually fits. Asserting only the abstract (t, lane) left every clipping bug
+// invisible to a passing suite.
+const VIEWPORTS = {
+  river: { width: 850, height: Math.max(600, braid.moments.length * 46) },
+  map: {
+    width: Math.max(850, braid.moments.length * 170),
+    height: Math.max(520, (high - low + 2) * 56),
+  },
+} as const;
+
+for (const mode of ["river", "map"] as const) {
+  const viewport = VIEWPORTS[mode];
+  const projection = projectionFor(mode, viewport, [low, high]);
+  const [, , boxWidth, boxHeight] = projection.viewBox;
+
+  for (const placed of braid.moments) {
+    const [x, y] = projection.project(placed.t, placed.lane);
+    if (x < 0 || x > boxWidth || y < 0 || y > boxHeight) {
+      fail(
+        `${mode}: ${placed.moment.id} at ${x},${y} is outside 0,0..${boxWidth},${boxHeight}`,
+      );
+    }
+  }
+
+  if (!projection.showLabels) continue;
+
+  // Exactly the call the renderer makes, so this measures what is drawn.
+  const boxes = braid.moments.map((placed) => {
+    const [x, y] = projection.project(placed.t, placed.lane);
+    const anchor = projection.labelAnchor(placed.lane);
+    return {
+      id: placed.moment.id,
+      x: x + anchor.dx,
+      y: y + anchor.dy,
+      w: LABEL_WIDTH,
+      h: 14,
+      anchorX: x,
+      anchorY: y,
+      anchor: anchor.anchor,
+    };
+  });
+
+  for (
+    const box of layoutLabels(boxes, mode === "river" ? "y" : "x", {
+      width: boxWidth,
+      height: boxHeight,
+    })
+  ) {
+    const [left, right] = extentOf(box);
+    if (left < 0 || right > boxWidth) {
+      fail(
+        `${mode}: label for ${box.id} spans ${left}..${right}, outside 0..${boxWidth}`,
+      );
+    }
+  }
 }
 
 console.log(
