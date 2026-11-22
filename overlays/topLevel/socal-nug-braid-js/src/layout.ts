@@ -120,24 +120,12 @@ export function buildBraid(
     });
   });
 
-  // Pass two: a recruit joins the trunk where the excursion rejoins it, not at
-  // the excursion itself, so their card reads truthfully.
-  //
-  // Only someone whose story starts at or after the spine does, though. Being
-  // at a camp alongside members is not evidence of going to a meetup, and
-  // recruiting somebody who has been around since before the group existed
-  // would stamp them with a join date the data never recorded. Their thread
-  // simply never reaches the spine, which is what the data actually says.
-  for (const draft of drafts) {
-    if (draft.toIndex === null) continue;
-    for (const slug of draft.recruits) {
-      const arrived = seen.get(slug);
-      if (arrived === undefined || arrived < trunkAt) continue;
-      if (!joinIndex.has(slug)) {
-        joinIndex.set(slug, draft.toIndex);
-      }
-    }
-  }
+  // There is no second pass. Being at an excursion alongside members never
+  // grants a join: that is a guess about meetup attendance, and it put join
+  // dates on two people who had never been recorded at one. A join comes from
+  // a trunk moment naming you, which a join record in data/moments.toml
+  // produces. Somebody with no such record has a thread that never reaches the
+  // spine, which is visibly missing data rather than quietly wrong data.
 
   // Excursion lanes come from a pool on the pre-convergence side. By the time
   // an excursion can happen, everyone there has merged into the spine and that

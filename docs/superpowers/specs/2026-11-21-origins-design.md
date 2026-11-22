@@ -323,10 +323,13 @@ The pass computes abstract coordinates, not pixels:
    threads simply end out there, which is honest for something that has just happened. Excursion
    lanes are allocated for that interval and released at the end of it, so simultaneous
    excursions never share a lane and later ones reuse the space.
-   An excursion may also recruit. A participant not yet in the trunk arrives on their own lane,
-   joins at the excursion node, and follows the others back in. Their first trunk moment is the
-   trunk moment they rejoin at, not the excursion, so the badge and the card's join line stay
-   truthful.
+   An excursion identifies participants who are not yet in the trunk, because the drawing needs
+   to know who arrived from outside, but it does not make them members of it. Being at a camp
+   alongside members is not evidence of attending a meetup, and an earlier version that inferred
+   a join from it stamped two people with dates they had never earned. A join comes from a trunk
+   moment naming you, which a join record in `data/moments.toml` produces. Somebody with no such
+   record simply never reaches the spine: missing data that is visible rather than wrong data
+   that is quiet.
 
 1. Trunk thickness at each trunk moment is a function of the cumulative count of distinct people
    who have joined by then, less anyone away on an excursion at that time. The trunk visibly

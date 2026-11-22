@@ -237,7 +237,13 @@ const BIG_MOMENTS: Moment[] = [
   at("root-5", "2023-03", ["p0", "p1", "p2"]),
   at("founded", "2023-04", ["p0", "p1", "p2"], true),
   ...Array.from({ length: 20 }, (_, i) =>
-    at(`nug-${i}`, `202${4 + Math.floor(i / 10)}-${String((i % 10) + 1).padStart(2, "0")}-05`, i === 3 ? ["p3"] : [], true)),
+    at(
+      `nug-${i}`,
+      `202${4 + Math.floor(i / 10)}-${String((i % 10) + 1).padStart(2, "0")}-05`,
+      // join records: p3 at the fourth meetup, p6 after the camp
+      i === 3 ? ["p3"] : i === 10 ? ["p6"] : [],
+      true,
+    )),
   at("camp", "2024-06", ["p0", "p1", "p6"]),
 ];
 

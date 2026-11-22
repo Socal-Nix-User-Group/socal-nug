@@ -274,16 +274,18 @@ test("an excursion with no trunk moment after it stays open", () => {
   assert.equal(open.excursions[0].to, null);
 });
 
-test("an excursion recruits: a newcomer joins there and rejoins with the others", () => {
+test("an excursion names who was there but not yet in the group", () => {
+  // recruits are still identified, because the drawing needs to know who
+  // arrives from outside. What it no longer does is treat that as a join.
   const e = braid.excursions.find((x) => x.moment.moment.id === "nix-camp")!;
   assert.deepEqual([...e.recruits], ["kyle"]);
-  assert.equal(thread("kyle").joinsTrunkAt, "nug4");
+  assert.equal(thread("kyle").joinsTrunkAt, null);
 });
 
-test("an excursion does not recruit someone whose story predates the spine", () => {
-  // being at a camp with members is not evidence of going to a meetup.
-  // Recruiting here would stamp a join date on somebody who has been around
-  // since before the group existed, inventing attendance the data never had.
+test("being at an excursion never grants a join", () => {
+  // a join comes from a trunk moment naming you. Inferring one from company
+  // kept at a camp is a guess about meetup attendance, and it is how two
+  // people ended up with join dates they had never earned.
   const early = buildBraid(
     [
       at("tweag", "2021-01", ["daniel", "rok"]),
@@ -300,6 +302,23 @@ test("an excursion does not recruit someone whose story predates the spine", () 
     early.threads.find((t) => t.person.slug === "rok")!.joinsTrunkAt,
     null,
     "rok was never recorded at a trunk moment, so he has not joined one",
+  );
+});
+
+test("a join record is what puts somebody on the spine", () => {
+  const joined = buildBraid(
+    [
+      at("tweag", "2021-01", ["daniel", "rok"]),
+      at("founded", "2023-04", ["daniel"], true),
+      at("camp", "2024-01", ["daniel", "rok"]),
+      // the join record merges rok into this trunk moment's people
+      at("nug", "2024-06", ["rok"], true),
+    ],
+    PEOPLE,
+  );
+  assert.equal(
+    joined.threads.find((t) => t.person.slug === "rok")!.joinsTrunkAt,
+    "nug",
   );
 });
 
