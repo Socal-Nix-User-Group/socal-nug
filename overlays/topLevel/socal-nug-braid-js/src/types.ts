@@ -36,3 +36,63 @@ export interface Moment {
   readonly photo?: string;
   readonly permalink?: string;
 }
+
+/**
+ * A moment with its place in the picture. `t` is a rank position in [0, 1]:
+ * moments are evenly spaced regardless of the gaps between their dates,
+ * because four personal moments span two years while twenty meetups span
+ * three. Precision lives on `moment.date`, not in any extent here.
+ */
+export interface PlacedMoment {
+  readonly moment: Moment;
+  readonly t: number;
+  readonly lane: number;
+}
+
+/**
+ * A run of a person's thread that gets drawn. The gaps between a thread's
+ * segments are where it is travelling inside the trunk and not drawn
+ * separately.
+ */
+export interface ThreadSegment {
+  readonly points: readonly PlacedMoment[];
+  readonly kind: "approach" | "excursion";
+}
+
+export interface Thread {
+  readonly person: Person;
+  /** Where this person's line originates, even when none of their moments sit there. */
+  readonly lane: number;
+  readonly segments: readonly ThreadSegment[];
+  readonly joinsTrunkAt: string | null;
+}
+
+/**
+ * A non-trunk moment after the spine starts, naming people already in it.
+ * Those threads leave the trunk at `from` and rejoin at `to`, so the detour
+ * spans a real interval rather than an instant.
+ */
+export interface Excursion {
+  readonly moment: PlacedMoment;
+  readonly lane: number;
+  readonly from: PlacedMoment;
+  readonly to: PlacedMoment | null;
+  readonly leaves: readonly string[];
+  readonly recruits: readonly string[];
+}
+
+export interface TrunkSegment {
+  readonly from: PlacedMoment;
+  readonly to: PlacedMoment;
+  /** Distinct people who have joined by `from`. */
+  readonly joined: number;
+  /** How many of them are away on an excursion across this stretch. */
+  readonly away: number;
+}
+
+export interface Braid {
+  readonly moments: readonly PlacedMoment[];
+  readonly threads: readonly Thread[];
+  readonly trunk: readonly TrunkSegment[];
+  readonly excursions: readonly Excursion[];
+}
