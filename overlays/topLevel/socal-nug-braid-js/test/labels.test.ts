@@ -102,3 +102,57 @@ test("clamping never moves an anchor", () => {
   assert.equal(box.anchorX, 26);
   assert.equal(box.anchorY, 100);
 });
+
+// --- layoutLabels: obstacles ------------------------------------------------
+// Avatars and node circles are drawn before labels and cannot move, so the
+// sweep has to treat them as occupied ground. Resolving labels against each
+// other only was why "Rob finds Nix" sat on top of Daniel's face.
+
+test("a label that lands on an obstacle is moved off it", () => {
+  const obstacle = { x: 100, y: 94, w: 36, h: 36 };
+  const [box] = layoutLabels(
+    [anchored("a", 250, 100, "end")],
+    "y",
+    CANVAS,
+    [obstacle],
+  );
+  const [left, right] = extentOf(box);
+  const clear = right <= obstacle.x ||
+    left >= obstacle.x + obstacle.w ||
+    box.y <= obstacle.y ||
+    box.y - box.h >= obstacle.y + obstacle.h;
+  assert.ok(clear, `label at ${left}..${right} y=${box.y} still on obstacle`);
+});
+
+test("a label clear of every obstacle does not move", () => {
+  const input = anchored("a", 250, 100, "end");
+  const [box] = layoutLabels([input], "y", CANVAS, [
+    { x: 600, y: 400, w: 36, h: 36 },
+  ]);
+  assert.equal(box.y, input.y);
+  assert.equal(box.x, input.x);
+});
+
+test("a label pushed off an obstacle stays inside the canvas", () => {
+  const obstacles = Array.from(
+    { length: 40 },
+    (_, i) => ({ x: 100, y: i * 14, w: 200, h: 14 }),
+  );
+  const [box] = layoutLabels(
+    [anchored("a", 250, 100, "end")],
+    "y",
+    CANVAS,
+    obstacles,
+  );
+  const [left, right] = extentOf(box);
+  assert.ok(left >= 0 && right <= CANVAS.width, `${left}..${right}`);
+  assert.ok(box.y - box.h >= 0 && box.y <= CANVAS.height, `y ${box.y}`);
+});
+
+test("obstacle avoidance never moves an anchor", () => {
+  const [box] = layoutLabels([anchored("a", 250, 100, "end")], "y", CANVAS, [
+    { x: 100, y: 94, w: 36, h: 36 },
+  ]);
+  assert.equal(box.anchorX, 250);
+  assert.equal(box.anchorY, 100);
+});

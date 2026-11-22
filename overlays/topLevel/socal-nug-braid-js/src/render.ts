@@ -190,6 +190,36 @@ export function flow(
 
 const round = (n: number) => Math.round(n * 100) / 100;
 
+/** Shortest distance from a point to a polyline. Infinity for an empty one. */
+export function distanceToPath(
+  point: readonly [number, number],
+  path: readonly (readonly [number, number])[],
+): number {
+  let best = Infinity;
+  for (let i = 1; i < path.length; i += 1) {
+    const [ax, ay] = path[i - 1];
+    const [bx, by] = path[i];
+    const dx = bx - ax;
+    const dy = by - ay;
+    const span = dx * dx + dy * dy;
+    const along = span === 0
+      ? 0
+      : Math.min(
+        1,
+        Math.max(0, ((point[0] - ax) * dx + (point[1] - ay) * dy) / span),
+      );
+    best = Math.min(
+      best,
+      Math.hypot(point[0] - (ax + along * dx), point[1] - (ay + along * dy)),
+    );
+  }
+  return best;
+}
+
+/** How far a blocked avatar steps sideways per try, and how many tries. */
+const ROOT_STEP = 6;
+const ROOT_TRIES = 8;
+
 export function renderBraid(
   braid: Braid,
   projection: Projection,
@@ -300,14 +330,9 @@ export function renderBraid(
   const alongPixels = timeAxis === "y" ? height : width;
   const originBack = ROOT_GAP / Math.max(1, alongPixels - 2 * ROOT_GAP);
 
-  braid.threads.forEach((thread, index) => {
-    const kind = thread.person.member ? "is-member" : "is-guest";
-    // Colour comes from a palette slot, not from the slug, so adding a person
-    // needs no stylesheet edit. Past the palette, threads go muted and the
-    // roster does the identifying instead.
-    const hue = String(hueFor(index));
-    for (const segment of thread.segments) {
-      let points: (readonly [number, number])[] = [];
+  /** Every pixel point one thread is drawn through, segment by segment. */
+  const traceOf = (thread: Braid["threads"][number]) =>
+    thread.segments.map((segment) => {
       const steps: Array<{ t: number; lane: number }> = [];
 
       if (segment.kind === "excursion") {
@@ -317,15 +342,15 @@ export function renderBraid(
         const excursion = braid.excursions.find(
           (e) => e.moment.moment.id === segment.points[0].moment.id,
         );
-        if (excursion !== undefined) {
-          steps.push({ t: excursion.from.t, lane: 0 });
-          for (const point of segment.points) {
-            steps.push({ t: point.t, lane: point.lane });
-          }
-          if (excursion.to !== null) {
-            steps.push({ t: excursion.to.t, lane: 0 });
-          }
-          points = holdThenJog(steps);
+        if (excursion === undefined) {
+          return { segment, points: [] as (readonly [number, number])[] };
+        }
+        steps.push({ t: excursion.from.t, lane: 0 });
+        for (const point of segment.points) {
+          steps.push({ t: point.t, lane: point.lane });
+        }
+        if (excursion.to !== null) {
+          steps.push({ t: excursion.to.t, lane: 0 });
         }
       } else {
         // An approach begins in the person's own lane, so a thread whose
@@ -349,25 +374,104 @@ export function renderBraid(
             steps.push({ t: target.t, lane: target.lane });
           }
         }
-        points = holdThenJog(steps);
       }
 
-      if (points.length < 2) continue;
+      return { segment, points: holdThenJog(steps) };
+    });
+
+  // A column one person frees and the next one takes is the whole point of the
+  // git-style allocator, but it leaves the newcomer's face parked in a column
+  // somebody else's line is still running down, and a line through a face
+  // reads as a connection that is not there. So a face that lands on another
+  // thread steps aside, across the lanes, and its own line starts from where
+  // it moved to.
+  const traces = braid.threads.map(traceOf);
+  const laneAxis = timeAxis === "y" ? 0 : 1;
+  const laneSpan = laneAxis === 0 ? width : height;
+
+  const originFor = (
+    thread: Braid["threads"][number],
+    index: number,
+    taken: readonly (readonly [number, number])[],
+  ): readonly [number, number] => {
+    const start = originOf(thread);
+    const others = traces
+      .filter((_, i) => i !== index)
+      .flatMap((segments) => segments.map((s) => s.points));
+    const clear = (point: readonly [number, number]) =>
+      others.every((path) => distanceToPath(point, path) >= AVATAR + 2) &&
+      taken.every((other) =>
+        Math.hypot(point[0] - other[0], point[1] - other[1]) >= AVATAR * 2
+      );
+
+    // Away from the spine first: the margin is emptier than the middle. Then
+    // the other way, then further back in time, which clears the case where
+    // the offending line is not sharing the column but crossing it.
+    const away = thread.lane < 0 ? -1 : 1;
+    const timeAxisIndex = laneAxis === 0 ? 1 : 0;
+    const timeSpan = laneAxis === 0 ? height : width;
+    const at = (lane: number, back: number): readonly [number, number] => {
+      const moved: [number, number] = [start[0], start[1]];
+      moved[laneAxis] = Math.min(
+        Math.max(start[laneAxis] + lane, AVATAR),
+        laneSpan - AVATAR,
+      );
+      moved[timeAxisIndex] = Math.min(
+        Math.max(start[timeAxisIndex] - back, AVATAR),
+        timeSpan - AVATAR,
+      );
+      return moved;
+    };
+
+    if (clear(at(0, 0))) return start;
+    for (let step = 1; step <= ROOT_TRIES; step += 1) {
+      const reach = step * ROOT_STEP;
+      for (
+        const candidate of [
+          at(away * reach, 0),
+          at(-away * reach, 0),
+          at(0, reach),
+          at(away * reach, reach),
+        ]
+      ) {
+        if (clear(candidate)) return candidate;
+      }
+    }
+    return start;
+  };
+
+  const origins: Array<readonly [number, number]> = [];
+  braid.threads.forEach((thread, index) => {
+    origins.push(originFor(thread, index, origins));
+  });
+
+  braid.threads.forEach((thread, index) => {
+    const kind = thread.person.member ? "is-member" : "is-guest";
+    // Colour comes from a palette slot, not from the slug, so adding a person
+    // needs no stylesheet edit. Past the palette, threads go muted and the
+    // roster does the identifying instead.
+    const hue = String(hueFor(index));
+    traces[index].forEach(({ segment, points }, position) => {
+      if (points.length < 2) return;
+      // The face moved, so the line it starts has to start there too.
+      const drawn = position === 0 && segment.kind !== "excursion"
+        ? [origins[index], ...points.slice(1)]
+        : points;
       svg.appendChild(
         make(doc, "path", {
           class: `origins-thread ${kind} is-${segment.kind}`,
           "data-person": thread.person.slug,
           "data-hue": hue,
-          d: flow(points, timeAxis),
+          d: flow(drawn, timeAxis),
           fill: "none",
         }),
       );
-    }
+    });
     const root = make(doc, "g", {
       class: "origins-root",
       "data-person": thread.person.slug,
       "data-hue": hue,
-      transform: translate(originOf(thread)),
+      transform: translate(origins[index]),
     });
     root.appendChild(avatarFor(thread.person, doc));
     roots.push(root);
@@ -434,7 +538,24 @@ export function renderBraid(
   });
   const byId = new Map(braid.moments.map((m) => [m.moment.id, m]));
 
-  for (const box of layoutLabels(boxes, axis, { width, height })) {
+  // Faces and node circles are already on the canvas, so the sweep has to know
+  // they are there. Resolving labels against other labels only is what let
+  // "Rob finds Nix" sit across Daniel's face.
+  const obstacles = [
+    ...origins.map(([x, y]) => ({
+      x: x - AVATAR,
+      y: y - AVATAR,
+      w: AVATAR * 2,
+      h: AVATAR * 2,
+    })),
+    ...braid.moments.map((moment) => {
+      const [x, y] = place(moment);
+      const r = moment.moment.trunk ? 7 : 4.5;
+      return { x: x - r, y: y - r, w: r * 2, h: r * 2 };
+    }),
+  ];
+
+  for (const box of layoutLabels(boxes, axis, { width, height }, obstacles)) {
     const moment = byId.get(box.id)!;
     const label = make(doc, "text", {
       class: "origins-label",
