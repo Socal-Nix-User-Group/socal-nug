@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { parseFuzzyDate } from "../src/dates.ts";
 import { buildBraid } from "../src/layout.ts";
-import { detailFor, joinLineFor, rosterFor } from "../src/cards.ts";
+import { detailFor, joinLineFor, personCardFor } from "../src/cards.ts";
 import type { DocumentLike, ElementLike } from "../src/render.ts";
 import type { Moment, Person } from "../src/types.ts";
 
@@ -84,39 +84,32 @@ test("a thread that never joins has no join line", () => {
   assert.equal(joinLineFor(thread("rok"), braid.moments), null);
 });
 
-test("every thread gets a card", () => {
-  const { doc, made } = stubDocument();
-  rosterFor(braid, doc);
-  const cards = made.filter((n) =>
-    (n.attrs.class ?? "").split(" ").includes("origins-card"),
-  );
-  assert.equal(cards.length, braid.threads.length);
-});
+// --- person card ------------------------------------------------------------
+// Shown in a popup when an avatar is clicked. This replaced a roster rail that
+// took a 20rem column off a map that needed every pixel of it.
 
-test("a card is tagged with its person so hover can pair it to a thread", () => {
+const cardOf = (made: Node[]) =>
+  made.find((n) => (n.attrs.class ?? "").split(" ").includes("origins-card"))!;
+
+test("a person card is tagged with its person so hover can pair it to a thread", () => {
   const { doc, made } = stubDocument();
-  rosterFor(braid, doc);
-  const slugs = made
-    .filter((n) => (n.attrs.class ?? "").split(" ").includes("origins-card"))
-    .map((n) => n.attrs["data-person"]);
-  assert.deepEqual([...slugs].sort(), ["daniel", "rok"]);
+  personCardFor(thread("daniel"), braid, doc);
+  assert.equal(cardOf(made).attrs["data-person"], "daniel");
 });
 
 test("member and guest cards are distinguishable without colour", () => {
-  const { doc, made } = stubDocument();
-  rosterFor(braid, doc);
-  const cards = made.filter((n) =>
-    (n.attrs.class ?? "").split(" ").includes("origins-card"),
-  );
-  const guest = cards.find((n) => n.attrs["data-person"] === "rok")!;
-  const member = cards.find((n) => n.attrs["data-person"] === "daniel")!;
-  assert.ok(guest.attrs.class.includes("is-guest"));
-  assert.ok(member.attrs.class.includes("is-member"));
+  const guest = stubDocument();
+  personCardFor(thread("rok"), braid, guest.doc);
+  assert.ok(cardOf(guest.made).attrs.class.includes("is-guest"));
+
+  const member = stubDocument();
+  personCardFor(thread("daniel"), braid, member.doc);
+  assert.ok(cardOf(member.made).attrs.class.includes("is-member"));
 });
 
-test("a card carries the name, alias and profile link", () => {
+test("a person card carries the name, alias and profile link", () => {
   const { doc, made } = stubDocument();
-  rosterFor(braid, doc);
+  personCardFor(thread("daniel"), braid, doc);
   const texts = made.map((n) => n.text);
   assert.ok(texts.includes("DANIEL"));
   assert.ok(texts.includes("@daniel"));
@@ -124,16 +117,31 @@ test("a card carries the name, alias and profile link", () => {
   assert.ok(links.includes("https://example.com/daniel"));
 });
 
-test("a card carries the same palette slot as its thread", () => {
+test("a person card carries the same palette slot as its thread", () => {
+  braid.threads.forEach((t, index) => {
+    const { doc, made } = stubDocument();
+    personCardFor(t, braid, doc);
+    assert.equal(cardOf(made).attrs["data-hue"], String(index));
+  });
+});
+
+test("a person card says where its person joined", () => {
   const { doc, made } = stubDocument();
-  rosterFor(braid, doc);
-  const cards = made.filter((n) =>
-    (n.attrs.class ?? "").split(" ").includes("origins-card"),
-  );
-  assert.deepEqual(
-    cards.map((n) => n.attrs["data-hue"]),
-    braid.threads.map((_, i) => String(i)),
-  );
+  personCardFor(thread("daniel"), braid, doc);
+  const joined = made.map((n) => n.text).join(" ");
+  assert.ok(joined.includes("Joined at founded, April 2023"), joined);
+});
+
+test("someone who never joined gets no join line", () => {
+  const { doc, made } = stubDocument();
+  personCardFor(thread("rok"), braid, doc);
+  assert.ok(!made.some((n) => n.text.startsWith("Joined at")));
+});
+
+test("a person card carries a dismiss control", () => {
+  const { doc, made } = stubDocument();
+  personCardFor(thread("daniel"), braid, doc);
+  assert.ok(made.some((n) => n.attrs["data-origins-dismiss"] !== undefined));
 });
 
 // --- moment detail ----------------------------------------------------------
@@ -196,13 +204,3 @@ test("a detail card carries a dismiss control", () => {
   assert.ok(made.some((n) => n.attrs["data-origins-dismiss"] !== undefined));
 });
 
-test("the roster is a list so it is reachable by keyboard in both modes", () => {
-  const { doc, made } = stubDocument();
-  const root = rosterFor(braid, doc);
-  assert.ok(root !== null);
-  assert.ok(made.some((n) => n.tag === "ul"));
-  assert.equal(
-    made.filter((n) => n.tag === "li").length,
-    braid.threads.length,
-  );
-});

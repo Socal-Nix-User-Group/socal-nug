@@ -228,9 +228,16 @@ class SiteBuild(unittest.TestCase):
         self.assertIn('src="/js/braid.js"', page)
         self.assertTrue((self.out / 'js' / 'braid.js').exists())
         self.assertIn('id="origins-toggle"', page)
-        self.assertIn('id="origins-roster"', page)
         self.assertIn('data-origins-mode="river"', page)
         self.assertIn('data-origins-mode="subway"', page)
+
+    def test_origins_has_no_rail_beside_the_map(self):
+        # cards open inside the map now; a rail beside it cost River a column
+        # it could not spare once the lanes were wide enough to read
+        page = (self.out / 'origins' / 'index.html').read_text()
+        self.assertNotIn('id="origins-roster"', page)
+        self.assertNotIn('origins-side', page)
+        self.assertIn('.origins-popup{position:absolute;', self.css)
 
     def test_origins_toggle_is_hidden_until_the_script_reveals_it(self):
         page = (self.out / 'origins' / 'index.html').read_text()

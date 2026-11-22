@@ -26,19 +26,12 @@
           aria-pressed="false">Subway</button>
 </div>
 
-<div class="origins-layout" id="origins-layout" data-mode="river">
+{#- The wrapper carries the palette; the map fills it. Cards for people and
+    moments open inside the map itself, beside whatever was clicked, so there
+    is no rail beside it any more. -#}
+<div class="origins-layout">
   {# The script replaces this with the drawing. Without the script it is the page. #}
   <div id="origins-braid" class="origins-braid"></div>
-
-  {#- The roster exists in both projections and is the keyboard path to every
-      card, because the braid's SVG is aria-hidden and nothing inside it is a
-      usable tab stop. -#}
-  <div class="origins-side">
-    {#- A sibling of the roster, not a child: boot() calls replaceChildren on
-        the roster, which would wipe this panel before anything could fill it. -#}
-    <div id="origins-detail" class="origins-detail is-hidden"></div>
-    <div id="origins-roster" class="origins-roster-rail"></div>
-  </div>
 </div>
 
 {#- Without the script this list is the page, and with the script it is what a

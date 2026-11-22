@@ -421,20 +421,28 @@ the alternatives (leader lines, or labels pushed far from what they name) read w
 - Switching projections animates by interpolating the shared point set between the two
   projections, using the Web Animations API. No animation library.
 
-### Cards and the roster
+### Cards and the popup
 
 - Thread roots are the person's avatar, circular, ringed in their thread colour.
-- The roster rail exists in **both** projections and is the keyboard path to every card. In River
-  it sits beside the braid on desktop and below it on mobile. In Map it is visually hidden but
-  still focusable and still in the accessibility tree.
-  This is not optional polish. The SVG is `aria-hidden="true"`, so nothing inside it is a
-  meaningful tab stop; if the rail only existed in River, Map mode would have no keyboard route
-  to any person's card at all.
-- Map additionally puts the card in a popover anchored to the avatar root, for pointer users.
-  The popover is an enhancement over the rail, never the only way to reach a card.
-- Hovering or focusing a card highlights that thread, and the reverse.
-- A card carries avatar, name, alias, description and profile link, all from the existing profile
-  front matter.
+- There is no rail beside the map. Clicking a face opens that person's card and clicking a
+  moment opens its card, both in one popup that is a child of the scrolling map. It is placed in
+  the map's own scroll coordinates beside what was clicked, to the right and flipping left when
+  there is no room, clamped to the slice of the map on screen so it never opens somewhere the
+  reader has to scroll to find, and it pans with the map once open.
+- The popup closes on its X, on Escape, and on any click that is not inside it. A click on
+  another face or moment swaps the card rather than closing it first.
+- Hovering a face or a moment highlights the threads involved. Cards no longer take part in
+  highlighting.
+- A person's card carries avatar, name, alias, description, membership badge, profile link and
+  where they joined. A moment's card carries title, date, photo, blurb, who was there, and the
+  event page or outside link.
+- **Why the rail went.** Once the lanes were wide enough to read, River needed every pixel of its
+  width, and a 20rem column beside it was the first thing to give.
+- **What it cost.** The rail was the keyboard route to a person's card: the SVG is
+  `aria-hidden="true"`, so nothing inside it is a tab stop. Removing it makes person cards
+  pointer-only, as moment cards already were. The visually hidden fallback list remains the
+  accessible version of the page. A keyboard route back into the cards, which means focusable
+  faces and moments and an SVG no longer hidden from assistive tech, is an open item.
 
 ### Member and guest treatment
 

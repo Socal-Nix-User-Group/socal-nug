@@ -1,6 +1,7 @@
-import { detailFor, rosterFor } from "./cards.ts";
+import { detailFor, personCardFor } from "./cards.ts";
 import { buildBraid } from "./layout.ts";
 import { parseData } from "./parse.ts";
+import { placePopup } from "./popup.ts";
 import { projectionFor, riverWidthFor } from "./projections.ts";
 import type { Mode } from "./projections.ts";
 import { laneRangeOf, renderBraid } from "./render.ts";
@@ -19,6 +20,12 @@ import type { StorageLike } from "./toggle.ts";
 
 interface PageElement extends ElementLike {
   readonly clientWidth: number;
+  readonly clientHeight: number;
+  readonly scrollLeft: number;
+  readonly scrollTop: number;
+  readonly offsetWidth: number;
+  readonly offsetHeight: number;
+  hidden: boolean;
   readonly classList: {
     add(token: string): void;
     remove(token: string): void;
@@ -30,19 +37,30 @@ interface PageElement extends ElementLike {
   querySelectorAll(selector: string): ArrayLike<PageElement> & Iterable<
     PageElement
   >;
-  getBoundingClientRect(): { width: number };
+  getBoundingClientRect(): {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  };
+  contains(node: PageElement | null): boolean;
+  closest(selector: string): PageElement | null;
   animate(frames: unknown[], options: unknown): void;
 }
 
 interface DomEvent {
   readonly currentTarget: PageElement;
+  readonly target: PageElement | null;
+  readonly key?: string;
 }
 
 declare const document: DocumentLike & {
   getElementById(id: string): (PageElement & { textContent: string }) | null;
   readonly readyState: string;
-  addEventListener(type: string, listener: () => void): void;
+  addEventListener(type: string, listener: (event: DomEvent) => void): void;
 };
+
+const XHTML = "http://www.w3.org/1999/xhtml";
 
 declare const window: { localStorage: StorageLike } | undefined;
 declare const console: { error(...args: unknown[]): void };
@@ -98,6 +116,13 @@ function boot(): void {
   let mode: Mode = readMode(store);
   let previous = new Map<string, { x: number; y: number }>();
 
+  // The one card, opened beside whatever was clicked. It lives inside the
+  // scrolling map so it pans with it, and is put back after every redraw
+  // because replaceChildren would otherwise take it with the old drawing.
+  const popup = document.createElementNS(XHTML, "div") as PageElement;
+  popup.setAttribute("class", "origins-popup");
+  popup.hidden = true;
+
   function viewportFor(next: Mode): { width: number; height: number } {
     const available = mount!.clientWidth > 0
       ? mount!.clientWidth
@@ -132,13 +157,10 @@ function boot(): void {
     // viewBox that wide and then letting the container shrink makes the SVG
     // scale down, and `height: auto` drags the height down with it.
     mount!.setAttribute("data-mode", next);
-    // The layout carries it too, so the roster can move below the braid as a
-    // grid in Subway instead of eating a third of the width as a side rail.
-    document.getElementById("origins-layout")?.setAttribute("data-mode", next);
 
     // Reading clientWidth here forces the reflow, so this is the new width.
     const projection = projectionFor(next, viewportFor(next), lanes);
-    mount!.replaceChildren(renderBraid(braid, projection, document));
+    mount!.replaceChildren(renderBraid(braid, projection, document), popup);
 
     const now = positionsFor(next);
     if (animate) {
@@ -164,7 +186,7 @@ function boot(): void {
     previous = now;
     // The old nodes went with replaceChildren, so the card has nothing left to
     // point at.
-    hideDetail();
+    closePopup();
     wireHover();
   }
 
@@ -173,36 +195,71 @@ function boot(): void {
     for (const node of mount!.querySelectorAll(`[data-person="${slug}"]`)) {
       node.classList.toggle("is-lit", on);
     }
-    const roster = document.getElementById("origins-roster");
-    if (roster === null) return;
-    for (const card of roster.querySelectorAll(`[data-person="${slug}"]`)) {
-      card.classList.toggle("is-lit", on);
-    }
   }
 
-  function showDetail(id: string | undefined): void {
-    const panel = document.getElementById("origins-detail");
-    if (panel === null || id === undefined) return;
-    const placed = braid.moments.find((m) => m.moment.id === id);
-    if (placed === undefined) return;
-    panel.replaceChildren(detailFor(placed, cast, document));
-    panel.classList.remove("is-hidden");
-    for (const dismiss of panel.querySelectorAll("[data-origins-dismiss]")) {
-      dismiss.addEventListener("click", () => hideDetail());
-    }
+  function markOpen(id: string | undefined): void {
     for (const node of mount!.querySelectorAll("[data-moment]")) {
       node.classList.toggle("is-open", node.dataset.moment === id);
     }
   }
 
-  function hideDetail(): void {
-    const panel = document.getElementById("origins-detail");
-    if (panel === null) return;
-    panel.replaceChildren();
-    panel.classList.add("is-hidden");
-    for (const node of mount!.querySelectorAll("[data-moment]")) {
-      node.classList.toggle("is-open", false);
+  /**
+   * Open the card beside whatever was clicked.
+   *
+   * Positions are worked out in the map's own scroll coordinates and clamped
+   * to the slice of the map on screen, so the card never opens somewhere the
+   * reader has to scroll to find. Once open it is part of the map and pans
+   * with it.
+   */
+  function openPopup(anchor: PageElement, content: ElementLike): void {
+    popup.replaceChildren(content);
+    popup.hidden = false;
+    const map = mount!.getBoundingClientRect();
+    const at = anchor.getBoundingClientRect();
+    const { left, top } = placePopup(
+      {
+        left: at.left - map.left + mount!.scrollLeft,
+        top: at.top - map.top + mount!.scrollTop,
+        width: at.width,
+        height: at.height,
+      },
+      { width: popup.offsetWidth, height: popup.offsetHeight },
+      {
+        left: mount!.scrollLeft,
+        top: mount!.scrollTop,
+        width: mount!.clientWidth,
+        height: mount!.clientHeight,
+      },
+    );
+    popup.setAttribute(
+      "style",
+      `left:${Math.round(left)}px;top:${Math.round(top)}px`,
+    );
+    for (const dismiss of popup.querySelectorAll("[data-origins-dismiss]")) {
+      dismiss.addEventListener("click", () => closePopup());
     }
+  }
+
+  function closePopup(): void {
+    popup.hidden = true;
+    popup.replaceChildren();
+    markOpen(undefined);
+  }
+
+  function showMoment(id: string | undefined, anchor: PageElement): void {
+    if (id === undefined) return;
+    const placed = braid.moments.find((m) => m.moment.id === id);
+    if (placed === undefined) return;
+    openPopup(anchor, detailFor(placed, cast, document));
+    markOpen(id);
+  }
+
+  function showPerson(slug: string | undefined, anchor: PageElement): void {
+    if (slug === undefined) return;
+    const thread = braid.threads.find((t) => t.person.slug === slug);
+    if (thread === undefined) return;
+    openPopup(anchor, personCardFor(thread, braid, document));
+    markOpen(undefined);
   }
 
   function wireHover(): void {
@@ -229,26 +286,31 @@ function boot(): void {
       node.addEventListener("mouseleave", () => {
         for (const slug of who) highlight(slug, false);
       });
-      node.addEventListener("click", () => showDetail(id));
+      node.addEventListener("click", (e) => showMoment(id, e.currentTarget));
+    }
+
+    // A face opens its person's card. This replaced the roster rail, which
+    // was the only other place a person's card could be reached.
+    for (const root of mount!.querySelectorAll(".origins-root")) {
+      root.addEventListener("click", (e) => {
+        showPerson(e.currentTarget.dataset.person, e.currentTarget);
+      });
     }
   }
 
-  const roster = document.getElementById("origins-roster");
-  if (roster !== null) {
-    roster.replaceChildren(rosterFor(braid, document));
-    for (const card of roster.querySelectorAll("[data-person]")) {
-      for (const [type, on] of [
-        ["mouseenter", true],
-        ["focusin", true],
-        ["mouseleave", false],
-        ["focusout", false],
-      ] as const) {
-        card.addEventListener(type, (e) => {
-          highlight(e.currentTarget.dataset.person, on);
-        });
-      }
-    }
-  }
+  // Anywhere that is not the card closes it. A click on a node or a face is
+  // a request to swap the card, which its own handler does, and the card's
+  // own buttons and links handle themselves.
+  document.addEventListener("click", (event) => {
+    if (popup.hidden) return;
+    const target = event.target;
+    if (target === null || popup.contains(target)) return;
+    if (target.closest("[data-moment], .origins-root") !== null) return;
+    closePopup();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closePopup();
+  });
 
   draw(mode, false);
 

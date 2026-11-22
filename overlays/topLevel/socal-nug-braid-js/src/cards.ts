@@ -79,14 +79,7 @@ export function detailFor(
       formatFuzzyDate(moment.date),
     ),
   );
-  head.appendChild(
-    el(doc, "button", {
-      class: "origins-detail-dismiss",
-      type: "button",
-      "data-origins-dismiss": "",
-      "aria-label": "Close",
-    }, "×"),
-  );
+  head.appendChild(dismissFor(doc));
   card.appendChild(head);
 
   if (moment.photo !== undefined && moment.photo !== "") {
@@ -141,92 +134,99 @@ export function detailFor(
 }
 
 /**
- * The roster of people, as a list.
+ * The card for one person, shown when their avatar is clicked.
  *
- * This exists in both projections and is the keyboard path to every card: the
- * braid's SVG is aria-hidden, so nothing inside it is a usable tab stop. In
- * Map mode the rail is visually hidden by CSS but stays focusable, and the
- * popover on an avatar is an enhancement over it, never the only way in.
+ * This replaced a roster rail beside the map. The rail cost River a 20rem
+ * column it could not spare once the lanes were wide enough to read, and
+ * everything it said about a person is said just as well next to their face.
  */
-export function rosterFor(braid: Braid, doc: DocumentLike): ElementLike {
-  const list = el(doc, "ul", { class: "origins-roster" });
+export function personCardFor(
+  thread: Thread,
+  braid: Braid,
+  doc: DocumentLike,
+): ElementLike {
+  const person = thread.person;
+  const kind = person.member ? "is-member" : "is-guest";
+  // Same palette slot the thread uses, so the card and the line match.
+  const card = el(doc, "div", {
+    class: `origins-card ${kind}`,
+    "data-person": person.slug,
+    "data-hue": String(hueFor(braid.threads.indexOf(thread))),
+  });
 
-  braid.threads.forEach((thread, index) => {
-    const person = thread.person;
-    const kind = person.member ? "is-member" : "is-guest";
-    // Same palette slot the thread uses, so a card and its line match.
-    const item = el(doc, "li", {
-      class: `origins-card ${kind}`,
-      "data-person": person.slug,
-      "data-hue": String(hueFor(index)),
-      tabindex: "0",
-    });
-
-    if (person.imageUrl !== "") {
-      item.appendChild(
-        el(doc, "img", {
-          class: "origins-card-avatar",
-          src: person.imageUrl,
-          alt: "",
-          loading: "lazy",
-          width: "48",
-          height: "48",
-        }),
-      );
-    } else {
-      item.appendChild(
-        el(
-          doc,
-          "span",
-          { class: "origins-card-avatar is-blank", "aria-hidden": "true" },
-          person.name.slice(0, 1).toUpperCase(),
-        ),
-      );
-    }
-
-    const body = el(doc, "div", { class: "origins-card-body" });
-    body.appendChild(
-      el(doc, "span", { class: "origins-card-name" }, person.name),
+  if (person.imageUrl !== "") {
+    card.appendChild(
+      el(doc, "img", {
+        class: "origins-card-avatar",
+        src: person.imageUrl,
+        alt: "",
+        loading: "lazy",
+        width: "48",
+        height: "48",
+      }),
     );
+  } else {
+    card.appendChild(
+      el(
+        doc,
+        "span",
+        { class: "origins-card-avatar is-blank", "aria-hidden": "true" },
+        person.name.slice(0, 1).toUpperCase(),
+      ),
+    );
+  }
 
-    const link = el(
+  const body = el(doc, "div", { class: "origins-card-body" });
+  body.appendChild(
+    el(doc, "span", { class: "origins-card-name" }, person.name),
+  );
+  body.appendChild(
+    el(
       doc,
       "a",
       { class: "origins-card-alias", href: person.profileUrl },
       person.alias,
+    ),
+  );
+
+  if (person.description !== "") {
+    body.appendChild(
+      el(doc, "p", { class: "origins-card-desc" }, person.description),
     );
-    body.appendChild(link);
+  }
 
-    if (person.description !== "") {
-      body.appendChild(
-        el(doc, "p", { class: "origins-card-desc" }, person.description),
-      );
-    }
+  body.appendChild(
+    el(
+      doc,
+      "span",
+      { class: `origins-badge ${kind}` },
+      person.member ? "Member" : "Guest",
+    ),
+  );
 
+  const join = joinLineFor(thread, braid.moments);
+  if (join !== null) {
     body.appendChild(
       el(
         doc,
         "span",
-        { class: `origins-badge ${kind}` },
-        person.member ? "Member" : "Guest",
+        { class: "origins-card-join" },
+        `Joined at ${join.title}, ${join.date}`,
       ),
     );
+  }
 
-    const join = joinLineFor(thread, braid.moments);
-    if (join !== null) {
-      body.appendChild(
-        el(
-          doc,
-          "span",
-          { class: "origins-card-join" },
-          `Joined at ${join.title}, ${join.date}`,
-        ),
-      );
-    }
+  card.appendChild(body);
+  card.appendChild(dismissFor(doc));
+  return card;
+}
 
-    item.appendChild(body);
-    list.appendChild(item);
-  });
-
-  return list;
+/** The X in a card's corner. Clicking outside the card closes it as well. */
+function dismissFor(doc: DocumentLike): ElementLike {
+  return el(doc, "button", {
+    class: "origins-dismiss",
+    type: "button",
+    "data-origins-dismiss": "",
+    "aria-label": "Close",
+  }, "×");
 }

@@ -1,8 +1,8 @@
 // Origins: the braid of converging paths.
 //
 // Colours are palette slots, not per-person rules: the renderer puts a
-// data-hue on each thread and on its roster card, so adding a person needs no
-// edit here. Past the palette a thread takes the muted slot and the roster
+// data-hue on each thread and on its person's card, so adding a person needs
+// no edit here. Past the palette a thread takes the muted slot and the card
 // does the identifying instead, because forty distinguishable hues do not
 // exist.
 
@@ -26,31 +26,9 @@
     --origins-hue-10: #a85ba8;
     --origins-hue-11: #8a7a3c;
 
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 20rem;
-    gap: 1.5rem;
-    align-items: start;
-
-    @media screen and (max-width: 1023px) {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    // Subway is already the full width of the page, so a side rail would take
-    // a third of the axis the picture most needs. The roster drops below it
-    // as a grid instead.
-    &[data-mode="subway"] {
-        grid-template-columns: minmax(0, 1fr);
-
-        .origins-side {
-            position: static;
-        }
-
-        .origins-roster {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
-            gap: 0.5rem;
-        }
-    }
+    // Nothing else lives here: the map takes the full width and the cards for
+    // people and moments open inside it. A rail beside it cost River a 20rem
+    // column it could not spare once the lanes were wide enough to read.
 }
 
 // Zola compiles every file under sass/ on its own as well as through
@@ -107,6 +85,8 @@ html[data-theme=dark] .origins-layout {
     // against the content box, so any padding here scales the picture down by
     // that much. The drawing carries its own 40-unit margin instead.
     padding: 0;
+    // The popup is positioned against this box, in its scroll coordinates.
+    position: relative;
 
     // The picture is taller than a screen. Scroll it here rather than letting
     // the page grow to a couple of thousand pixels.
@@ -266,55 +246,68 @@ html[data-theme=dark] .origins-layout {
     stroke-width: 5;
 }
 
+.origins-root {
+    cursor: pointer;
+}
+
 .origins-root.is-lit .origins-avatar-ring {
     stroke-width: 4;
 }
 
-// --- the roster -------------------------------------------------------------
+// --- the popup --------------------------------------------------------------
 
-// The detail panel and the roster share the side column. The panel is a
-// sibling of the roster, not a child: boot() replaces the roster's children.
-.origins-side {
-    position: sticky;
-    top: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-    min-width: 0;
+// One card at a time, opened beside whatever was clicked. It is a child of
+// the scrolling map, positioned by the script in the map's own scroll
+// coordinates, so it pans with the map once it is open. Opaque on purpose: it
+// sits over lines and faces, and a translucent card over a braid is
+// unreadable. The page background comes from Bulma so it follows the theme.
+.origins-popup {
+    position: absolute;
+    z-index: 2;
+    width: 18rem;
+    max-width: calc(100% - 1rem);
+    background: var(--bulma-scheme-main, #fff);
+    border: 1px solid var(--origins-line);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
 }
 
-.origins-roster {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
+// The X in a card's corner. Each card lays it out in its own way.
+.origins-dismiss {
+    background: none;
+    border: 0;
+    color: inherit;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.6;
+
+    &:hover {
+        opacity: 1;
+    }
 }
+
+// --- the person card --------------------------------------------------------
 
 .origins-card {
+    position: relative;
     display: flex;
     gap: 0.6rem;
     align-items: flex-start;
-    padding: 0.5rem 0.6rem;
+    padding: 0.5rem 1.6rem 0.5rem 0.6rem;
     // Square for now. The card treatment is getting redesigned.
     border-radius: 0;
     background: var(--origins-surface);
     border-left: 4px solid var(--origins-thread, var(--origins-muted));
-    transition: background 0.15s ease;
 
     &.is-guest {
         border-left-style: dashed;
         border-left-color: var(--origins-muted);
     }
 
-    &:focus-visible {
-        outline: 2px solid var(--origins-trunk);
-        outline-offset: 2px;
-    }
-
-    &.is-lit {
-        background: color-mix(in srgb, var(--origins-trunk) 16%, transparent);
+    > .origins-dismiss {
+        position: absolute;
+        top: 0.25rem;
+        right: 0.35rem;
     }
 }
 
@@ -388,10 +381,6 @@ html[data-theme=dark] .origins-layout {
 
 // --- moment detail ----------------------------------------------------------
 
-.origins-detail {
-    margin-bottom: 0.75rem;
-}
-
 .origins-detail-card {
     display: flex;
     flex-direction: column;
@@ -420,20 +409,9 @@ html[data-theme=dark] .origins-layout {
     opacity: 0.7;
 }
 
-.origins-detail-dismiss {
+.origins-detail-head > .origins-dismiss {
     grid-column: 2;
     grid-row: 1 / span 2;
-    background: none;
-    border: 0;
-    color: inherit;
-    font-size: 1rem;
-    line-height: 1;
-    cursor: pointer;
-    opacity: 0.6;
-
-    &:hover {
-        opacity: 1;
-    }
 }
 
 .origins-detail-photo {
