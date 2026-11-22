@@ -216,9 +216,13 @@ export function distanceToPath(
   return best;
 }
 
-/** How far a blocked avatar steps sideways per try, and how many tries. */
-const ROOT_STEP = 6;
-const ROOT_TRIES = 8;
+/**
+ * How a blocked avatar slides along its own column: step size, how far it may
+ * close on its own first moment, and how far it may back away from it.
+ */
+const ROOT_SLIDE = 3;
+const ROOT_SLIDE_IN = 12;
+const ROOT_SLIDE_OUT = 48;
 
 export function renderBraid(
   braid: Braid,
@@ -387,7 +391,6 @@ export function renderBraid(
   // it moved to.
   const traces = braid.threads.map(traceOf);
   const laneAxis = timeAxis === "y" ? 0 : 1;
-  const laneSpan = laneAxis === 0 ? width : height;
 
   const originFor = (
     thread: Braid["threads"][number],
@@ -404,38 +407,33 @@ export function renderBraid(
         Math.hypot(point[0] - other[0], point[1] - other[1]) >= AVATAR * 2
       );
 
-    // Away from the spine first: the margin is emptier than the middle. Then
-    // the other way, then further back in time, which clears the case where
-    // the offending line is not sharing the column but crossing it.
-    const away = thread.lane < 0 ? -1 : 1;
-    const timeAxisIndex = laneAxis === 0 ? 1 : 0;
-    const timeSpan = laneAxis === 0 ? height : width;
-    const at = (lane: number, back: number): readonly [number, number] => {
+    if (clear(start)) return start;
+
+    // Slide along the person's own column, towards the dot the face belongs
+    // to. What the picture gets from the git-style allocator is that
+    // everything lines up in columns, and a face that steps sideways out of
+    // its column to dodge a line gives that up for a overlap of a few pixels.
+    // Sliding keeps the face above its own first moment and just shortens the
+    // lead-in, so there is nothing to notice.
+    const timeIndex = laneAxis === 0 ? 1 : 0;
+    const at = (offset: number): readonly [number, number] => {
       const moved: [number, number] = [start[0], start[1]];
-      moved[laneAxis] = Math.min(
-        Math.max(start[laneAxis] + lane, AVATAR),
-        laneSpan - AVATAR,
-      );
-      moved[timeAxisIndex] = Math.min(
-        Math.max(start[timeAxisIndex] - back, AVATAR),
-        timeSpan - AVATAR,
-      );
+      moved[timeIndex] = Math.max(start[timeIndex] + offset, AVATAR);
       return moved;
     };
-
-    if (clear(at(0, 0))) return start;
-    for (let step = 1; step <= ROOT_TRIES; step += 1) {
-      const reach = step * ROOT_STEP;
-      for (
-        const candidate of [
-          at(away * reach, 0),
-          at(-away * reach, 0),
-          at(0, reach),
-          at(away * reach, reach),
-        ]
-      ) {
-        if (clear(candidate)) return candidate;
-      }
+    // Towards the dot first and only a little, because past that the face
+    // starts to crowd the dot it belongs to; then away from it, where the
+    // lead-in simply gets longer and there is far more room to find.
+    const offsets: number[] = [];
+    for (let d = ROOT_SLIDE; d <= ROOT_SLIDE_IN; d += ROOT_SLIDE) {
+      offsets.push(d);
+    }
+    for (let d = ROOT_SLIDE; d <= ROOT_SLIDE_OUT; d += ROOT_SLIDE) {
+      offsets.push(-d);
+    }
+    for (const offset of offsets) {
+      const moved = at(offset);
+      if (clear(moved)) return moved;
     }
     return start;
   };

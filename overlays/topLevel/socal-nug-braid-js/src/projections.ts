@@ -33,6 +33,12 @@ const PAD = 40;
  */
 const LEAD = 76;
 const LABEL_GAP = 14;
+/**
+ * How far above a node Subway hangs its label. A root avatar sits beside its
+ * first moment at the node's own height, so a label only LABEL_GAP up clips
+ * the top of that face; this clears it.
+ */
+const SUBWAY_LABEL_GAP = 22;
 /** Must match render.ts's LABEL_WIDTH; it is what a label claims beside a node. */
 const LABEL_RESERVE = 150;
 /** Below this the lanes would have no room left, so labels are dropped. */
@@ -89,6 +95,6 @@ export function projectionFor(
     viewBox,
     showLabels,
     project: (t, lane) => [LEAD + t * runway, centre + lane * step],
-    labelAnchor: () => ({ anchor: "middle", dx: 0, dy: -LABEL_GAP }),
+    labelAnchor: () => ({ anchor: "middle", dx: 0, dy: -SUBWAY_LABEL_GAP }),
   };
 }

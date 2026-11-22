@@ -362,28 +362,37 @@ geometry is shared.
 
 #### Keeping markers apart
 
-Lane allocation decides where things go; it does not decide whether they fit. Three kinds of
-overlap are resolved afterwards, in this order, because each one is drawn on top of the last:
+Lane allocation decides where things go; it does not decide whether they fit. Two kinds of
+overlap are resolved afterwards, and the governing rule for both is that **the cure must not
+cost more than the overlap**. A face that leaves its column and a label that walks away from its
+dot are each worse to look at than the few pixels of overlap they were avoiding, so neither is
+allowed.
 
-1. **Label against label.** A sweep along the free axis, then a clamp back inside the canvas.
-1. **Avatar against another person's thread.** A column one person frees and the next one takes
-   is the point of the git-style allocator, but it leaves the newcomer's face parked in a column
-   somebody else's line is still running down. A line through a face reads as a connection that
-   is not there, so a face that lands on another thread steps aside: across the lanes first,
-   away from the spine, then back along the time axis, which also clears the case where the
-   offending line is crossing the column rather than sharing it. The thread's own first point
-   moves with it, so the line still starts at the face.
-1. **Label against avatar or node.** Both are already on the canvas and cannot move, so a label
-   that lands on one walks along the sweep axis until it clears. It keeps whatever position it
-   has if the canvas edge stops it first: a label slightly over a circle beats a label shoved
-   off the page.
+1. **A face on somebody else's line.** The git-style allocator frees a column and hands it to the
+   next arrival, which can leave a newcomer's face grazing the tail of the previous occupant's
+   run, or sitting where another thread crosses. The face slides **along its own column** until
+   it is clear: a little towards its first moment (at most 12px, past which it crowds its own
+   dot), then backwards away from it (up to 48px, where the lead-in simply gets longer). It never
+   moves across lanes. Columns staying aligned is most of what makes the picture legible, and
+   trading that away for a 1px clip is a bad deal.
 
-Steps 2 and 3 are bounded searches, not solvers. A picture dense enough to defeat them degrades
-by leaving one marker slightly overlapped, never by looping or by pushing something off-canvas.
+1. **A label on a face or a node.** The label swaps to the **other side of the same node**,
+   mirrored about its anchor, so it ends up the same short distance from the dot it names. A flip
+   that would run off the canvas, or that lands on something else, is refused and the label keeps
+   its natural side. Labels are never translated along the sweep axis to dodge an obstacle: the
+   label-vs-label sweep may move them, obstacle avoidance may not.
+
+Subway hangs its labels further above a node than River hangs them beside one, because a root
+avatar sits beside its first moment at the node's own height and a label at the usual gap clips
+the top of that face.
+
+Both are bounded searches, not solvers. A picture dense enough to defeat them degrades by leaving
+one marker slightly overlapped, never by looping, by pushing something off-canvas, or by moving
+something far from what it belongs to.
 
 Labels crossing *lines* are not resolved and are not meant to be. With threads holding their
-columns, a label beside a node will sometimes cross a line running past it; that reads fine,
-and the alternatives (leader lines, or labels pushed far from what they name) read worse.
+columns, a label beside a node will sometimes cross a line running past it; that reads fine, and
+the alternatives (leader lines, or labels pushed far from what they name) read worse.
 
 ### Toggle and responsive behaviour
 

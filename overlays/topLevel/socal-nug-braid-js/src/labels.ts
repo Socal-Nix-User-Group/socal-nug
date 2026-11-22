@@ -48,18 +48,26 @@ function rectOf(box: AnchoredBox): Rect {
   return { x: left, y: box.y - box.h, w: right - left, h: box.h };
 }
 
-/** How far a blocked label steps per try, and how many tries it gets. */
-const STEP = 4;
-const TRIES = 24;
+/** The other side of a node. A centred label has no other side to go to. */
+const FLIPPED: Record<Anchor, Anchor> = {
+  start: "end",
+  end: "start",
+  middle: "middle",
+};
 
 /**
  * Sweep labels apart, pull any that ended up past an edge back inside, then
- * step the ones sitting on an obstacle off it.
+ * swap the ones sitting on an obstacle to the other side of their node.
  *
  * All three steps belong here: a label the sweep pushed off the canvas is just
  * as unreadable as one that was never moved, a label on top of somebody's face
  * is worse than either, and the renderer and the smoke check have to agree on
  * where labels land or the check is measuring something nobody draws.
+ *
+ * Swapping sides rather than walking away is the point of the third step. A
+ * label that walks until it is clear ends up a long way from the dot it names,
+ * which costs more than the overlap it was avoiding. A label on the other side
+ * of its own node has not gone anywhere.
  */
 export function layoutLabels(
   boxes: readonly AnchoredBox[],
@@ -69,8 +77,8 @@ export function layoutLabels(
 ): AnchoredBox[] {
   const anchors = new Map(boxes.map((b) => [b.id, b.anchor]));
 
-  const clamp = (box: LabelBox): AnchoredBox => {
-    const anchor = anchors.get(box.id)!;
+  const clamp = (box: LabelBox, side?: Anchor): AnchoredBox => {
+    const anchor = side ?? anchors.get(box.id)!;
     const half = anchor === "middle" ? box.w / 2 : 0;
     const low = anchor === "end" ? box.w : half;
     const high = anchor === "start" ? box.w : half;
@@ -82,27 +90,26 @@ export function layoutLabels(
     };
   };
 
-  const placed = resolveCollisions(boxes, axis).map(clamp);
+  const placed = resolveCollisions(boxes, axis).map((box) => clamp(box));
   if (obstacles.length === 0) return placed;
 
-  // Obstacles are already drawn and cannot move, so a label on one walks along
-  // the sweep axis until it is clear. Bounded, and it keeps whatever it has
-  // when the canvas edge stops it: a label slightly over a circle beats a
-  // label shoved off the page.
+  const blocked = (box: AnchoredBox) => {
+    const rect = rectOf(box);
+    return obstacles.some((o) => hits(rect, o));
+  };
+
   return placed.map((box) => {
-    let current = box;
-    for (let attempt = 0; attempt < TRIES; attempt += 1) {
-      const rect = rectOf(current);
-      if (!obstacles.some((o) => hits(rect, o))) break;
-      const next = clamp(
-        axis === "y"
-          ? { ...current, y: current.y + STEP }
-          : { ...current, x: current.x + STEP },
-      );
-      if (next.x === current.x && next.y === current.y) break;
-      current = next;
-    }
-    return current;
+    if (!blocked(box)) return box;
+    const side = FLIPPED[box.anchor];
+    if (side === box.anchor) return box;
+    // Mirror about the anchor, so the text hangs off the opposite side of the
+    // same node at the same distance from it.
+    const flipped = clamp({ ...box, x: 2 * box.anchorX - box.x }, side);
+    // A flip the canvas edge had to claw back is not a flip; so is one that
+    // lands on something else. Either way the original side is no worse.
+    const [left, right] = extentOf(flipped);
+    const stayed = left >= 0 && right <= canvas.width;
+    return stayed && !blocked(flipped) ? flipped : box;
   });
 }
 
