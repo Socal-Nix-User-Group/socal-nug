@@ -124,6 +124,18 @@ test("a card carries the name, alias and profile link", () => {
   assert.ok(links.includes("https://example.com/daniel"));
 });
 
+test("a card carries the same palette slot as its thread", () => {
+  const { doc, made } = stubDocument();
+  rosterFor(braid, doc);
+  const cards = made.filter((n) =>
+    (n.attrs.class ?? "").split(" ").includes("origins-card"),
+  );
+  assert.deepEqual(
+    cards.map((n) => n.attrs["data-hue"]),
+    braid.threads.map((_, i) => String(i)),
+  );
+});
+
 test("the roster is a list so it is reachable by keyboard in both modes", () => {
   const { doc, made } = stubDocument();
   const root = rosterFor(braid, doc);

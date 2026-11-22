@@ -1,0 +1,327 @@
+// Origins: the braid of converging paths.
+//
+// Colours are palette slots, not per-person rules: the renderer puts a
+// data-hue on each thread and on its roster card, so adding a person needs no
+// edit here. Past the palette a thread takes the muted slot and the roster
+// does the identifying instead, because forty distinguishable hues do not
+// exist.
+
+.origins-layout {
+    --origins-trunk: #5277c3;
+    --origins-muted: #8a8f98;
+    --origins-ink: #1f2430;
+    --origins-surface: rgba(127, 127, 127, 0.07);
+    --origins-line: rgba(127, 127, 127, 0.28);
+
+    --origins-hue-0: #4c9f70;
+    --origins-hue-1: #e07a5f;
+    --origins-hue-2: #7b6cd9;
+    --origins-hue-3: #d9a441;
+    --origins-hue-4: #3f8fb0;
+    --origins-hue-5: #c2587f;
+    --origins-hue-6: #6a8f3c;
+    --origins-hue-7: #b4683c;
+    --origins-hue-8: #5c6bc0;
+    --origins-hue-9: #2f9c8f;
+    --origins-hue-10: #a85ba8;
+    --origins-hue-11: #8a7a3c;
+
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 20rem;
+    gap: 1.5rem;
+    align-items: start;
+
+    @media screen and (max-width: 1023px) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+// Zola compiles every file under sass/ on its own as well as through
+// style.scss, so style.scss's theme mixins are not in scope here. This is what
+// in-dark-theme expands to: an explicit data-theme on <html> wins, otherwise
+// the OS preference applies.
+@mixin origins-dark-palette {
+    --origins-trunk: #7b9ddf;
+    --origins-muted: #9aa0ab;
+    --origins-ink: #e8ecf4;
+    --origins-surface: rgba(255, 255, 255, 0.06);
+    --origins-line: rgba(255, 255, 255, 0.22);
+
+    --origins-hue-0: #6fc294;
+    --origins-hue-1: #f29b80;
+    --origins-hue-2: #a194ef;
+    --origins-hue-3: #efc26a;
+    --origins-hue-4: #6ab4d4;
+    --origins-hue-5: #e07fa4;
+    --origins-hue-6: #92b862;
+    --origins-hue-7: #d68f63;
+    --origins-hue-8: #8a97e0;
+    --origins-hue-9: #55c0b2;
+    --origins-hue-10: #c884c8;
+    --origins-hue-11: #b3a263;
+}
+
+@media (prefers-color-scheme: dark) {
+    html:not([data-theme=light]) .origins-layout {
+        @include origins-dark-palette;
+    }
+}
+
+html[data-theme=dark] .origins-layout {
+    @include origins-dark-palette;
+}
+
+// Palette slots. -1 is the muted slot the renderer falls back to.
+@for $i from 0 through 11 {
+    [data-hue="#{$i}"] {
+        --origins-thread: var(--origins-hue-#{$i});
+    }
+}
+[data-hue="-1"] {
+    --origins-thread: var(--origins-muted);
+}
+
+// --- the drawing ------------------------------------------------------------
+
+.origins-braid {
+    background: var(--origins-surface);
+    border-radius: 10px;
+    padding: 0.5rem;
+
+    // Map runs time across the page, so it needs room and a way to reach it.
+    // overflow-x is drag-to-pan on touch for free, with native momentum.
+    &[data-mode="map"] {
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+
+        .origins-svg {
+            min-width: 60rem;
+        }
+    }
+}
+
+.origins-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.origins-trunk {
+    stroke: var(--origins-trunk);
+    stroke-linecap: round;
+}
+
+.origins-thread {
+    stroke: var(--origins-thread, var(--origins-muted));
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: stroke-width 0.15s ease, opacity 0.15s ease;
+
+    // Member and guest differ by stroke as well as colour, so the distinction
+    // survives in greyscale and at any group size.
+    &.is-guest {
+        stroke-width: 2;
+        stroke-dasharray: 5 5;
+    }
+
+    &.is-excursion {
+        stroke-dasharray: 2 6;
+    }
+}
+
+.origins-excursion {
+    stroke: var(--origins-line);
+    stroke-width: 2;
+    stroke-dasharray: 3 5;
+}
+
+.origins-node {
+    fill: var(--origins-trunk);
+
+    &.is-side {
+        fill: var(--origins-muted);
+    }
+
+    // A date we only know to the month or the year is drawn hollow rather than
+    // stretched along an axis, because spacing is by rank and carries no time.
+    &.is-fuzzy {
+        fill: var(--origins-surface);
+        stroke: var(--origins-muted);
+        stroke-width: 2;
+        stroke-dasharray: 2 2;
+    }
+}
+
+.origins-label {
+    fill: var(--origins-ink);
+    font-size: 11px;
+    opacity: 0.75;
+}
+
+.origins-avatar-ring {
+    fill: none;
+    stroke: var(--origins-thread, var(--origins-muted));
+    stroke-width: 2.5;
+
+    .is-guest & {
+        stroke: var(--origins-muted);
+        stroke-dasharray: 4 3;
+    }
+}
+
+.origins-avatar-blank {
+    fill: var(--origins-surface);
+}
+
+.origins-avatar-initial {
+    fill: var(--origins-ink);
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.origins-avatar.is-guest .origins-avatar-image {
+    filter: saturate(0.25);
+}
+
+// --- highlight pairing ------------------------------------------------------
+
+.origins-thread.is-lit {
+    stroke-width: 5;
+}
+
+.origins-root.is-lit .origins-avatar-ring {
+    stroke-width: 4;
+}
+
+// --- the roster -------------------------------------------------------------
+
+.origins-roster-rail {
+    position: sticky;
+    top: 1rem;
+}
+
+.origins-roster {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.origins-card {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    padding: 0.5rem 0.6rem;
+    border-radius: 8px;
+    background: var(--origins-surface);
+    border-left: 4px solid var(--origins-thread, var(--origins-muted));
+    transition: background 0.15s ease;
+
+    &.is-guest {
+        border-left-style: dashed;
+        border-left-color: var(--origins-muted);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--origins-trunk);
+        outline-offset: 2px;
+    }
+
+    &.is-lit {
+        background: color-mix(in srgb, var(--origins-trunk) 16%, transparent);
+    }
+}
+
+.origins-card-avatar {
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 0 0 2px var(--origins-thread, var(--origins-muted));
+
+    &.is-blank {
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        background: var(--origins-surface);
+    }
+
+    .is-guest & {
+        box-shadow: 0 0 0 2px var(--origins-muted);
+        filter: saturate(0.25);
+    }
+}
+
+.origins-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.origins-card-name {
+    font-weight: 700;
+    font-size: 0.8rem;
+    line-height: 1.25;
+}
+
+.origins-card-alias,
+.origins-card-join {
+    font-size: 0.62rem;
+    opacity: 0.75;
+}
+
+.origins-card-desc {
+    font-size: 0.62rem;
+    opacity: 0.8;
+    margin: 0.2rem 0 0;
+}
+
+.origins-badge {
+    align-self: flex-start;
+    margin-top: 0.25rem;
+    font-size: 0.5rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+
+    &.is-member {
+        background: var(--origins-trunk);
+        color: #fff;
+    }
+
+    &.is-guest {
+        background: transparent;
+        border: 1px dashed currentColor;
+        opacity: 0.7;
+    }
+}
+
+// --- fallback and controls --------------------------------------------------
+
+.origins-toggle {
+    margin-bottom: 0.75rem;
+}
+
+// The ordered list the template emits is the page without JavaScript. The
+// script does not delete it; it moves it here, where it stays in the
+// accessibility tree. The braid's SVG is aria-hidden, so this is what a
+// screen reader gets either way.
+.is-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}

@@ -207,6 +207,25 @@ class SiteBuild(unittest.TestCase):
         toggle = page.split('id="origins-toggle"')[1].split('>')[0]
         self.assertIn('is-hidden', toggle)
 
+    def test_origins_palette_follows_the_three_state_theme(self):
+        self.assertIn(
+            '@media (prefers-color-scheme: dark){html:not([data-theme=light]) '
+            '.origins-layout{', self.css)
+        self.assertIn('html[data-theme=dark] .origins-layout{', self.css)
+
+    def test_origins_member_and_guest_differ_without_colour(self):
+        # dashes and badge treatment, so the distinction survives greyscale
+        # and does not depend on having a distinguishable hue per person
+        self.assertIn('.origins-thread.is-guest{stroke-width:2;stroke-dasharray:5 5}', self.css)
+        self.assertIn('.origins-badge.is-guest{', self.css)
+        self.assertIn('border:1px dashed currentColor', self.css)
+
+    def test_origins_colours_are_palette_slots_not_people(self):
+        # adding a person must not need a stylesheet edit
+        self.assertIn('[data-hue="0"]{', self.css)
+        self.assertIn('[data-hue="-1"]{', self.css)
+        self.assertNotIn('daniel-baker', self.css)
+
     def test_origins_is_reachable_from_the_nav(self):
         self.assertIn('href="/origins/"', self.index)
 

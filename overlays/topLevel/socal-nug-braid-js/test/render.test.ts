@@ -3,7 +3,13 @@ import assert from "node:assert/strict";
 import { parseFuzzyDate } from "../src/dates.ts";
 import { buildBraid } from "../src/layout.ts";
 import { projectionFor } from "../src/projections.ts";
-import { avatarFor, laneRangeOf, renderBraid } from "../src/render.ts";
+import {
+  avatarFor,
+  hueFor,
+  laneRangeOf,
+  PALETTE_SIZE,
+  renderBraid,
+} from "../src/render.ts";
 import type { DocumentLike, ElementLike } from "../src/render.ts";
 import type { Moment, Person } from "../src/types.ts";
 
@@ -166,6 +172,20 @@ test("no attribute is ever emitted as NaN or undefined", () => {
       );
     }
   }
+});
+
+test("a thread carries a palette slot so colour needs no stylesheet edit", () => {
+  const { made } = draw();
+  const hues = withClass(made, "origins-thread").map((n) => n.attrs["data-hue"]);
+  assert.ok(hues.every((h) => h !== undefined));
+  assert.ok(new Set(hues).size > 1, "threads should not share one slot");
+});
+
+test("past the palette, threads fall back to the muted slot", () => {
+  assert.equal(hueFor(0), 0);
+  assert.equal(hueFor(PALETTE_SIZE - 1), PALETTE_SIZE - 1);
+  assert.equal(hueFor(PALETTE_SIZE), -1);
+  assert.equal(hueFor(PALETTE_SIZE + 50), -1);
 });
 
 test("the lane range spans excursion lanes", () => {

@@ -36,6 +36,18 @@ function make(
   return element;
 }
 
+/**
+ * How many threads can be told apart by colour. Past this, a thread takes the
+ * muted slot and identity comes from the roster and from highlight on hover,
+ * because forty distinguishable hues do not exist.
+ */
+export const PALETTE_SIZE = 12;
+
+/** Palette slot for the nth thread, or -1 once the palette runs out. */
+export function hueFor(index: number): number {
+  return index < PALETTE_SIZE ? index : -1;
+}
+
 /** Every lane the picture uses, person lanes and excursion lanes alike. */
 export function laneRangeOf(braid: Braid): readonly [number, number] {
   const lanes = [
@@ -126,8 +138,12 @@ export function renderBraid(
   }
 
   // --- threads --------------------------------------------------------------
-  for (const thread of braid.threads) {
+  braid.threads.forEach((thread, index) => {
     const kind = thread.person.member ? "is-member" : "is-guest";
+    // Colour comes from a palette slot, not from the slug, so adding a person
+    // needs no stylesheet edit. Past the palette, threads go muted and the
+    // roster does the identifying instead.
+    const hue = String(hueFor(index));
     for (const segment of thread.segments) {
       // Each segment starts from the person's own lane, so a thread whose
       // first moment sits in somebody else's lane still reads as theirs.
@@ -139,6 +155,7 @@ export function renderBraid(
         make(doc, "path", {
           class: `origins-thread ${kind} is-${segment.kind}`,
           "data-person": thread.person.slug,
+          "data-hue": hue,
           d: polyline([origin, ...segment.points.map(place)]),
           fill: "none",
         }),
@@ -148,6 +165,7 @@ export function renderBraid(
       make(doc, "g", {
         class: "origins-root",
         "data-person": thread.person.slug,
+        "data-hue": hue,
         transform: translate(
           projection.project(
             Math.max(0, thread.segments[0].points[0].t - 0.02),
@@ -156,7 +174,7 @@ export function renderBraid(
         ),
       }),
     ).appendChild(avatarFor(thread.person, doc));
-  }
+  });
 
   // --- excursions -----------------------------------------------------------
   for (const excursion of braid.excursions) {

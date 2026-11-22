@@ -1,4 +1,5 @@
 import { formatFuzzyDate } from "./dates.ts";
+import { hueFor } from "./render.ts";
 import type { DocumentLike, ElementLike } from "./render.ts";
 import type { Braid, PlacedMoment, Thread } from "./types.ts";
 
@@ -58,12 +59,14 @@ function el(
 export function rosterFor(braid: Braid, doc: DocumentLike): ElementLike {
   const list = el(doc, "ul", { class: "origins-roster" });
 
-  for (const thread of braid.threads) {
+  braid.threads.forEach((thread, index) => {
     const person = thread.person;
     const kind = person.member ? "is-member" : "is-guest";
+    // Same palette slot the thread uses, so a card and its line match.
     const item = el(doc, "li", {
       class: `origins-card ${kind}`,
       "data-person": person.slug,
+      "data-hue": String(hueFor(index)),
       tabindex: "0",
     });
 
@@ -131,7 +134,7 @@ export function rosterFor(braid: Braid, doc: DocumentLike): ElementLike {
 
     item.appendChild(body);
     list.appendChild(item);
-  }
+  });
 
   return list;
 }
