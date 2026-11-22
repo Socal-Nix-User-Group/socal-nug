@@ -121,13 +121,19 @@ function boot(): void {
   }
 
   function draw(next: Mode, animate: boolean): void {
-    const projection = projectionFor(next, viewportFor(next), lanes);
-
-    mount!.replaceChildren(renderBraid(braid, projection, document));
+    // Set the mode before measuring. The two modes give the braid different
+    // widths - Subway is full bleed, River loses a 20rem rail - and reading
+    // clientWidth first measures the layout we are leaving. Rendering a
+    // viewBox that wide and then letting the container shrink makes the SVG
+    // scale down, and `height: auto` drags the height down with it.
     mount!.setAttribute("data-mode", next);
     // The layout carries it too, so the roster can move below the braid as a
     // grid in Subway instead of eating a third of the width as a side rail.
     document.getElementById("origins-layout")?.setAttribute("data-mode", next);
+
+    // Reading clientWidth here forces the reflow, so this is the new width.
+    const projection = projectionFor(next, viewportFor(next), lanes);
+    mount!.replaceChildren(renderBraid(braid, projection, document));
 
     const now = positionsFor(next);
     if (animate) {

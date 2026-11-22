@@ -103,7 +103,10 @@ html[data-theme=dark] .origins-layout {
 .origins-braid {
     background: var(--origins-surface);
     border-radius: 10px;
-    padding: 0.5rem;
+    // No padding: clientWidth includes it but the SVG's `width: 100%` resolves
+    // against the content box, so any padding here scales the picture down by
+    // that much. The drawing carries its own 40-unit margin instead.
+    padding: 0;
 
     // Map runs time across the page, so it needs room and a way to reach it.
     // overflow-x is drag-to-pan on touch for free, with native momentum.

@@ -113,6 +113,23 @@ test("the root svg carries the projection's viewBox", () => {
   assert.equal(svg.attrs.viewBox, "0 0 800 900");
 });
 
+test("the svg's intrinsic size matches the viewport it was given", () => {
+  // `height: auto` ties the rendered height to the width, so a viewBox built
+  // from a stale container width silently shrinks the picture.
+  for (const [w, h] of [[800, 900], [1200, 1610]] as const) {
+    const { doc, made } = stubDocument();
+    renderBraid(
+      braid,
+      projectionFor("river", { width: w, height: h }, laneRangeOf(braid)),
+      doc,
+    );
+    const svg = made.find((n) => n.tag === "svg")!;
+    assert.equal(svg.attrs.width, String(w));
+    assert.equal(svg.attrs.height, String(h));
+    assert.equal(svg.attrs.viewBox, `0 0 ${w} ${h}`);
+  }
+});
+
 test("every moment becomes a node", () => {
   const { made } = draw();
   assert.equal(withClass(made, "origins-node").length, braid.moments.length);
