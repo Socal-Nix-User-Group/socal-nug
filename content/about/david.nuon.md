@@ -2,6 +2,7 @@
 weight = 2
 
 [extra]
+member = true
 name = "David Nuon"
 alias = "@davidnuon"
 description = "Co-founder of the SoCal Nix Users Group. Organizer for NixCon NA."

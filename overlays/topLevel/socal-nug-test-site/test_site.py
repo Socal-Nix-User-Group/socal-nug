@@ -146,10 +146,17 @@ class SiteBuild(unittest.TestCase):
         names = re.findall(r'<h4 class="title is-4">(.*?)</h4>', about)
         self.assertEqual(names, ['Daniel Baker', 'David Nuon', 'Rob Hernandez', 'Tristan Ross'])
 
+    def test_guests_have_pages_but_are_not_in_the_members_grid(self):
+        for slug in ('rok-garbas', 'ron-efroni', 'kyle-risse'):
+            self.assertTrue((self.out / 'about' / slug / 'index.html').exists(), slug)
+        about = (self.out / 'about' / 'index.html').read_text()
+        names = re.findall(r'<h4 class="title is-4">(.*?)</h4>', about)
+        self.assertEqual(names, ['Daniel Baker', 'David Nuon', 'Rob Hernandez', 'Tristan Ross'])
+
     def test_about_order_is_driven_by_weight_not_filename(self):
         # a probe whose filename sorts first but whose weight sorts last
         probe = ROOT / 'content' / 'about' / 'aaa-probe.md'
-        probe.write_text('+++\nweight = 99\n[extra]\nname = "Probe Person"\nalias = "@probe"\n'
+        probe.write_text('+++\nweight = 99\n[extra]\nmember = true\nname = "Probe Person"\nalias = "@probe"\n'
                          'description = "probe"\nimage_url = "https://example.com/p.png"\n'
                          'profile_url = "https://example.com/p"\n+++\n')
         tmp = pathlib.Path(tempfile.mkdtemp(prefix='socal-nug-probe-'))

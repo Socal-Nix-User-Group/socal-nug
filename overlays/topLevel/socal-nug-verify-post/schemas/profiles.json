@@ -11,6 +11,10 @@
         "extra": {
             "type": "object",
             "properties": {
+                "member": {
+                    "type": "boolean",
+                    "description": "True for members of the group, who appear on the about page. False for guests, who appear only in the Origins braid."
+                },
                 "name": {
                     "type": "string",
                     "description": "The full name of the user."
@@ -35,13 +39,28 @@
                 }
             },
             "required": [
+                "member",
                 "name",
-                "alias",
-                "description",
-                "image_url",
-                "profile_url"
+                "alias"
             ],
-            "description": "The user profile information."
+            "if": {
+                "properties": {
+                    "member": {
+                        "const": true
+                    }
+                },
+                "required": [
+                    "member"
+                ]
+            },
+            "then": {
+                "required": [
+                    "description",
+                    "image_url",
+                    "profile_url"
+                ]
+            },
+            "description": "The user profile information. Members must also carry a description, image and profile URL; guests may omit them."
         }
     },
     "required": [

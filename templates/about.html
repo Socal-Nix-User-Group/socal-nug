@@ -15,6 +15,7 @@
   <div class="columns is-flex-wrap-wrap is-mobile">
     {% set profiles = section.pages %}
     {% for profile in profiles %}
+    {% if profile.extra.member %}
     <div class="column is-half-desktop is-full-mobile">
       <div class="media">
         <div class="media-left">
@@ -37,6 +38,7 @@
         </div>
       </div>
     </div>
+    {% endif %}
     {% endfor %}
   </div>
 

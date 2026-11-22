@@ -2,6 +2,7 @@
 weight = 1
 
 [extra]
+member = true
 name = "Daniel Baker"
 alias = "@djacu"
 description = "Co-founder of the SoCal Nix Users Group. Member of the Nix marketing team. Organizer for NixCon NA. Wants to spread Nix to the world."
