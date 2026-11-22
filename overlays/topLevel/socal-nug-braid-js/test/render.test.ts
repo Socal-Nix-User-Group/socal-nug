@@ -164,9 +164,59 @@ test("the trunk thins where people are away", () => {
   assert.ok(Math.min(...widths) < Math.max(...widths));
 });
 
-test("an excursion is drawn off the spine", () => {
+// --- detours ----------------------------------------------------------------
+// A person's detour is drawn by their own thread. There used to be a grey
+// path underneath as well, with a different curve, which read as a second
+// line disagreeing with the first.
+
+/** The points a flow() path passes through: the M point and each C endpoint. */
+function endpointsOf(d: string): Array<[number, number]> {
+  const [move, ...curves] = d.split(" C");
+  const pair = (s: string): [number, number] => {
+    const [x, y] = s.split(",").map(Number);
+    return [x, y];
+  };
+  return [
+    pair(move.slice(1)),
+    ...curves.map((c) => pair(c.trim().split(" ")[2])),
+  ];
+}
+
+test("no grey path is drawn under a detour", () => {
   const { made } = draw();
-  assert.equal(withClass(made, "origins-excursion").length, 1);
+  assert.equal(withClass(made, "origins-excursion").length, 0);
+  assert.ok(withClass(made, "is-excursion").length > 0);
+});
+
+test("a detour's straight run is centred on its moment", () => {
+  const { made } = draw();
+  const projection = projectionFor(
+    "river",
+    { width: 800, height: 900 },
+    laneRangeOf(braid),
+  );
+  const camp = braid.moments.find((m) => m.moment.id === "camp")!;
+  const [dotX, dotY] = projection.project(camp.t, camp.lane);
+  const spineX = projection.project(camp.t, 0)[0];
+
+  const detour = withClass(made, "is-excursion").find((p) =>
+    p.attrs["data-person"] === "daniel"
+  )!;
+  const points = endpointsOf(detour.attrs.d);
+  // Out, straight, back: the points on the detour lane form a run, and the
+  // dot sits in the middle of that run rather than at its top.
+  const onLane = points.filter(([x]) => Math.abs(x - dotX) < 0.5);
+  assert.ok(onLane.length >= 2, `no run on the lane in ${detour.attrs.d}`);
+  const top = Math.min(...onLane.map(([, y]) => y));
+  const bottom = Math.max(...onLane.map(([, y]) => y));
+  assert.ok(bottom > top, "the run has no length");
+  assert.ok(
+    Math.abs((top + bottom) / 2 - dotY) < 0.5,
+    `run ${top}..${bottom} is not centred on the dot at ${dotY}`,
+  );
+  // and it leaves from the spine and comes back to it
+  assert.ok(Math.abs(points[0][0] - spineX) < 0.5);
+  assert.ok(Math.abs(points[points.length - 1][0] - spineX) < 0.5);
 });
 
 test("a person with a picture gets an image", () => {

@@ -139,12 +139,6 @@ html[data-theme=dark] .origins-layout {
     }
 }
 
-.origins-excursion {
-    stroke: var(--origins-line);
-    stroke-width: 2;
-    stroke-dasharray: 3 5;
-}
-
 .origins-node {
     fill: var(--origins-trunk);
     cursor: pointer;
@@ -210,8 +204,7 @@ html[data-theme=dark] .origins-layout {
 // Threads and the trunk are decoration for pointer purposes; the nodes and
 // the root avatars are what a reader aims at.
 .origins-thread,
-.origins-trunk,
-.origins-excursion {
+.origins-trunk {
     pointer-events: none;
 }
 

@@ -268,6 +268,46 @@ export function renderBraid(
     return out;
   };
 
+  /**
+   * A detour: out from the spine, a straight run with the moment in the
+   * middle of it, and back.
+   *
+   * Hold-then-jog is wrong for this. It would jog out onto the dot and then
+   * hold the detour lane all the way to the next trunk moment, which reads as
+   * arriving at the dot and waiting there. The run is as long as the shorter
+   * of the gaps either side of the moment allows, so it is symmetric about
+   * the dot. A detour with no trunk moment after it runs up to the dot and
+   * stops.
+   */
+  const detour = (excursion: Braid["excursions"][number]) => {
+    const { from, to, lane } = excursion;
+    const node = excursion.moment;
+    const before = node.t - from.t;
+    const after = to === null ? before : to.t - node.t;
+    const reach = Math.min(before, after);
+    const jog = Math.min(JOG, reach / 2);
+    const half = reach - jog;
+
+    const out: Array<readonly [number, number]> = [
+      projection.project(from.t, 0),
+    ];
+    // only when there is spine to run along before leaving it
+    if (node.t - half - jog > from.t) {
+      out.push(projection.project(node.t - half - jog, 0));
+    }
+    out.push(projection.project(node.t - half, lane));
+    if (to === null) {
+      out.push(projection.project(node.t, lane));
+    } else {
+      out.push(
+        projection.project(node.t + half, lane),
+        projection.project(node.t + half + jog, 0),
+        projection.project(to.t, 0),
+      );
+    }
+    return out;
+  };
+
   // --- year markers ---------------------------------------------------------
   // Dashed ticks across the picture, so the dates stay off the labels but the
   // reader still gets a sense of where in time they are.
@@ -349,13 +389,7 @@ export function renderBraid(
         if (excursion === undefined) {
           return { segment, points: [] as (readonly [number, number])[] };
         }
-        steps.push({ t: excursion.from.t, lane: 0 });
-        for (const point of segment.points) {
-          steps.push({ t: point.t, lane: point.lane });
-        }
-        if (excursion.to !== null) {
-          steps.push({ t: excursion.to.t, lane: 0 });
-        }
+        return { segment, points: detour(excursion) };
       } else {
         // An approach begins in the person's own lane, so a thread whose
         // first moment sits in somebody else's lane still reads as theirs.
@@ -474,22 +508,6 @@ export function renderBraid(
     root.appendChild(avatarFor(thread.person, doc));
     roots.push(root);
   });
-
-  // --- excursions -----------------------------------------------------------
-  for (const excursion of braid.excursions) {
-    const node = place(excursion.moment);
-    const from = place(excursion.from);
-    const to = excursion.to === null ? null : place(excursion.to);
-    svg.appendChild(
-      make(doc, "path", {
-        class: "origins-excursion",
-        d: to === null
-          ? flow([from, node], timeAxis)
-          : flow([from, node, to], timeAxis),
-        fill: "none",
-      }),
-    );
-  }
 
   // --- nodes ----------------------------------------------------------------
   for (const moment of braid.moments) {
