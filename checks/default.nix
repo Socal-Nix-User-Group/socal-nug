@@ -50,4 +50,76 @@ inputs.nixpkgs.lib.mapAttrs (system: pkgs: {
         touch "$out"
       '';
 
+  # The repository's moments file validates, and the validator rejects each way a moment can be
+  # malformed. Fixtures resolve their person and event slugs against the real content.
+  braid-data =
+    pkgs.runCommand "socal-nug-braid-data-check"
+      {
+        nativeBuildInputs = [ pkgs.socal-nug-braid-data ];
+      }
+      ''
+        cd ${inputs.self}
+        fixtures="${inputs.self}/overlays/topLevel/socal-nug-braid-data/tests"
+
+        run() {
+          socal-nug-braid-data "$1" --about content/about --events content/events 2>&1
+        }
+
+        expect_fail() {
+          if result=$(run "$fixtures/$1"); then
+            echo "FAIL: $1 was accepted but should have been rejected" >&2
+            exit 1
+          fi
+          case "$result" in
+            *"$2"*) echo "ok (rejected): $1" ;;
+            *)
+              echo "FAIL: $1 rejected without mentioning '$2'; got: $result" >&2
+              exit 1
+              ;;
+          esac
+        }
+
+        expect_warn() {
+          if ! result=$(run "$fixtures/$1"); then
+            echo "FAIL: $1 was rejected but should only warn: $result" >&2
+            exit 1
+          fi
+          case "$result" in
+            *"$2"*) echo "ok (warned): $1" ;;
+            *)
+              echo "FAIL: $1 did not warn with '$2'; got: $result" >&2
+              exit 1
+              ;;
+          esac
+        }
+
+        expect_clean() {
+          if ! result=$(run "$fixtures/$1"); then
+            echo "FAIL: $1 was rejected: $result" >&2
+            exit 1
+          fi
+          case "$result" in
+            *warning* | *error*)
+              echo "FAIL: $1 should be silent; got: $result" >&2
+              exit 1
+              ;;
+            *) echo "ok (clean): $1" ;;
+          esac
+        }
+
+        socal-nug-braid-data data/moments.toml --about content/about --events content/events
+
+        expect_fail unknown-slug.toml           nobody-here
+        expect_fail both-date-and-event.toml    both
+        expect_fail neither-date-nor-event.toml neither
+        expect_fail bad-date.toml               2023-4-1
+        expect_fail duplicate-id.toml           twice
+        expect_fail unknown-event.toml          1999-01-01
+        expect_fail no-trunk.toml               trunk
+        expect_warn trunk-is-earliest.toml      warning
+        expect_clean valid.toml
+
+        touch "$out"
+      '';
+
 }) inputs.self.legacyPackages

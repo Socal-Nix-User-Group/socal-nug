@@ -1,0 +1,15 @@
+# Valid, but nothing predates the spine, so the pre-convergence half of the
+# braid would not render. The validator warns and still exits 0.
+[[moment]]
+id = "founded"
+date = "2023-04"
+title = "Founded"
+people = ["daniel-baker"]
+trunk = true
+
+[[moment]]
+id = "later"
+date = "2023-09-19"
+title = "After"
+people = ["daniel-baker"]
+trunk = true

@@ -16,6 +16,7 @@ stdenvNoCC.mkDerivation {
     fileset = lib.fileset.unions [
       ../../../config.toml
       ../../../content
+      ../../../data
       ../../../sass
       ../../../static
       ../../../templates

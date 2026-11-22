@@ -1,0 +1,162 @@
+"""Validate data/moments.toml against the site's people and events.
+
+Checks run in classes. The first class with any problem prints every
+instance of that class and exits 1, so one run does not bury a slug typo
+under a date typo.
+"""
+import datetime
+import re
+import sys
+import tomllib
+from pathlib import Path
+
+import click
+
+DATE_RE = re.compile(r'^\d{4}(-\d{2}(-\d{2})?)?$')
+
+
+def slugify(stem):
+    """Match Zola's slug for a content filename."""
+    return stem.replace('.', '-').replace('_', '-').lower()
+
+
+def person_slugs(about_dir):
+    return {
+        slugify(p.stem)
+        for p in Path(about_dir).glob('*.md')
+        if p.name != '_index.md'
+    }
+
+
+def event_slugs(events_dir):
+    return {p.stem for p in Path(events_dir).glob('20*.md')}
+
+
+def date_is_real(raw):
+    parts = [int(p) for p in raw.split('-')]
+    if len(parts) >= 2 and not 1 <= parts[1] <= 12:
+        return False
+    if len(parts) == 3:
+        try:
+            datetime.date(parts[0], parts[1], parts[2])
+        except ValueError:
+            return False
+    return True
+
+
+def when(moment):
+    """Sortable key. An event slug is itself the event's date."""
+    raw = moment.get('date') or moment['event']
+    parts = raw.split('-')
+    while len(parts) < 3:
+        parts.append('0')
+    return tuple(int(p) for p in parts)
+
+
+def fail(problems):
+    for line in problems:
+        print(f'error: {line}', file=sys.stderr)
+    sys.exit(1)
+
+
+def check_shape(entries):
+    problems = []
+    for m in entries:
+        mid = m.get('id', '<no id>')
+        has_date = 'date' in m
+        has_event = 'event' in m
+        if has_date and has_event:
+            problems.append(
+                f'{mid}: carries both a date and an event; pick one')
+        elif not has_date and not has_event:
+            problems.append(f'{mid}: carries neither a date nor an event')
+        elif has_date and 'title' not in m:
+            problems.append(f'{mid}: a dated moment needs a title')
+    return problems
+
+
+def check_dates(entries):
+    problems = []
+    for m in entries:
+        raw = m.get('date')
+        if raw is None:
+            continue
+        if not DATE_RE.match(raw) or not date_is_real(raw):
+            problems.append(
+                f'{m.get("id", "<no id>")}: bad date {raw}; '
+                'use YYYY, YYYY-MM or YYYY-MM-DD')
+    return problems
+
+
+def check_ids(entries):
+    problems = []
+    seen = set()
+    for m in entries:
+        mid = m.get('id')
+        if mid is None:
+            problems.append('a moment has no id')
+        elif mid in seen:
+            problems.append(f'duplicate id {mid}')
+        else:
+            seen.add(mid)
+    return problems
+
+
+def check_people(entries, known):
+    problems = []
+    for m in entries:
+        for slug in m.get('people', []):
+            if slug not in known:
+                problems.append(
+                    f'{m["id"]}: unknown person {slug}; '
+                    'no matching file in the about directory')
+    return problems
+
+
+def check_events(entries, known):
+    problems = []
+    for m in entries:
+        ev = m.get('event')
+        if ev is not None and ev not in known:
+            problems.append(
+                f'{m["id"]}: unknown event {ev}; '
+                'no matching file in the events directory')
+    return problems
+
+
+@click.command()
+@click.argument('moments')
+@click.option('--about', required=True,
+              help='Directory of member and guest profiles')
+@click.option('--events', required=True,
+              help='Directory of event posts')
+def verify_moments(moments, about, events):
+    with open(moments, 'rb') as f:
+        entries = tomllib.load(f).get('moment', [])
+
+    for problems in (
+        check_shape(entries),
+        check_dates(entries),
+        check_ids(entries),
+        check_people(entries, person_slugs(about)),
+        check_events(entries, event_slugs(events)),
+    ):
+        if problems:
+            fail(problems)
+
+    trunk = [m for m in entries if m.get('trunk')]
+    if not trunk:
+        fail(['no moment is marked trunk, so the spine would not exist'])
+
+    first_trunk = min(when(m) for m in trunk)
+    if not any(when(m) < first_trunk for m in entries):
+        print(
+            'warning: nothing predates the first trunk moment, so the '
+            'pre-convergence half of the braid will not render',
+            file=sys.stderr)
+
+    print(f'[OK] {moments}: {len(entries)} moments')
+
+
+if __name__ == '__main__':
+    verify_moments()

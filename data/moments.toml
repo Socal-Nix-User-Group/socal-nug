@@ -1,0 +1,83 @@
+# Moments for the Origins page.
+#
+# The meetup spine comes from content/events/ automatically. This file holds
+# the personal history before and outside the group, and the records of which
+# event each person first turned up to.
+#
+# A moment carries either `date` + `title`, or `event` (which resolves both
+# from the event page). Never both.
+#
+# `date` accepts YYYY, YYYY-MM or YYYY-MM-DD. Write the precision you actually
+# have; it is never padded, and the page displays what is written here.
+#
+# Lines marked CONFIRM are best guesses awaiting a better source. Grep for
+# them when backfilling.
+
+# --- Daniel Baker ----------------------------------------------------------
+
+[[moment]]
+id = "daniel-finds-nix"
+date = "2021-10-23"
+title = "Joined the NixOS Discourse"
+people = ["daniel-baker"]
+blurb = "Found Nix in October 2021. This is the earliest dated trace of it."
+
+[[moment]]
+id = "tweag"
+date = "2022-02-21"
+title = "Started at Tweag"
+people = ["daniel-baker"]
+
+[[moment]]
+id = "meets-rok"
+date = "2022-03" # CONFIRM: "shortly after" starting at Tweag
+title = "Met Rok Garbas"
+people = ["daniel-baker", "rok-garbas"]
+
+[[moment]]
+id = "code-and-coffee"
+date = "2022-08-27"
+title = "Met David Nuon at Code and Coffee"
+people = ["daniel-baker", "david-nuon"]
+
+# --- Ron: influence without presence ---------------------------------------
+# Ron reserved the booth but was not there, so this is a moment on his own
+# thread, sitting next to the thing it caused.
+
+[[moment]]
+id = "ron-books-booth"
+date = "2023-02" # CONFIRM: shortly before SCaLE 20x
+title = "Reserved the Nix booth at SCaLE 20x"
+people = ["ron-efroni"]
+
+# --- Convergence -----------------------------------------------------------
+
+[[moment]]
+id = "scale-20x"
+date = "2023-03" # CONFIRM: exact days of SCaLE 20x
+title = "Nix booth at SCaLE 20x"
+people = ["daniel-baker", "rob-hernandez", "david-nuon"]
+blurb = "Boothing with Daniel Fullmer and Ben. Daniel and David both met Rob here."
+
+[[moment]]
+id = "snug-founded"
+date = "2023-04"
+title = "The SNUG is founded"
+people = ["daniel-baker", "david-nuon", "rob-hernandez"]
+trunk = true
+blurb = "A group chat called 'Cool Guys from SCaLE'."
+
+# --- Joins and excursions --------------------------------------------------
+
+[[moment]]
+id = "tristan-joins"
+event = "2023-09-19"
+people = ["tristan-ross"]
+
+# No `trunk` key: dated after the spine starts, naming people already in it,
+# so the engine reads this as an excursion.
+[[moment]]
+id = "nix-camp"
+date = "2023-10" # CONFIRM: autumn 2023
+title = "Nix Camp"
+people = ["daniel-baker", "rob-hernandez", "david-nuon", "kyle-risse"]

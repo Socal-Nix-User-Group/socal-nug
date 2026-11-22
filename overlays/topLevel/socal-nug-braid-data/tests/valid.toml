@@ -1,0 +1,18 @@
+# A minimal well-formed moments file: a personal root, then a trunk moment after it.
+[[moment]]
+id = "root"
+date = "2021-01-01"
+title = "Root"
+people = ["daniel-baker"]
+
+[[moment]]
+id = "founded"
+date = "2023-04"
+title = "Founded"
+people = ["daniel-baker", "rob-hernandez"]
+trunk = true
+
+[[moment]]
+id = "joined"
+event = "2023-09-19"
+people = ["tristan-ross"]
