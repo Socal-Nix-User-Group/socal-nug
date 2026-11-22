@@ -1,5 +1,12 @@
 import { graphFor, rootSlug } from "./graph.ts";
-import type { BraidGraph, EdgeMeta, ElkGraph, Mode } from "./graph.ts";
+import type {
+  BraidGraph,
+  EdgeMeta,
+  ElkGraph,
+  ElkNode,
+  ElkPoint,
+  Mode,
+} from "./graph.ts";
 import type { Braid } from "./types.ts";
 
 /**
@@ -108,11 +115,98 @@ export function placedFrom(
   };
 }
 
+/**
+ * Hold the trunk to one column.
+ *
+ * ELK's straightness priority keeps it to within a few pixels of a column;
+ * this takes the last few. Every trunk dot moves to the median of where ELK
+ * put them, and the end of each edge attached to a moved dot moves with it,
+ * so a line still meets its dot. Bends stay where ELK routed them: the move
+ * is a few pixels and the edge eases into it. Edges keep at least their
+ * routing clearance less that, which is why this is a snap and not a layout.
+ */
+export function snapTrunk(
+  laidOut: ElkGraph,
+  trunkIds: ReadonlySet<string>,
+  axis: "x" | "y",
+): ElkGraph {
+  const trunk = laidOut.children.filter((n) => trunkIds.has(n.id));
+  if (trunk.length < 2) return laidOut;
+
+  const centre = (n: ElkNode) =>
+    (n[axis] ?? 0) + (axis === "x" ? n.width : n.height) / 2;
+  const sorted = trunk.map(centre).sort((a, b) => a - b);
+  const half = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 === 1
+    ? sorted[half]
+    : (sorted[half - 1] + sorted[half]) / 2;
+  const delta = new Map(trunk.map((n) => [n.id, median - centre(n)]));
+
+  const moved = (n: ElkNode, d: number): ElkNode =>
+    axis === "x" ? { ...n, x: (n.x ?? 0) + d } : { ...n, y: (n.y ?? 0) + d };
+  const shifted = (p: ElkPoint, d: number): ElkPoint =>
+    axis === "x" ? { x: p.x + d, y: p.y } : { x: p.x, y: p.y + d };
+
+  return {
+    ...laidOut,
+    children: laidOut.children.map((n) => {
+      const d = delta.get(n.id);
+      return d === undefined ? n : moved(n, d);
+    }),
+    edges: laidOut.edges.map((e) => {
+      const atStart = delta.get(e.sources[0]);
+      const atEnd = delta.get(e.targets[0]);
+      const section = e.sections?.[0];
+      if (section === undefined) return e;
+      if (atStart === undefined && atEnd === undefined) return e;
+
+      // A trunk edge joins two trunk dots. ELK attaches an edge up to a few
+      // pixels off a node's centre when several leave it, and routes a trunk
+      // edge's bends near but not on the column, so a thick line between two
+      // aligned dots can still slant. Every point of it goes on the column.
+      if (atStart !== undefined && atEnd !== undefined) {
+        const onColumn = (p: ElkPoint): ElkPoint =>
+          axis === "x" ? { x: median, y: p.y } : { x: p.x, y: median };
+        return {
+          ...e,
+          sections: [{
+            ...section,
+            startPoint: onColumn(section.startPoint),
+            bendPoints: (section.bendPoints ?? []).map(onColumn),
+            endPoint: onColumn(section.endPoint),
+          }, ...e.sections!.slice(1)],
+        };
+      }
+
+      return {
+        ...e,
+        sections: [{
+          ...section,
+          startPoint: atStart === undefined
+            ? section.startPoint
+            : shifted(section.startPoint, atStart),
+          endPoint: atEnd === undefined
+            ? section.endPoint
+            : shifted(section.endPoint, atEnd),
+        }, ...e.sections!.slice(1)],
+      };
+    }),
+  };
+}
+
 export async function placeBraid(
   braid: Braid,
   mode: Mode,
   layout: Layout,
 ): Promise<Placed> {
   const built = graphFor(braid, mode);
-  return placedFrom(built, await layout(built.graph), mode);
+  const trunkIds = new Set(
+    braid.moments.filter((m) => m.moment.trunk).map((m) => m.moment.id),
+  );
+  const laidOut = snapTrunk(
+    await layout(built.graph),
+    trunkIds,
+    mode === "river" ? "x" : "y",
+  );
+  return placedFrom(built, laidOut, mode);
 }
