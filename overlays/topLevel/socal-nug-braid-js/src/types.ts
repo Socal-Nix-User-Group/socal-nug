@@ -51,15 +51,14 @@ export interface Link {
 }
 
 /**
- * A moment with its place in the picture. `t` is a rank position in [0, 1]:
- * moments are evenly spaced regardless of the gaps between their dates,
- * because four personal moments span two years while twenty meetups span
- * three. Precision lives on `moment.date`, not in any extent here.
+ * A moment as the engine sees it, in its place in the ordered sequence.
+ * Where it goes on the page is the layout engine's decision, made in
+ * graph.ts and place.ts; nothing positional lives here. Moments are spaced
+ * by rank regardless of the gaps between their dates, because four personal
+ * moments span two years while twenty meetups span three.
  */
 export interface PlacedMoment {
   readonly moment: Moment;
-  readonly t: number;
-  readonly lane: number;
 }
 
 /**
@@ -74,8 +73,6 @@ export interface ThreadSegment {
 
 export interface Thread {
   readonly person: Person;
-  /** Where this person's line originates, even when none of their moments sit there. */
-  readonly lane: number;
   readonly segments: readonly ThreadSegment[];
   readonly joinsTrunkAt: string | null;
 }
@@ -87,7 +84,6 @@ export interface Thread {
  */
 export interface Excursion {
   readonly moment: PlacedMoment;
-  readonly lane: number;
   readonly from: PlacedMoment;
   readonly to: PlacedMoment | null;
   readonly leaves: readonly string[];

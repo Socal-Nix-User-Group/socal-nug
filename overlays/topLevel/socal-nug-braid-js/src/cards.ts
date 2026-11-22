@@ -1,5 +1,5 @@
 import { formatFuzzyDate } from "./dates.ts";
-import { hueFor } from "./render.ts";
+import { hueFor } from "./palette.ts";
 import type { DocumentLike, ElementLike } from "./render.ts";
 import type { Braid, Person, PlacedMoment, Thread } from "./types.ts";
 

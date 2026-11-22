@@ -109,6 +109,10 @@ dropped: legible and cheap, but it reads as a project schedule, and one row per 
 page at forty members. River and Map were both kept, because they are the same layout transposed
 and the toggle is therefore nearly free.
 
+How the picture is laid out went through two engines: a hand-written lane allocator in the style
+of `git log --graph`, and then the Eclipse Layout Kernel. Why, and what each cost, is under "The
+layout engine" below.
+
 ### Rendering
 
 1. Build-time generation by a Python tool, in the manner of `socal-nug-make-event-ical`. Works
@@ -269,147 +273,59 @@ group this size.
 
 ### The layout engine
 
-TypeScript, in `overlays/topLevel/socal-nug-braid-js/src/`. Pure functions, no DOM access, so it
-can be unit tested directly.
+The engine is in two halves, and the seam between them is the most important line in it.
 
-The pass computes abstract coordinates, not pixels:
+**The story** (`layout.ts`) reads the moments and decides what the picture is made of, with nothing
+positional in it:
 
-1. Sort moments by date, ties broken by `id` so the order is deterministic. `t` is rank-based:
-   the nth of m moments sits at `n / (m - 1)`, evenly spaced regardless of the gaps between
-   dates. With one moment, `t` is `0.5` rather than a division by zero.
-   Proportional time was rejected. Four personal moments span 2021 to 2023 while twenty meetups
-   span 2023 to 2026, so a true axis leaves the left half nearly empty and crushes the half with
-   the most in it. Every node still carries its real date in its label, so nothing is lost except
-   the spacing, and the spacing was costing more than it paid for.
+1. Moments are ordered by date, ties broken by id, so the same data always draws the same.
+1. A join comes only from a trunk moment naming you. Nothing is inferred from company kept.
+1. A non-trunk moment after the spine starts that names somebody already on it is a detour. Those
+   people leave the trunk at the meetup before it and rejoin at the one after. Anyone else named
+   there was there without being in the group yet: recorded, drawn, grants nothing.
+1. A person's thread is an approach (everything up to and including their join) plus one segment
+   per detour they left for. After joining they ride the trunk and are not drawn separately.
+1. The trunk thickens by distinct people joined so far and thins by how many are away.
 
-1. `firstSeen[person]` is the date of their earliest moment.
+**The placement** (`graph.ts`, `place.ts`) hands that to the Eclipse Layout Kernel's layered
+algorithm and takes back coordinates:
 
-1. Lanes are allocated roughly the way `git log --graph` draws a branch graph, with one
-   deliberate exception. A column is taken when a strand first needs one; merge and excursion
-   columns are released as soon as they are done with and reused by whoever needs one next.
-   Someone whose story starts before the spine goes on one side of it, someone arriving
-   afterwards on the other.
+- Every moment is a node pinned to its own layer by date through ELK's partitioning, so the time
+  axis is ours and not the layering's. ELK decides order within a layer and where lines go.
+- The trunk is a chain of edges with a straightness priority, which holds it to within a few
+  pixels of a column rather than dead straight.
+- Each thread is one edge per hop, from a root node a layer ahead of the person's first moment,
+  where their face goes. A detour is two hops through its moment from the spine and back.
+- Labels are handed to ELK as node labels, sized by their text. That is what makes it leave room
+  for them: they become part of the node's margin, nothing else is placed there, and edges route
+  around them.
+- River is direction DOWN with labels beside nodes; Subway is direction RIGHT with labels above.
+  The same graph, laid out twice. A switch slides each dot from where it was to where it is.
+- The layout is injected into `place.ts`: the page gives the real ELK, the smoke check gives the
+  same vendored copy, and the unit tests give a fake shaped like a layout. None of them runs ELK
+  to test the engine around it.
 
-   **A person's starting column is theirs for the whole picture and is never reused.** This is
-   the exception, and it is not an aesthetic preference. A face is drawn a rank ahead of its
-   owner's first moment, in territory the allocation walk never books, so a recycled starting
-   column parks the new arrival's face on the previous occupant's line, which reads as a
-   connection that is not there. Reserving the column removes that class of overlap at the
-   source instead of nudging faces afterwards.
+**Why a library, and why this one.** The engine before this was a hand-written lane allocator in
+the style of `git log --graph`, and it was fixed one overlap at a time: labels on faces, lines
+through faces, a line through a moment its person was not at. Each fix was a rule, and each rule
+was right, but the class of bug was open-ended. A layered layout closes it by construction: an
+edge gets a dummy node in every layer it crosses, so it can not pass through a node it does not
+belong to. The decision was made the same way as the lane decision before it, from a side-by-side
+render of the real data through both engines, not from the numbers; ELK won by eye.
 
-   This replaced a scheme that keyed every lane to arrival order, with the longest history
-   furthest out. That scheme had three faults, and they compounded as people were added: columns
-   were never reused, so the picture widened with every person; backfilling one early moment
-   shifted the whole pre-convergence side; and merging to the mean of two lanes produced
-   fractional columns, so no two threads ever shared one and every line was its own diagonal.
-   Moving to on-demand allocation removed fractional lanes entirely and halved the width.
+dagre was tried first and rejected: it has no supported way to pin a node to a layer, and forcing
+ranks with a hidden chain of edges made its coordinate assignment pull everything toward one
+column. ELK's partitioning is the feature itself.
 
-   **What reserving starting columns costs.** On the real data it takes the picture from 7
-   columns to 12 (span −7..4) and the River lane step from 55.3px to 31.6px, against a 36px
-   face, so adjacent columns are narrower than an avatar; the closest two faces end up 36.3px
-   apart and only because the renderer slides them. It buys crossings down from 6 to 1. Growth
-   is now one column per person, permanently, and backfilling an earlier root re-orders who
-   gets which column, pushing the rest out by one. The invariant that survives is that there is
-   exactly one starting column per person however much history any of them turns out to have.
+**What it cost.** A 1.6 MB script the page loads before the engine, vendored under
+`static/js/vendor/` with its EPL-2.0 licence rather than fetched from a CDN, because the site is
+heading for self-hosting. Layout is asynchronous, so the picture appears a beat after the page.
+And the columns mean nothing any more: there is no one column per person, no before-and-after
+side of the spine. ELK puts things where crossings are fewest, and that was the trade.
 
-   This trade was made by eye, on a side-by-side render of both allocators over the real data,
-   not from the numbers. Revisit it if the roster grows much past a dozen: the lane step is the
-   thing that will give first.
-
-1. A trunk moment sits at lane 0. Lanes are otherwise a trajectory, not a fixed row:
-   when two or more participants of a non-trunk moment carry on past it, that is a merge, and
-   they all move to the mean of their current lanes and travel on together from there. When only
-   one carries on, the moment sits in that person's lane and the others bend in and stop, which
-   is the one-off guest case.
-
-   An earlier version placed every moment in the lane of its most senior participant. That was
-   wrong, and visibly so: whoever held the earliest recorded moment was senior at every shared
-   moment, so their thread ran dead straight down the page while every other thread bent into
-   it. The picture asserted that one person was the axis the group formed around, which is the
-   claim the anti-goals forbid. Merging to the mean costs nothing and makes the convergence
-   mutual, which is what actually happened.
-
-1. A person's thread begins in their own lane at the time of their first moment and visits each
-   of their moments in date order, wherever that moment sits. At their first trunk moment it
-   merges into the trunk. It does not end there: the thread stays addressable so it can leave
-   again. A person with no trunk moment ends at their last one. Stating this as one polyline,
-   rather than an own-lane run plus separate stubs into other lanes, matters: anyone whose
-   history includes a moment sitting in someone else's lane would otherwise render as a fork in
-   their own thread.
-
-1. An excursion is a non-trunk moment dated at or after the trunk start whose participants are
-   already in the trunk. It carries no flag and needs no schema change; the engine infers it from
-   those two facts. Its participants' threads leave the trunk before the moment, meet at an
-   off-spine node, and rejoin after it. Specifically, they depart at the trunk moment immediately
-   before the excursion and rejoin at the trunk moment immediately after it, so the excursion
-   spans a real interval of the spine rather than an instant. Nix Camp in autumn 2023 therefore
-   runs from NUG #3 to NUG #4. An excursion with no trunk moment after it yet is left open: those
-   threads simply end out there, which is honest for something that has just happened. Excursion
-   lanes are allocated for that interval and released at the end of it, so simultaneous
-   excursions never share a lane and later ones reuse the space.
-   An excursion identifies participants who are not yet in the trunk, because the drawing needs
-   to know who arrived from outside, but it does not make them members of it. Being at a camp
-   alongside members is not evidence of attending a meetup, and an earlier version that inferred
-   a join from it stamped two people with dates they had never earned. A join comes from a trunk
-   moment naming you, which a join record in `data/moments.toml` produces. Somebody with no such
-   record simply never reaches the spine: missing data that is visible rather than wrong data
-   that is quiet.
-
-1. Trunk thickness at each trunk moment is a function of the cumulative count of distinct people
-   who have joined by then, less anyone away on an excursion at that time. The trunk visibly
-   thins while a group is elsewhere, which is both accurate and the reason excursions exist in
-   the design: without them the whole post-convergence half of the page is one undifferentiated
-   rope.
-
-1. A label pass assigns each label a side, then sweeps for overlap and pushes colliding labels
-   along the free axis, with a leader line where a label has moved far from its node.
-
-### Projections
-
-Two, consuming the same positions:
-
-```
-river: (t, lane) -> [cx + lane * step, top + t * height]      // time downward, default
-map:   (t, lane) -> [left + t * width, cy + lane * step]      // time rightward
-```
-
-Each projection also supplies its own label anchor rules, since River has free horizontal space
-beside nodes and Map does not. That labelling difference is the real cost of supporting both; the
-geometry is shared.
-
-#### Keeping markers apart
-
-Lane allocation decides where things go; it does not decide whether they fit. Two kinds of
-overlap are resolved afterwards, and the governing rule for both is that **the cure must not
-cost more than the overlap**. A face that leaves its column and a label that walks away from its
-dot are each worse to look at than the few pixels of overlap they were avoiding, so neither is
-allowed.
-
-1. **A face on somebody else's line.** The git-style allocator frees a column and hands it to the
-   next arrival, which can leave a newcomer's face grazing the tail of the previous occupant's
-   run, or sitting where another thread crosses. The face slides **along its own column** until
-   it is clear: a little towards its first moment (at most 12px, past which it crowds its own
-   dot), then backwards away from it (up to 48px, where the lead-in simply gets longer). It never
-   moves across lanes. Columns staying aligned is most of what makes the picture legible, and
-   trading that away for a 1px clip is a bad deal.
-
-1. **A label on a face or a node.** The label swaps to the **other side of the same node**,
-   mirrored about its anchor, so it ends up the same short distance from the dot it names. A flip
-   that would run off the canvas, or that lands on something else, is refused and the label keeps
-   its natural side. Labels are never translated along the sweep axis to dodge an obstacle: the
-   label-vs-label sweep may move them, obstacle avoidance may not.
-
-Subway hangs its labels further above a node than River hangs them beside one, because a root
-avatar sits beside its first moment at the node's own height and a label at the usual gap clips
-the top of that face.
-
-Both are bounded searches, not solvers. A picture dense enough to defeat them degrades by leaving
-one marker slightly overlapped, never by looping, by pushing something off-canvas, or by moving
-something far from what it belongs to.
-
-Labels crossing *lines* are not resolved and are not meant to be. With threads holding their
-columns, a label beside a node will sometimes cross a line running past it; that reads fine, and
-the alternatives (leader lines, or labels pushed far from what they name) read worse.
+**What stayed.** Everything either side of the seam: the data model and its validator, the story
+half of the engine, faces, the card and popup, the toggle, the checks. The old allocator, its
+projections and its label sweep were deleted, not kept behind a flag.
 
 ### Toggle and responsive behaviour
 
@@ -491,7 +407,10 @@ retrofitting it is not.
   owns `make_event_ical.py`.
 - `socal-nug-site` takes it as an input and copies the bundle to `$out/js/braid.js` in its build
   phase, alongside the existing calendar step.
-- The page loads it with `<script type="module" src="/js/braid.js">`.
+- The page loads it with `<script type="module" src="/js/braid.js">`, after a classic
+  `<script src="/js/vendor/elk.bundled.js">` for the layout engine, so ELK's global is there before
+  the module runs. The vendored file is elkjs 0.12.1's `lib/elk.bundled.js`, with its EPL-2.0
+  licence beside it; it is not fetched from a CDN because the site is heading for self-hosting.
 - Moment and person data reach the script through a `<script type="application/json">` block
   written by Tera with `| json_encode | safe`.
 
@@ -499,20 +418,26 @@ retrofitting it is not.
 
 Added to `checks/default.nix`:
 
-- `braid-engine`: esbuild-compiles the engine and its tests, runs `node --test`. Covers lane
-  assignment, moment lane resolution, junction selection, trunk thickness, and the label collision
-  pass.
+- `braid-engine`: esbuild-compiles the engine and its tests, runs `node --test`. Covers the story
+  half (order, joins, detours, trunk thickness), the graph handed to ELK, the mapping of its
+  output into positions, the drawing from those, cards, and popup placement. None of it runs ELK;
+  the placement tests use a fake shaped like a layout.
+- `elk-vendored`: the committed `static/js/vendor/elk.bundled.js` is byte for byte the pinned
+  upstream release, fetched by hash. The only way a vendored file stays honest about where it
+  came from.
 - `braid-data`: validates `data/moments.toml`. Every `people` entry resolves to a profile slug in
   `content/about/`, every `date` parses, every `id` is unique, and at least one moment has
   `trunk = true`. An unresolved slug is the likely failure when someone adds themselves, so it
   must fail the build with the offending slug in the message.
 - `frontmatter` extends to the new required `member` field through `profiles.json`.
 - `braid-smoke`: builds the braid from the repository's own `data/moments.toml` and
-  `content/events/`, not from fixtures, and asserts invariants: no `NaN` or non-finite
-  coordinate, every person with a moment has at least one drawn segment, every `joinsTrunkAt`
-  resolves to a real moment, and trunk thickness never decreases except across an excursion.
-  Every other engine test runs on fixtures, so without this a plausible typo in the real data
-  produces a nonsense picture with the whole suite green.
+  `content/events/`, not from fixtures, lays it out through the vendored ELK in both modes, draws
+  it, and measures the SVG: everything on the canvas, every person with a moment has a drawn
+  segment and a placed face, every `joinsTrunkAt` resolves to a real moment, trunk thickness
+  never decreases except across an excursion, no line through a face, no line through a dot its
+  person was not at, no label on either. Every other engine test runs on fixtures and fakes the
+  layout, so without this a plausible typo in the real data, or a layout ELK is happy with that
+  the renderer is not, ships with the whole suite green.
 
 ### Netlify interim
 

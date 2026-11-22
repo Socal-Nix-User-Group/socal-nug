@@ -1,20 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseFuzzyDate } from "../src/dates.ts";
-import { buildBraid } from "../src/layout.ts";
-import { projectionFor } from "../src/projections.ts";
-import {
-  avatarFor,
-  flow,
-  hueFor,
-  LABEL_WIDTH,
-  laneRangeOf,
-  PALETTE_SIZE,
-  renderBraid,
-  yearTicks,
-} from "../src/render.ts";
+import { avatarFor, flow, hueFor, PALETTE_SIZE } from "../src/render.ts";
 import type { DocumentLike, ElementLike } from "../src/render.ts";
-import type { Moment, Person } from "../src/types.ts";
+import type { Person } from "../src/types.ts";
 
 interface Node {
   tag: string;
@@ -64,294 +52,66 @@ function person(slug: string, member: boolean, imageUrl = ""): Person {
   };
 }
 
-function at(id: string, date: string, people: string[], trunk = false): Moment {
-  return { id, date: parseFuzzyDate(date), title: id, people, trunk };
-}
+const DANIEL = person("daniel", true, "https://example.com/d.png");
+const ROK = person("rok", false);
 
-const PEOPLE = new Map<string, Person>([
-  ["daniel", person("daniel", true, "https://example.com/d.png")],
-  ["rob", person("rob", true, "https://example.com/r.png")],
-  ["rok", person("rok", false)],
-  ["kyle", person("kyle", false)],
-]);
-
-const MOMENTS: Moment[] = [
-  at("daniel-nix", "2021-10-23", ["daniel"]),
-  at("meets-rok", "2022-03", ["daniel", "rok"]),
-  at("scale", "2023-03", ["daniel", "rob"]),
-  at("founded", "2023-04", ["daniel", "rob"], true),
-  at("nug3", "2023-09-19", [], true),
-  at("camp", "2023-10", ["daniel", "rob", "kyle"]),
-  at("nug4", "2024-01-25", [], true),
-];
-
-const braid = buildBraid(MOMENTS, PEOPLE);
-
-function draw() {
-  const { doc, made } = stubDocument();
-  const projection = projectionFor(
-    "river",
-    { width: 800, height: 900 },
-    laneRangeOf(braid),
-  );
-  const root = renderBraid(braid, projection, doc);
-  return { root, made };
-}
-
-const withClass = (made: Node[], token: string) =>
-  made.filter((n) => (n.attrs.class ?? "").split(" ").includes(token));
-
-test("the root svg is hidden from assistive tech", () => {
-  const { made } = draw();
-  const svg = made.find((n) => n.tag === "svg")!;
-  assert.equal(svg.attrs["aria-hidden"], "true");
-});
-
-test("the root svg carries the projection's viewBox", () => {
-  const { made } = draw();
-  const svg = made.find((n) => n.tag === "svg")!;
-  assert.equal(svg.attrs.viewBox, "0 0 800 900");
-});
-
-test("the svg's intrinsic size matches the viewport it was given", () => {
-  // `height: auto` ties the rendered height to the width, so a viewBox built
-  // from a stale container width silently shrinks the picture.
-  for (const [w, h] of [[800, 900], [1200, 1610]] as const) {
-    const { doc, made } = stubDocument();
-    renderBraid(
-      braid,
-      projectionFor("river", { width: w, height: h }, laneRangeOf(braid)),
-      doc,
-    );
-    const svg = made.find((n) => n.tag === "svg")!;
-    assert.equal(svg.attrs.width, String(w));
-    assert.equal(svg.attrs.height, String(h));
-    assert.equal(svg.attrs.viewBox, `0 0 ${w} ${h}`);
-  }
-});
-
-test("every moment becomes a node", () => {
-  const { made } = draw();
-  assert.equal(withClass(made, "origins-node").length, braid.moments.length);
-});
-
-test("every drawn thread segment becomes a path", () => {
-  const { made } = draw();
-  const segments = braid.threads.reduce(
-    (total, t) => total + t.segments.length,
-    0,
-  );
-  assert.equal(withClass(made, "origins-thread").length, segments);
-});
-
-test("guest threads are dashed and member threads are not", () => {
-  const { made } = draw();
-  const guest = withClass(made, "origins-thread").filter((n) =>
-    (n.attrs.class ?? "").includes("is-guest"),
-  );
-  const member = withClass(made, "origins-thread").filter((n) =>
-    (n.attrs.class ?? "").includes("is-member"),
-  );
-  assert.ok(guest.length > 0 && member.length > 0);
-});
-
-test("the trunk thins where people are away", () => {
-  const { made } = draw();
-  const widths = withClass(made, "origins-trunk").map((n) =>
-    Number(n.attrs["stroke-width"]),
-  );
-  assert.ok(widths.every((w) => Number.isFinite(w) && w > 0));
-  assert.ok(Math.min(...widths) < Math.max(...widths));
-});
-
-// --- detours ----------------------------------------------------------------
-// A person's detour is drawn by their own thread. There used to be a grey
-// path underneath as well, with a different curve, which read as a second
-// line disagreeing with the first.
-
-/** The points a flow() path passes through: the M point and each C endpoint. */
-function endpointsOf(d: string): Array<[number, number]> {
-  const [move, ...curves] = d.split(" C");
-  const pair = (s: string): [number, number] => {
-    const [x, y] = s.split(",").map(Number);
-    return [x, y];
-  };
-  return [
-    pair(move.slice(1)),
-    ...curves.map((c) => pair(c.trim().split(" ")[2])),
-  ];
-}
-
-test("no grey path is drawn under a detour", () => {
-  const { made } = draw();
-  assert.equal(withClass(made, "origins-excursion").length, 0);
-  assert.ok(withClass(made, "is-excursion").length > 0);
-});
-
-test("a detour's straight run is centred on its moment", () => {
-  const { made } = draw();
-  const projection = projectionFor(
-    "river",
-    { width: 800, height: 900 },
-    laneRangeOf(braid),
-  );
-  const camp = braid.moments.find((m) => m.moment.id === "camp")!;
-  const [dotX, dotY] = projection.project(camp.t, camp.lane);
-  const spineX = projection.project(camp.t, 0)[0];
-
-  const detour = withClass(made, "is-excursion").find((p) =>
-    p.attrs["data-person"] === "daniel"
-  )!;
-  const points = endpointsOf(detour.attrs.d);
-  // Out, straight, back: the points on the detour lane form a run, and the
-  // dot sits in the middle of that run rather than at its top.
-  const onLane = points.filter(([x]) => Math.abs(x - dotX) < 0.5);
-  assert.ok(onLane.length >= 2, `no run on the lane in ${detour.attrs.d}`);
-  const top = Math.min(...onLane.map(([, y]) => y));
-  const bottom = Math.max(...onLane.map(([, y]) => y));
-  assert.ok(bottom > top, "the run has no length");
-  assert.ok(
-    Math.abs((top + bottom) / 2 - dotY) < 0.5,
-    `run ${top}..${bottom} is not centred on the dot at ${dotY}`,
-  );
-  // and it leaves from the spine and comes back to it
-  assert.ok(Math.abs(points[0][0] - spineX) < 0.5);
-  assert.ok(Math.abs(points[points.length - 1][0] - spineX) < 0.5);
-});
-
-/** Points along a flow() path, sampling each cubic. */
-function sampleOf(d: string): Array<[number, number]> {
-  const out: Array<[number, number]> = [];
-  let cur: [number, number] = [0, 0];
-  for (const part of d.match(/[MC][^MC]*/g) ?? []) {
-    const v = part.slice(1).trim().split(/[\s,]+/).map(Number);
-    if (part[0] === "M") {
-      cur = [v[0], v[1]];
-      out.push(cur);
-      continue;
-    }
-    const [x1, y1, x2, y2, x3, y3] = v;
-    for (let i = 1; i <= 24; i += 1) {
-      const k = i / 24;
-      const u = 1 - k;
-      out.push([
-        u * u * u * cur[0] + 3 * u * u * k * x1 + 3 * u * k * k * x2 +
-        k * k * k * x3,
-        u * u * u * cur[1] + 3 * u * u * k * y1 + 3 * u * k * k * y2 +
-        k * k * k * y3,
-      ]);
-    }
-    cur = [x3, y3];
-  }
-  return out;
-}
-
-test("someone not yet in the group visits a detour and returns to their own lane", () => {
-  // Connor was at SCaLE 21x before he joined. His line went out to the dot,
-  // then held the detour lane to the meetup he joined at, straight through
-  // "Met Morgan Jones", which had reused that lane. It read as Connor having
-  // met Morgan. The allocator never gave him that lane; the renderer did.
-  const people = new Map<string, Person>([
-    ["daniel", person("daniel", true)],
-    ["connor", person("connor", true)],
-    ["morgan", person("morgan", true)],
-  ]);
-  const story = buildBraid(
-    [
-      at("daniel-nix", "2021-01", ["daniel"]),
-      at("connor-nix", "2021-06", ["connor"]),
-      at("founded", "2023-01", ["daniel"], true),
-      at("nug2", "2023-03", [], true),
-      at("camp", "2023-04", ["daniel", "connor"]),
-      at("nug3", "2023-05", [], true),
-      at("meets-morgan", "2023-06", ["daniel", "morgan"]),
-      at("nug4", "2023-07", ["connor", "morgan"], true),
-    ],
-    people,
-  );
-  const { doc, made } = stubDocument();
-  const projection = projectionFor(
-    "river",
-    { width: 800, height: 900 },
-    laneRangeOf(story),
-  );
-  renderBraid(story, projection, doc);
-
-  const meets = story.moments.find((m) => m.moment.id === "meets-morgan")!;
-  const [dotX, dotY] = projection.project(meets.t, meets.lane);
-  const connor = withClass(made, "is-approach").find((p) =>
-    p.attrs["data-person"] === "connor"
-  )!;
-  const closest = Math.min(
-    ...sampleOf(connor.attrs.d).map(([x, y]) => Math.hypot(x - dotX, y - dotY)),
-  );
-  assert.ok(
-    closest > 12,
-    `connor's line passes ${closest.toFixed(1)}px from a dot he was not at`,
-  );
-
-  // and between the two detours he is back in his own column
-  const own = projection.project(0, story.threads.find((t) =>
-    t.person.slug === "connor"
-  )!.lane)[0];
-  const nug3 = story.moments.find((m) => m.moment.id === "nug3")!;
-  const nug4 = story.moments.find((m) => m.moment.id === "nug4")!;
-  const [, between] = projection.project((nug3.t + nug4.t) / 2, 0);
-  const near = sampleOf(connor.attrs.d).filter(([, y]) =>
-    Math.abs(y - between) < 3
-  );
-  assert.ok(near.length > 0, "no sample between nug3 and nug4");
-  assert.ok(
-    near.every(([x]) => Math.abs(x - own) < 1),
-    `between nug3 and nug4 connor is at x=${
-      near.map(([x]) => x.toFixed(0))
-    }, own lane ${own}`,
-  );
-});
+// --- faces ------------------------------------------------------------------
 
 test("a person with a picture gets an image", () => {
   const { doc, made } = stubDocument();
-  avatarFor(PEOPLE.get("daniel")!, doc);
+  avatarFor(DANIEL, doc);
   assert.ok(made.some((n) => n.tag === "image"));
-});
-
-test("attribute names are SVG spellings, not underscored", () => {
-  const { made } = draw();
-  for (const node of made) {
-    for (const name of Object.keys(node.attrs)) {
-      assert.ok(
-        !name.includes("_"),
-        `${node.tag} has attribute ${name}; SVG uses hyphens`,
-      );
-    }
-  }
 });
 
 test("a guest with an empty image_url gets an initial, never an image", () => {
   const { doc, made } = stubDocument();
-  avatarFor(PEOPLE.get("rok")!, doc);
+  avatarFor(ROK, doc);
   assert.equal(made.some((n) => n.tag === "image"), false);
   assert.ok(made.some((n) => n.text === "R"));
 });
 
-test("no attribute is ever emitted as NaN or undefined", () => {
-  const { made } = draw();
-  for (const node of made) {
-    for (const [name, value] of Object.entries(node.attrs)) {
-      assert.ok(
-        !value.includes("NaN") && !value.includes("undefined"),
-        `${node.tag}.${name} = ${value}`,
-      );
+test("member and guest faces are told apart without colour", () => {
+  const member = stubDocument();
+  avatarFor(DANIEL, member.doc);
+  assert.ok(member.made.some((n) => (n.attrs.class ?? "").includes("is-member")));
+  const guest = stubDocument();
+  avatarFor(ROK, guest.doc);
+  assert.ok(guest.made.some((n) => (n.attrs.class ?? "").includes("is-guest")));
+});
+
+test("attribute names are SVG spellings, not underscored", () => {
+  // clip_path once shipped; browsers silently ignore it and the face was a
+  // square
+  for (const who of [DANIEL, ROK]) {
+    const { doc, made } = stubDocument();
+    avatarFor(who, doc);
+    for (const node of made) {
+      for (const name of Object.keys(node.attrs)) {
+        assert.ok(
+          !name.includes("_"),
+          `${node.tag} has attribute ${name}; SVG uses hyphens`,
+        );
+      }
     }
   }
 });
 
-test("a thread carries a palette slot so colour needs no stylesheet edit", () => {
-  const { made } = draw();
-  const hues = withClass(made, "origins-thread").map((n) => n.attrs["data-hue"]);
-  assert.ok(hues.every((h) => h !== undefined));
-  assert.ok(new Set(hues).size > 1, "threads should not share one slot");
+test("no attribute is ever emitted as NaN or undefined", () => {
+  for (const who of [DANIEL, ROK]) {
+    const { doc, made } = stubDocument();
+    avatarFor(who, doc);
+    for (const node of made) {
+      for (const [name, value] of Object.entries(node.attrs)) {
+        assert.ok(
+          !value.includes("NaN") && !value.includes("undefined"),
+          `${node.tag}.${name} = ${value}`,
+        );
+      }
+    }
+  }
 });
+
+// --- palette ----------------------------------------------------------------
 
 test("past the palette, threads fall back to the muted slot", () => {
   assert.equal(hueFor(0), 0);
@@ -360,284 +120,27 @@ test("past the palette, threads fall back to the muted slot", () => {
   assert.equal(hueFor(PALETTE_SIZE + 50), -1);
 });
 
-// A braid the size of the real one: the clipping bugs only appear at scale.
-const BIG_PEOPLE = new Map<string, Person>(
-  Array.from({ length: 7 }, (_, i) => [
-    `p${i}`,
-    person(`p${i}`, i < 4, i < 2 ? "https://example.com/a.png" : ""),
-  ]),
-);
+// --- flow -------------------------------------------------------------------
 
-const BIG_MOMENTS: Moment[] = [
-  at("root-0", "2021-10-23", ["p0"]),
-  at("root-1", "2022-02-21", ["p0"]),
-  at("root-2", "2022-03", ["p0", "p4"]),
-  at("root-3", "2022-08-27", ["p0", "p1"]),
-  at("root-4", "2023-02", ["p5"]),
-  at("root-5", "2023-03", ["p0", "p1", "p2"]),
-  at("founded", "2023-04", ["p0", "p1", "p2"], true),
-  ...Array.from({ length: 20 }, (_, i) =>
-    at(
-      `nug-${i}`,
-      `202${4 + Math.floor(i / 10)}-${String((i % 10) + 1).padStart(2, "0")}-05`,
-      // join records: p3 at the fourth meetup, p6 after the camp
-      i === 3 ? ["p3"] : i === 10 ? ["p6"] : [],
-      true,
-    )),
-  at("camp", "2024-06", ["p0", "p1", "p6"]),
-];
-
-const big = buildBraid(BIG_MOMENTS, BIG_PEOPLE);
-
-function extentOf(node: Node, width: number): [number, number] {
-  const x = Number(node.attrs.x);
-  const anchor = node.attrs["text-anchor"];
-  if (anchor === "end") return [x - width, x];
-  if (anchor === "middle") return [x - width / 2, x + width / 2];
-  return [x, x + width];
-}
-
-for (const mode of ["river", "subway"] as const) {
-  test(`every ${mode} label sits inside the viewBox`, () => {
-    const { doc, made } = stubDocument();
-    const viewport = mode === "river"
-      ? { width: 850, height: 1300 }
-      : { width: 850, height: 1300 };
-    const projection = projectionFor(mode, viewport, laneRangeOf(big));
-    renderBraid(big, projection, doc);
-    const [, , boxWidth] = projection.viewBox;
-    const offenders = withClass(made, "origins-label")
-      .map((n) => ({ n, span: extentOf(n, LABEL_WIDTH) }))
-      .filter(({ span }) => span[0] < 0 || span[1] > boxWidth);
-    assert.deepEqual(
-      offenders.map((o) => `${o.n.text} @ ${o.span.join("..")}`),
-      [],
-    );
-  });
-
-  test(`every ${mode} node sits inside the viewBox`, () => {
-    const { doc, made } = stubDocument();
-    const projection = projectionFor(
-      mode,
-      { width: 850, height: 1300 },
-      laneRangeOf(big),
-    );
-    renderBraid(big, projection, doc);
-    const [, , w, h] = projection.viewBox;
-    for (const node of withClass(made, "origins-node")) {
-      const cx = Number(node.attrs.cx);
-      const cy = Number(node.attrs.cy);
-      assert.ok(cx >= 0 && cx <= w, `cx ${cx} outside 0..${w}`);
-      assert.ok(cy >= 0 && cy <= h, `cy ${cy} outside 0..${h}`);
-    }
-  });
-}
-
-test("labels are dropped rather than clipped when the axis is too narrow", () => {
-  const { doc, made } = stubDocument();
-  const projection = projectionFor(
-    "river",
-    { width: 360, height: 1300 },
-    laneRangeOf(big),
-  );
-  renderBraid(big, projection, doc);
-  assert.equal(projection.showLabels, false);
-  assert.equal(withClass(made, "origins-label").length, 0);
+test("a path eases between its points, with no corners", () => {
+  const d = flow([[100, 0], [160, 50], [160, 120], [40, 200]], "y");
+  assert.ok(d.startsWith("M100,0"));
+  assert.equal((d.match(/C/g) ?? []).length, 3, "one cubic per hop");
+  assert.ok(!d.includes("L"), `${d} has a corner`);
+  assert.ok(d.endsWith(" 40,200"));
 });
 
-test("an excursion segment leaves from the trunk, not from its old lane", () => {
-  const { doc, made } = stubDocument();
-  const projection = projectionFor(
-    "river",
-    { width: 850, height: 1300 },
-    laneRangeOf(big),
-  );
-  renderBraid(big, projection, doc);
-  const excursion = big.excursions[0];
-  const spine = projection.project(excursion.from.t, 0)[0];
-  for (const path of withClass(made, "origins-thread")) {
-    if (!(path.attrs.class ?? "").includes("is-excursion")) continue;
-    const startX = Number(path.attrs.d.slice(1).split(",")[0]);
-    assert.ok(
-      Math.abs(startX - spine) < 1,
-      `${path.attrs["data-person"]} leaves at ${startX}, spine is ${spine}`,
-    );
-  }
-});
-
-test("a thread that joins the trunk visibly reaches it", () => {
-  const { doc, made } = stubDocument();
-  const projection = projectionFor(
-    "river",
-    { width: 850, height: 1300 },
-    laneRangeOf(big),
-  );
-  renderBraid(big, projection, doc);
-  // p6 is recruited at the excursion and rejoins at the next trunk moment
-  const recruit = big.threads.find((t) => t.person.slug === "p6")!;
-  assert.notEqual(recruit.joinsTrunkAt, null);
-  const path = withClass(made, "origins-thread").find(
-    (n) =>
-      n.attrs["data-person"] === "p6" &&
-      (n.attrs.class ?? "").includes("is-approach"),
-  )!;
-  const spine = projection.project(0, 0)[0];
-  // Paths are cubic, so the last point is the final coordinate pair.
-  const lastX = Number(
-    path.attrs.d.trim().split(/\s+/).pop()!.split(",")[0],
-  );
-  assert.ok(
-    Math.abs(lastX - spine) < 1,
-    `p6's thread ends at ${lastX}, spine is ${spine}`,
-  );
-});
-
-// --- year ticks and label text ----------------------------------------------
-
-test("one tick per year that has moments, in order", () => {
-  const years = yearTicks(big.moments).map((t) => t.year);
-  assert.deepEqual(years, [2021, 2022, 2023, 2024, 2025]);
-});
-
-test("a year tick sits before that year's first moment", () => {
-  const ticks = yearTicks(big.moments);
-  for (const tick of ticks) {
-    const first = big.moments.find(
-      (m) => new Date(m.moment.date.start).getUTCFullYear() === tick.year,
-    )!;
-    assert.ok(tick.t <= first.t, `${tick.year} tick at ${tick.t} vs ${first.t}`);
-    assert.ok(tick.t >= 0 && tick.t <= 1);
-  }
-});
-
-test("a single moment still yields one tick", () => {
-  const one = buildBraid([at("only", "2021", ["daniel"], true)], PEOPLE);
-  assert.deepEqual(yearTicks(one.moments).map((t) => t.year), [2021]);
-});
-
-test("the first year is labelled but gets no line", () => {
-  // the data simply starts there; a line would claim the year began at
-  // whatever moment happens to be earliest
-  const ticks = yearTicks(big.moments);
-  assert.equal(ticks[0].boundary, false);
-  assert.equal(ticks[0].t, 0);
-  assert.ok(ticks.slice(1).every((t) => t.boundary));
-});
-
-test("a line is drawn only where the year actually changes", () => {
-  const { made } = draw();
-  const ticks = yearTicks(braid.moments);
-  assert.equal(
-    withClass(made, "origins-year-tick").length,
-    ticks.filter((t) => t.boundary).length,
-  );
-  assert.equal(withClass(made, "origins-year").length, ticks.length);
-});
-
-test("the opening year is pinned to the corner, not next to the first line", () => {
-  const { made } = draw();
-  const years = withClass(made, "origins-year");
-  const opening = years.find((n) => n.attrs.class.includes("is-opening"))!;
-  const firstBoundary = years.find((n) => n.attrs.class.includes("is-boundary"))!;
-  assert.equal(Number(opening.attrs.x), 6);
-  assert.ok(
-    Number(firstBoundary.attrs.y) - Number(opening.attrs.y) > 40,
-    `opening at ${opening.attrs.y}, first boundary at ${firstBoundary.attrs.y}`,
-  );
-});
-
-test("the earliest root avatar is not clipped by the canvas edge", () => {
-  const projection = projectionFor(
-    "river",
-    { width: 800, height: 900 },
-    laneRangeOf(braid),
-  );
-  const { doc, made } = stubDocument();
-  renderBraid(braid, projection, doc);
-  for (const root of withClass(made, "origins-root")) {
-    const ty = Number(/translate\(\S+ ([\d.-]+)\)/.exec(root.attrs.transform)![1]);
-    assert.ok(ty >= 18, `${root.attrs["data-person"]} centred at ${ty}`);
-  }
-});
-
-test("trunk labels go left, away from the lanes joiners arrive on", () => {
-  const projection = projectionFor(
-    "river",
-    { width: 800, height: 900 },
-    laneRangeOf(braid),
-  );
-  assert.equal(projection.labelAnchor(0).anchor, "end");
-  assert.ok(projection.labelAnchor(0).dx < 0);
-  assert.equal(projection.labelAnchor(2).anchor, "start");
-});
-
-test("labels carry the title only, with no date", () => {
-  const { made } = draw();
-  for (const label of withClass(made, "origins-label")) {
-    assert.ok(!label.text.includes("·"), label.text);
-    assert.ok(!/\d{4}/.test(label.text), `${label.text} still has a year`);
-  }
-});
-
-test("threads are curved, not cornered", () => {
-  const { made } = draw();
-  const multi = withClass(made, "origins-thread").filter(
-    (n) => (n.attrs.d.match(/C/g) ?? []).length > 0,
-  );
-  assert.ok(multi.length > 0, "expected cubic segments in thread paths");
-  for (const path of withClass(made, "origins-thread")) {
-    assert.ok(!path.attrs.d.includes("L"), `${path.attrs.d} has a corner`);
-  }
-});
-
-test("a hop that stays in one lane is still straight", () => {
-  // control points sit on the time axis, so no lane change means no bulge
+test("a hop that stays in one column is still straight", () => {
+  // control points sit on the time axis, so no change of column, no bulge
   const d = flow([[100, 0], [100, 50]], "y");
   assert.equal(d, "M100,0 C100,25 100,25 100,50");
 });
 
-// --- roots sit clear of nodes -----------------------------------------------
-
-test("faces are drawn after nodes, so no node can land on one", () => {
-  // paint order is the svg's child list, not the order elements were created
-  const { made } = draw();
-  const svg = made.find((n) => n.tag === "svg")!;
-  const kinds = svg.children.map((c) => (c.attrs.class ?? "").split(" ")[0]);
-  const lastNode = kinds.lastIndexOf("origins-node");
-  const firstRoot = kinds.indexOf("origins-root");
-  assert.ok(lastNode >= 0 && firstRoot >= 0, kinds.join(","));
-  assert.ok(
-    firstRoot > lastNode,
-    `first root at ${firstRoot} is painted before last node at ${lastNode}`,
-  );
+test("subway eases along x instead of y", () => {
+  const d = flow([[0, 100], [50, 100]], "x");
+  assert.equal(d, "M0,100 C25,100 25,100 50,100");
 });
 
-test("a root clears its first node by the same gap at any canvas height", () => {
-  // a fraction of the axis would shrink with the canvas and let the node
-  // overlap the face on a short one
-  const gaps = [800, 2200].map((height) => {
-    const { doc, made } = stubDocument();
-    const projection = projectionFor(
-      "river",
-      { width: 800, height },
-      laneRangeOf(braid),
-    );
-    renderBraid(braid, projection, doc);
-    const root = withClass(made, "origins-root")[0];
-    const ty = Number(/translate\(\S+ ([\d.-]+)\)/.exec(root.attrs.transform)![1]);
-    const owner = braid.threads.find(
-      (t) => t.person.slug === root.attrs["data-person"],
-    )!;
-    const first = owner.segments[0].points[0];
-    return projection.project(first.t, first.lane)[1] - ty;
-  });
-  assert.equal(gaps[0], gaps[1]);
-  assert.ok(gaps[0] >= 40, `gap of ${gaps[0]} is tighter than an avatar`);
-});
-
-test("the lane range spans excursion lanes", () => {
-  const [low, high] = laneRangeOf(braid);
-  const excursion = braid.excursions[0].lane;
-  assert.ok(high >= excursion, `${high} should cover ${excursion}`);
-  assert.ok(low <= Math.min(...braid.threads.map((t) => t.lane)));
+test("an empty path is empty, not a stray M", () => {
+  assert.equal(flow([], "y"), "");
 });
