@@ -84,6 +84,7 @@ function toMoment(raw: unknown, index: number): Moment {
     blurb: optionalString(record.blurb, `moment ${id}: blurb`),
     photo: optionalString(record.photo, `moment ${id}: photo`),
     permalink: optionalString(record.permalink, `moment ${id}: permalink`),
+    link: optionalString(record.link, `moment ${id}: link`),
   };
 }
 

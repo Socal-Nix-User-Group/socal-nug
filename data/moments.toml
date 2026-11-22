@@ -13,6 +13,14 @@
 # Lines marked CONFIRM are best guesses awaiting a better source. Grep for
 # them when backfilling.
 
+# --- Rob Hernandez ---------------------------------------------------------
+
+[[moment]]
+id = "rob-finds-nix"
+date = "2018-07" # CONFIRM: "around the middle of 2018"
+title = "Rob finds Nix"
+people = ["rob-hernandez"]
+
 # --- Daniel Baker ----------------------------------------------------------
 
 [[moment]]
@@ -39,6 +47,23 @@ id = "code-and-coffee"
 date = "2022-08-27"
 title = "Met David Nuon at Code and Coffee"
 people = ["daniel-baker", "david-nuon"]
+
+# --- Conferences and camps -------------------------------------------------
+# Dates are the first day of each event.
+
+[[moment]]
+id = "nix-camp-2022"
+date = "2022-09-12"
+title = "Nix Camp 2022"
+people = ["rob-hernandez"]
+link = "https://nix.camp/"
+
+[[moment]]
+id = "nixcon-2022"
+date = "2022-10-20"
+title = "NixCon 2022"
+people = ["daniel-baker", "connor-baker"]
+link = "https://2022.nixcon.org/"
 
 # --- Ron: influence without presence ---------------------------------------
 # Ron reserved the booth but was not there, so this is a moment on his own
@@ -74,10 +99,46 @@ id = "tristan-joins"
 event = "2023-09-19"
 people = ["tristan-ross"]
 
-# No `trunk` key: dated after the spine starts, naming people already in it,
-# so the engine reads this as an excursion.
+# No `trunk` key on any of these: dated after the spine starts and naming
+# people already in it, so the engine reads them as excursions.
+
 [[moment]]
-id = "nix-camp"
-date = "2023-10" # CONFIRM: autumn 2023
-title = "Nix Camp"
+id = "nix-camp-2023"
+date = "2023-09-24"
+title = "Nix Camp 2023"
 people = ["daniel-baker", "rob-hernandez", "david-nuon", "kyle-risse"]
+link = "https://nix.camp/"
+
+[[moment]]
+id = "nix-camp-2024"
+date = "2024-09-02"
+title = "Nix Camp 2024"
+people = ["daniel-baker", "david-nuon"]
+link = "https://nix.camp/"
+
+[[moment]]
+id = "nix-camp-2025"
+date = "2025-08-27"
+title = "Nix Camp 2025"
+people = ["daniel-baker", "rob-hernandez", "connor-baker", "jared-baur"]
+link = "https://nix.camp/"
+
+[[moment]]
+id = "nixcon-2025"
+date = "2025-09-05"
+title = "NixCon 2025"
+people = ["daniel-baker", "rob-hernandez", "connor-baker", "jared-baur"]
+link = "https://2025.nixcon.org/"
+
+[[moment]]
+id = "nixcon-2026"
+date = "2026-09-25"
+title = "NixCon 2026"
+people = [
+  "daniel-baker",
+  "connor-baker",
+  "jared-baur",
+  "morgan-jones",
+  "tristan-ross",
+]
+link = "https://2026.nixcon.org/"

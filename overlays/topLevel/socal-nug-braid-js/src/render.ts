@@ -225,10 +225,14 @@ export function renderBraid(
         }),
       );
     }
+    // The opening year is not a boundary, so it is pinned to the corner of the
+    // canvas rather than projected. Sitting it at the first moment put it a
+    // couple of dozen pixels from the next year's line, which read as two
+    // boundaries rather than a start and a boundary.
     const label = make(doc, "text", {
-      class: "origins-year",
-      x: timeAxis === "y" ? 6 : round(x) + 6,
-      y: timeAxis === "y" ? round(y) - 5 : YEAR_GUTTER - 14,
+      class: `origins-year ${tick.boundary ? "is-boundary" : "is-opening"}`,
+      x: tick.boundary && timeAxis === "x" ? round(x) + 6 : 6,
+      y: tick.boundary && timeAxis === "y" ? round(y) - 5 : YEAR_GUTTER - 14,
       "text-anchor": "start",
     });
     label.textContent = String(tick.year);

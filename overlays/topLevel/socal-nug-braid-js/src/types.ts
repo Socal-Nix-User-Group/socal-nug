@@ -34,7 +34,10 @@ export interface Moment {
   readonly trunk: boolean;
   readonly blurb?: string;
   readonly photo?: string;
+  /** This site's page for the moment, for meetups that have one. */
   readonly permalink?: string;
+  /** Somebody else's site, for events like Nix Camp and NixCon. */
+  readonly link?: string;
 }
 
 /**

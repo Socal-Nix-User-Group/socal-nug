@@ -115,6 +115,8 @@ export function detailFor(
     );
   }
 
+  // A meetup links to its own page here; an outside event like Nix Camp or
+  // NixCon links to whoever runs it.
   if (moment.permalink !== undefined && moment.permalink !== "") {
     card.appendChild(
       el(
@@ -123,6 +125,15 @@ export function detailFor(
         { class: "origins-detail-link", href: moment.permalink },
         "Event page",
       ),
+    );
+  } else if (moment.link !== undefined && moment.link !== "") {
+    card.appendChild(
+      el(doc, "a", {
+        class: "origins-detail-link",
+        href: moment.link,
+        rel: "noopener",
+        target: "_blank",
+      }, "Visit the site"),
     );
   }
 

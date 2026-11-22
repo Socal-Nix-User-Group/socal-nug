@@ -142,17 +142,27 @@ class SiteBuild(unittest.TestCase):
 
     # --- about page ------------------------------------------------------------
 
+    MEMBERS = ['Daniel Baker', 'David Nuon', 'Rob Hernandez', 'Tristan Ross',
+               'Connor Baker', 'Jared Baur', 'Kyle Risse', 'Morgan Jones']
+
     def test_about_members_are_in_curated_order(self):
         about = (self.out / 'about' / 'index.html').read_text()
         names = re.findall(r'<h4 class="title is-4">(.*?)</h4>', about)
-        self.assertEqual(names, ['Daniel Baker', 'David Nuon', 'Rob Hernandez', 'Tristan Ross'])
+        self.assertEqual(names, self.MEMBERS)
+
+    def test_every_member_has_a_real_avatar_url(self):
+        # an empty src resolves against the page and refetches it
+        about = (self.out / 'about' / 'index.html').read_text()
+        self.assertNotIn('src=""', about)
 
     def test_guests_have_pages_but_are_not_in_the_members_grid(self):
-        for slug in ('rok-garbas', 'ron-efroni', 'kyle-risse'):
+        for slug in ('rok-garbas', 'ron-efroni'):
             self.assertTrue((self.out / 'about' / slug / 'index.html').exists(), slug)
         about = (self.out / 'about' / 'index.html').read_text()
         names = re.findall(r'<h4 class="title is-4">(.*?)</h4>', about)
-        self.assertEqual(names, ['Daniel Baker', 'David Nuon', 'Rob Hernandez', 'Tristan Ross'])
+        self.assertEqual(names, self.MEMBERS)
+        for guest in ('Rok Garbas', 'Ron Efroni'):
+            self.assertNotIn(guest, about)
 
     # --- origins page ----------------------------------------------------------
 

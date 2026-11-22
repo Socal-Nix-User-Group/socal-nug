@@ -388,6 +388,18 @@ test("a line is drawn only where the year actually changes", () => {
   assert.equal(withClass(made, "origins-year").length, ticks.length);
 });
 
+test("the opening year is pinned to the corner, not next to the first line", () => {
+  const { made } = draw();
+  const years = withClass(made, "origins-year");
+  const opening = years.find((n) => n.attrs.class.includes("is-opening"))!;
+  const firstBoundary = years.find((n) => n.attrs.class.includes("is-boundary"))!;
+  assert.equal(Number(opening.attrs.x), 6);
+  assert.ok(
+    Number(firstBoundary.attrs.y) - Number(opening.attrs.y) > 40,
+    `opening at ${opening.attrs.y}, first boundary at ${firstBoundary.attrs.y}`,
+  );
+});
+
 test("the earliest root avatar is not clipped by the canvas edge", () => {
   const projection = projectionFor(
     "river",
