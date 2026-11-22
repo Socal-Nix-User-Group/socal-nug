@@ -41,7 +41,7 @@
     &[data-mode="subway"] {
         grid-template-columns: minmax(0, 1fr);
 
-        .origins-roster-rail {
+        .origins-side {
             position: static;
         }
 
@@ -206,6 +206,9 @@ html[data-theme=dark] .origins-layout {
     fill: var(--origins-ink);
     font-size: 11px;
     opacity: 0.75;
+    // Labels sit over the nodes they describe; without this they swallow the
+    // click meant for the dot.
+    pointer-events: none;
 }
 
 // Dates live here rather than on every label, which keeps labels short and
@@ -214,6 +217,7 @@ html[data-theme=dark] .origins-layout {
     stroke: var(--origins-line);
     stroke-width: 1;
     stroke-dasharray: 4 6;
+    pointer-events: none;
 }
 
 .origins-year {
@@ -222,6 +226,15 @@ html[data-theme=dark] .origins-layout {
     font-weight: 700;
     opacity: 0.4;
     letter-spacing: 0.04em;
+    pointer-events: none;
+}
+
+// Threads and the trunk are decoration for pointer purposes; the nodes and
+// the root avatars are what a reader aims at.
+.origins-thread,
+.origins-trunk,
+.origins-excursion {
+    pointer-events: none;
 }
 
 .origins-avatar-ring {
@@ -261,9 +274,15 @@ html[data-theme=dark] .origins-layout {
 
 // --- the roster -------------------------------------------------------------
 
-.origins-roster-rail {
+// The detail panel and the roster share the side column. The panel is a
+// sibling of the roster, not a child: boot() replaces the roster's children.
+.origins-side {
     position: sticky;
     top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    min-width: 0;
 }
 
 .origins-roster {

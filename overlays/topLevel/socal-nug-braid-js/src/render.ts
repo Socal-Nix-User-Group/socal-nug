@@ -56,6 +56,12 @@ export function hueFor(index: number): number {
 export interface YearTick {
   readonly year: number;
   readonly t: number;
+  /**
+   * True when the year actually changes here. The first year is not a
+   * boundary: the data simply starts, and drawing a line there would claim
+   * the year began where the earliest moment happens to sit.
+   */
+  readonly boundary: boolean;
 }
 
 /**
@@ -79,9 +85,9 @@ export function yearTicks(
   for (const placed of moments) {
     const year = yearOf(placed);
     if (previous === undefined) {
-      ticks.push({ year, t: Math.max(0, placed.t - 0.012) });
+      ticks.push({ year, t: 0, boundary: false });
     } else if (year !== yearOf(previous)) {
-      ticks.push({ year, t: (previous.t + placed.t) / 2 });
+      ticks.push({ year, t: (previous.t + placed.t) / 2, boundary: true });
     }
     previous = placed;
   }
@@ -208,15 +214,17 @@ export function renderBraid(
   // reader still gets a sense of where in time they are.
   for (const tick of yearTicks(braid.moments)) {
     const [x, y] = projection.project(tick.t, 0);
-    svg.appendChild(
-      make(doc, "path", {
-        class: "origins-year-tick",
-        d: timeAxis === "y"
-          ? `M0,${round(y)} L${round(width)},${round(y)}`
-          : `M${round(x)},0 L${round(x)},${round(height)}`,
-        fill: "none",
-      }),
-    );
+    if (tick.boundary) {
+      svg.appendChild(
+        make(doc, "path", {
+          class: "origins-year-tick",
+          d: timeAxis === "y"
+            ? `M0,${round(y)} L${round(width)},${round(y)}`
+            : `M${round(x)},0 L${round(x)},${round(height)}`,
+          fill: "none",
+        }),
+      );
+    }
     const label = make(doc, "text", {
       class: "origins-year",
       x: timeAxis === "y" ? 6 : round(x) + 6,

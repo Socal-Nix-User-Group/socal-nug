@@ -33,9 +33,11 @@
   {#- The roster exists in both projections and is the keyboard path to every
       card, because the braid's SVG is aria-hidden and nothing inside it is a
       usable tab stop. -#}
-  <div id="origins-roster" class="origins-roster-rail">
-    {#- Clicking a moment fills this. Hover only highlights who was there. -#}
+  <div class="origins-side">
+    {#- A sibling of the roster, not a child: boot() calls replaceChildren on
+        the roster, which would wipe this panel before anything could fill it. -#}
     <div id="origins-detail" class="origins-detail is-hidden"></div>
+    <div id="origins-roster" class="origins-roster-rail"></div>
   </div>
 </div>
 

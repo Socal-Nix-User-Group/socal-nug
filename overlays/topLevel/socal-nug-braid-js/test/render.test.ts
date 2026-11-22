@@ -369,11 +369,48 @@ test("a single moment still yields one tick", () => {
   assert.deepEqual(yearTicks(one.moments).map((t) => t.year), [2021]);
 });
 
-test("the picture draws a tick and a year label for each", () => {
+test("the first year is labelled but gets no line", () => {
+  // the data simply starts there; a line would claim the year began at
+  // whatever moment happens to be earliest
+  const ticks = yearTicks(big.moments);
+  assert.equal(ticks[0].boundary, false);
+  assert.equal(ticks[0].t, 0);
+  assert.ok(ticks.slice(1).every((t) => t.boundary));
+});
+
+test("a line is drawn only where the year actually changes", () => {
   const { made } = draw();
-  const expected = yearTicks(braid.moments).length;
-  assert.equal(withClass(made, "origins-year-tick").length, expected);
-  assert.equal(withClass(made, "origins-year").length, expected);
+  const ticks = yearTicks(braid.moments);
+  assert.equal(
+    withClass(made, "origins-year-tick").length,
+    ticks.filter((t) => t.boundary).length,
+  );
+  assert.equal(withClass(made, "origins-year").length, ticks.length);
+});
+
+test("the earliest root avatar is not clipped by the canvas edge", () => {
+  const projection = projectionFor(
+    "river",
+    { width: 800, height: 900 },
+    laneRangeOf(braid),
+  );
+  const { doc, made } = stubDocument();
+  renderBraid(braid, projection, doc);
+  for (const root of withClass(made, "origins-root")) {
+    const ty = Number(/translate\(\S+ ([\d.-]+)\)/.exec(root.attrs.transform)![1]);
+    assert.ok(ty >= 18, `${root.attrs["data-person"]} centred at ${ty}`);
+  }
+});
+
+test("trunk labels go left, away from the lanes joiners arrive on", () => {
+  const projection = projectionFor(
+    "river",
+    { width: 800, height: 900 },
+    laneRangeOf(braid),
+  );
+  assert.equal(projection.labelAnchor(0).anchor, "end");
+  assert.ok(projection.labelAnchor(0).dx < 0);
+  assert.equal(projection.labelAnchor(2).anchor, "start");
 });
 
 test("labels carry the title only, with no date", () => {

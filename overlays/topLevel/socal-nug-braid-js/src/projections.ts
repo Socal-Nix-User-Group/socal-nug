@@ -26,6 +26,12 @@ export interface Projection {
 }
 
 const PAD = 40;
+/**
+ * Headroom at the start of the time axis. A thread's root avatar sits back
+ * from its first moment, so without this the earliest avatar is clipped by the
+ * edge of the canvas.
+ */
+const LEAD = 76;
 const LABEL_GAP = 14;
 /** Must match render.ts's LABEL_WIDTH; it is what a label claims beside a node. */
 const LABEL_RESERVE = 150;
@@ -53,7 +59,7 @@ export function projectionFor(
   // time axis instead, so its lanes need no reserve.
   const reserve = mode === "river" && showLabels ? LABEL_RESERVE + LABEL_GAP : 0;
   const step = Math.max(MIN_STEP, (free / 2 - PAD - reserve) / reach);
-  const runway = along - 2 * PAD;
+  const runway = along - LEAD - PAD;
 
   const viewBox: readonly [number, number, number, number] = [
     0,
@@ -67,9 +73,12 @@ export function projectionFor(
       mode,
       viewBox,
       showLabels,
-      project: (t, lane) => [centre + lane * step, PAD + t * runway],
+      project: (t, lane) => [centre + lane * step, LEAD + t * runway],
+      // Trunk labels go left, into the space the pre-convergence threads have
+      // vacated by then. Sending them right put them under the avatars of
+      // people arriving on the joiner lanes.
       labelAnchor: (lane) =>
-        lane < 0
+        lane <= 0
           ? { anchor: "end", dx: -LABEL_GAP, dy: 4 }
           : { anchor: "start", dx: LABEL_GAP, dy: 4 },
     };
@@ -79,7 +88,7 @@ export function projectionFor(
     mode,
     viewBox,
     showLabels,
-    project: (t, lane) => [PAD + t * runway, centre + lane * step],
+    project: (t, lane) => [LEAD + t * runway, centre + lane * step],
     labelAnchor: () => ({ anchor: "middle", dx: 0, dy: -LABEL_GAP }),
   };
 }
