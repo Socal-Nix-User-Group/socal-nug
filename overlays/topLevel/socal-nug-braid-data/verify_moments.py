@@ -105,11 +105,12 @@ def check_ids(entries):
 def check_people(entries, known):
     problems = []
     for m in entries:
-        for slug in m.get('people', []):
-            if slug not in known:
-                problems.append(
-                    f'{m["id"]}: unknown person {slug}; '
-                    'no matching file in the about directory')
+        for field in ('people', 'there', 'away'):
+            for slug in m.get(field, []):
+                if slug not in known:
+                    problems.append(
+                        f'{m["id"]}: unknown person {slug} in {field}; '
+                        'no matching file in the about directory')
     return problems
 
 
@@ -141,6 +142,51 @@ def check_links(entries):
     return problems
 
 
+def check_attendance(entries):
+    problems = []
+    joins = {}
+    for m in entries:
+        if 'event' in m or m.get('trunk'):
+            for slug in m.get('people', []):
+                if slug not in joins or when(m) < joins[slug]:
+                    joins[slug] = when(m)
+
+    recorded = {}
+    for m in entries:
+        there = m.get('there', [])
+        away = m.get('away', [])
+        if not (there or away):
+            continue
+        if 'event' not in m:
+            problems.append(
+                f'{m["id"]}: there and away belong on a record anchored '
+                'to an event; a dated moment says who was there with '
+                'people')
+            continue
+        for kind, slugs in (('there', there), ('away', away)):
+            for slug in slugs:
+                recorded.setdefault((m['event'], slug), {})[kind] = m['id']
+                if slug not in joins:
+                    problems.append(
+                        f'{m["id"]}: {slug} is {kind} but has no join '
+                        'record')
+                elif when(m) < joins[slug]:
+                    problems.append(
+                        f'{m["id"]}: {slug} is {kind} at {m["event"]}, '
+                        'before the meetup they joined at')
+                elif kind == 'away' and when(m) == joins[slug]:
+                    problems.append(
+                        f'{m["id"]}: {slug} is recorded away from the '
+                        'meetup they joined at')
+
+    for (event, slug), kinds in recorded.items():
+        if len(kinds) == 2:
+            problems.append(
+                f'{kinds["away"]}: {slug} is both there and away at '
+                f'{event}')
+    return problems
+
+
 @click.command()
 @click.argument('moments')
 @click.option('--about', required=True,
@@ -161,6 +207,12 @@ def verify_moments(moments, about, events):
     ):
         if problems:
             fail(problems)
+
+    # Last, and on its own: it orders records by date, which the classes
+    # above have by now shown every record to have.
+    problems = check_attendance(entries)
+    if problems:
+        fail(problems)
 
     trunk = [m for m in entries if m.get('trunk')]
     if not trunk:

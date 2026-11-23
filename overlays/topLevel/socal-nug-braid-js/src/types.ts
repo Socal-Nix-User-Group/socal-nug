@@ -44,6 +44,10 @@ export interface Moment {
    * SCaLE 22x, and the card names each.
    */
   readonly links?: readonly Link[];
+  /** Slugs of the members a meetup's records vouch for being there. */
+  readonly there?: readonly string[];
+  /** Slugs of the members a meetup's records say were not there. */
+  readonly away?: readonly string[];
 }
 
 /** One outbound link, named so a card can tell two apart. */

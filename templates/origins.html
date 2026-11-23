@@ -69,11 +69,19 @@
     {#- This Tera has no `concat`, so joiners accumulate as a space-separated
         string and are split back out. Slugs never contain spaces. -#}
     {%- set_global joiners = "" -%}
+    {%- set_global present = "" -%}
+    {%- set_global absent = "" -%}
     {%- for m in moments %}
       {%- set anchored = m.event | default(value="") -%}
       {%- if anchored == e.slug -%}
-        {%- for slug in m.people -%}
+        {%- for slug in m.people | default(value=[]) -%}
           {%- set_global joiners = joiners ~ slug ~ " " -%}
+        {%- endfor -%}
+        {%- for slug in m.there | default(value=[]) -%}
+          {%- set_global present = present ~ slug ~ " " -%}
+        {%- endfor -%}
+        {%- for slug in m.away | default(value=[]) -%}
+          {%- set_global absent = absent ~ slug ~ " " -%}
         {%- endfor -%}
       {%- endif -%}
     {%- endfor %}
@@ -84,6 +92,24 @@
       "people": [
         {%- set_global psep = "" -%}
         {%- for slug in joiners | split(pat=" ") -%}
+          {%- if slug != "" -%}
+            {{ psep | safe }}{{ slug | json_encode | safe }}
+            {%- set_global psep = "," -%}
+          {%- endif -%}
+        {%- endfor -%}
+      ],
+      "there": [
+        {%- set_global psep = "" -%}
+        {%- for slug in present | split(pat=" ") -%}
+          {%- if slug != "" -%}
+            {{ psep | safe }}{{ slug | json_encode | safe }}
+            {%- set_global psep = "," -%}
+          {%- endif -%}
+        {%- endfor -%}
+      ],
+      "away": [
+        {%- set_global psep = "" -%}
+        {%- for slug in absent | split(pat=" ") -%}
           {%- if slug != "" -%}
             {{ psep | safe }}{{ slug | json_encode | safe }}
             {%- set_global psep = "," -%}

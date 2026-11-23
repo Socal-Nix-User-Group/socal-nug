@@ -212,6 +212,14 @@ class SiteBuild(unittest.TestCase):
         nug3 = next(m for m in data['moments'] if m['id'] == '2023-09-19')
         self.assertIn('tristan-ross', nug3['people'])
 
+    def test_origins_meetups_carry_attendance_lists(self):
+        _, data = self.origins_data()
+        meetups = [m for m in data['moments'] if m.get('permalink')]
+        self.assertGreaterEqual(len(meetups), 20)
+        for m in meetups:
+            self.assertIsInstance(m['there'], list, m['id'])
+            self.assertIsInstance(m['away'], list, m['id'])
+
     def test_a_dated_moment_is_not_duplicated_as_an_event(self):
         _, data = self.origins_data()
         ids = [m['id'] for m in data['moments']]

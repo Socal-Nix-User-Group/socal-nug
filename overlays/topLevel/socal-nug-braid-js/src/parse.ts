@@ -76,6 +76,23 @@ function toLinks(raw: unknown, id: string): readonly Link[] | undefined {
   });
 }
 
+/**
+ * A meetup's attendance: slugs of who the record vouches for, or who it says
+ * was away. Absent and empty both come back as undefined.
+ */
+function toSlugs(
+  raw: unknown,
+  id: string,
+  field: string,
+): readonly string[] | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  const list = asArray(raw, `moment ${id}: ${field}`);
+  if (list.length === 0) return undefined;
+  return list.map((slug, i) =>
+    asString(slug, `moment ${id}: ${field}[${i}]`)
+  );
+}
+
 function toMoment(raw: unknown, index: number): Moment {
   const where = `moments[${index}]`;
   const record = asRecord(raw, where);
@@ -104,6 +121,8 @@ function toMoment(raw: unknown, index: number): Moment {
     photo: optionalString(record.photo, `moment ${id}: photo`),
     permalink: optionalString(record.permalink, `moment ${id}: permalink`),
     links: toLinks(record.links, id),
+    there: toSlugs(record.there, id, "there"),
+    away: toSlugs(record.away, id, "away"),
   };
 }
 

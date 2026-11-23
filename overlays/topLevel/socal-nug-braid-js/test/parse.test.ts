@@ -168,3 +168,19 @@ test("a quote comes through as written, inner quotation marks and all", () => {
   });
   assert.equal(people.get("daniel-baker")!.quote, said);
 });
+
+test("a meetup's attendance lists come through", () => {
+  const { moments } = parseData({ people: [], moments: [{ id: "m", date: "2024-06-01", title: "M", people: [], trunk: true, there: ["a"], away: ["b"] }] });
+  assert.deepEqual(moments[0].there, ["a"]);
+  assert.deepEqual(moments[0].away, ["b"]);
+});
+
+test("absent and empty attendance lists come back undefined", () => {
+  const { moments } = parseData({ people: [], moments: [{ id: "m", date: "2024", title: "M", there: [] }] });
+  assert.equal(moments[0].there, undefined);
+  assert.equal(moments[0].away, undefined);
+});
+
+test("an attendance list that is not a list of slugs is rejected, naming the moment", () => {
+  assert.throws(() => parseData({ people: [], moments: [{ id: "m", date: "2024", title: "M", away: [3] }] }), /moment m: away/);
+});
