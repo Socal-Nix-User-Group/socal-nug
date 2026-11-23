@@ -5,7 +5,11 @@ import { LABEL_MAX } from "../src/graph.ts";
 import { buildBraid } from "../src/layout.ts";
 import { parseData } from "../src/parse.ts";
 import { placeBraid } from "../src/place.ts";
+import { placeLoom } from "../src/loom-place.ts";
 import type { DocumentLike, ElementLike } from "../src/render.ts";
+import { buildStory } from "../src/story.ts";
+import { history } from "./histories.ts";
+import { inspectPlacement, ribbonSpread } from "./inspect.ts";
 
 /**
  * The only check that runs on the repository's real data, through the real
@@ -330,3 +334,38 @@ console.log(
     `${braid.excursions.length} excursions, ` +
     `trunk ${braid.trunk.length} segments, laid out by ELK in both modes`,
 );
+
+// --- the loom, through the same engine -----------------------------------------
+// The real page's data and made-up histories, laid out by the real ELK. A
+// finding fails the check. The spread is printed and not asserted on.
+
+declare const performance: { now(): number };
+
+const loomCases: Array<[string, unknown]> = [["today", JSON.parse(block[1])]];
+for (const seed of [1, 2, 3]) {
+  for (const years of [0, 1, 2]) {
+    loomCases.push([`seed ${seed} +${years}y`, history(seed, years)]);
+  }
+}
+
+for (const [name, raw] of loomCases) {
+  const data = parseData(raw);
+  const story = buildStory(data.moments, data.people);
+  for (const mode of ["river", "subway"] as const) {
+    const started = performance.now();
+    const placed = await placeLoom(story, mode, (graph) => elk.layout(graph));
+    const took = performance.now() - started;
+    const findings = inspectPlacement(story, placed);
+    if (findings.length > 0) {
+      fail(
+        `loom ${name} ${mode}: ` +
+          findings.map((f) => `${f.kind}: ${f.message}`).join("; "),
+      );
+    }
+    console.log(
+      `loom ${name} ${mode}: ${story.moments.length} moments, ` +
+        `${story.threads.length} people, ribbon off its column by up to ` +
+        `${ribbonSpread(story, placed).toFixed(1)}px, ${took.toFixed(0)}ms`,
+    );
+  }
+}
