@@ -5,11 +5,18 @@ import { LABEL_MAX } from "../src/graph.ts";
 import { buildBraid } from "../src/layout.ts";
 import { parseData } from "../src/parse.ts";
 import { placeBraid } from "../src/place.ts";
+import { drawLoom } from "../src/loom-draw.ts";
 import { placeLoom } from "../src/loom-place.ts";
-import type { DocumentLike, ElementLike } from "../src/render.ts";
 import { buildStory } from "../src/story.ts";
 import { history } from "./histories.ts";
-import { inspectPlacement, ribbonSpread } from "./inspect.ts";
+import {
+  explain,
+  inspectDrawing,
+  inspectPlacement,
+  recorder,
+  ribbonSpread,
+  sample,
+} from "./inspect.ts";
 
 /**
  * The only check that runs on the repository's real data, through the real
@@ -90,69 +97,6 @@ for (const segment of braid.trunk) {
 // Draw the real braid through the real ELK and the real renderer, and
 // measure the SVG that comes out. Measuring the abstract model left every
 // overlap invisible to a passing suite.
-
-interface Recorded {
-  tag: string;
-  attrs: Record<string, string>;
-  text: string;
-}
-
-/** A `document` that records instead of building a DOM. No DOM library here. */
-function recorder(): { doc: DocumentLike; made: Recorded[] } {
-  const made: Recorded[] = [];
-  const doc: DocumentLike = {
-    createElementNS(_ns: string, tag: string): ElementLike {
-      const node: Recorded = { tag, attrs: {}, text: "" };
-      made.push(node);
-      const element = {
-        node,
-        setAttribute(name: string, value: string) {
-          node.attrs[name] = value;
-        },
-        appendChild(child: ElementLike) {
-          return child;
-        },
-        set textContent(value: string) {
-          node.text = value;
-        },
-        get textContent() {
-          return node.text;
-        },
-      };
-      return element as unknown as ElementLike;
-    },
-  };
-  return { doc, made };
-}
-
-/** Points along a path's `d`. flow() emits one M followed by C commands. */
-function sample(d: string): Array<readonly [number, number]> {
-  const out: Array<readonly [number, number]> = [];
-  let cur: readonly [number, number] = [0, 0];
-  for (const part of d.match(/[MC][^MC]*/g) ?? []) {
-    const v = part.slice(1).trim().split(/[\s,]+/).map(Number);
-    if (part[0] === "M") {
-      cur = [v[0], v[1]];
-      out.push(cur);
-      continue;
-    }
-    for (let seg = 0; seg + 6 <= v.length; seg += 6) {
-      const [x1, y1, x2, y2, x3, y3] = v.slice(seg, seg + 6);
-      for (let i = 1; i <= 24; i += 1) {
-        const k = i / 24;
-        const u = 1 - k;
-        out.push([
-          u * u * u * cur[0] + 3 * u * u * k * x1 + 3 * u * k * k * x2 +
-          k * k * k * x3,
-          u * u * u * cur[1] + 3 * u * u * k * y1 + 3 * u * k * k * y2 +
-          k * k * k * y3,
-        ]);
-      }
-      cur = [x3, y3];
-    }
-  }
-  return out;
-}
 
 const AVATAR = 18;
 const LABEL_HEIGHT = 14;
@@ -364,12 +308,14 @@ for (const [name, raw] of loomCases) {
         `${placed.width.toFixed(0)}x${placed.height.toFixed(0)}, ` +
         `${took.toFixed(0)}ms`,
     );
-    const findings = inspectPlacement(story, placed);
-    if (findings.length > 0) {
-      loomFailures.push(
-        `loom ${name} ${mode}: ` +
-          findings.map((f) => `${f.kind}: ${f.message}`).join("; "),
-      );
+    const { doc, made } = recorder();
+    drawLoom(placed, story, doc);
+    const findings = [
+      ...inspectPlacement(story, placed),
+      ...inspectDrawing(story, placed, made),
+    ];
+    for (const finding of findings) {
+      loomFailures.push(`loom ${name} ${mode}: ${explain(finding)}`);
     }
   }
 }
