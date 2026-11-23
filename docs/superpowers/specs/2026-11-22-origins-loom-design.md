@@ -143,7 +143,8 @@ revert away in the branch's history, as they did when the engine moved to ELK.
 
 ### The story model
 
-`story.ts` (it was `layout.ts`) stops producing trunk segments, excursions and approach-or-excursion thread segments.
+`story.ts` (it was `layout.ts`) stops producing trunk segments, excursions and
+approach-or-excursion thread segments.
 It produces, with nothing positional:
 
 - **Moments** in date order, ties broken by id, as today.

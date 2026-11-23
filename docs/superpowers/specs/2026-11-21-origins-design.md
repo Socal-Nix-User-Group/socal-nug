@@ -258,10 +258,10 @@ moment with both, a moment with neither, and an `event` that does not resolve to
   link between moments was rejected for the same reason the `met` pair list was: it is a
   hand-maintained edge list wearing a data file as a disguise.
 - A moment with one person is a root or a solo beat. A moment with several merges those threads.
-- An excursion needs no new syntax. A non-trunk moment dated after the trunk starts, naming
-  people already in the trunk, is an excursion by definition. Nix Camp in autumn 2023 is written
-  exactly like any other shared moment, and the engine works out that those threads must leave
-  the spine and come back.
+- A gathering away from the group needs no new syntax. A moment that is not a meetup, dated after
+  the group began and naming people already in it, is written like any other shared moment, and
+  is drawn as its own oval with those people's threads through it. Nix Camp in autumn 2023 is
+  one.
 - Every shared moment is stated exactly once, in one place, chronologically readable.
 
 One file rather than per-person files because `load_data` takes a single literal path and Tera has
@@ -342,8 +342,9 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
 - The toggle stays visible at all widths.
 - Map lives in an `overflow-x: auto` container, which gives native momentum panning on touch with
   no JavaScript. On desktop it needs a visible affordance; see "Left to the builder".
-- Switching projections animates by interpolating the shared point set between the two
-  projections, using the Web Animations API. No animation library.
+- Switching modes redraws the picture and nothing animates. The slide between modes went with
+  the Loom: an oval that is wide in one mode and tall in the other has nowhere sensible to slide
+  from. The reasoning is under "Drawing" in the Loom design.
 
 ### Cards and the popup
 
@@ -396,10 +397,11 @@ no number, and a person's first trunk moment need not be a meetup at all.
 ### Accessibility
 
 The picture is the accessible version of itself. Its SVG is a named group, every moment's oval and
-face is a `role="button"` with a label, and the braid is one tab stop with a roving tabindex: the arrow
-keys move a cursor through the story, Enter or Space opens that card, Escape closes it. Forward
-is Down or Right in both modes. Forty-six separate tab stops in the middle of a page is a wall to
-anyone tabbing past, which is the reason for the roving pattern rather than plain focusable dots.
+face is a `role="button"` with a label, and the braid is one tab stop with a roving tabindex: the
+arrow keys move a cursor through the story, Enter or Space opens that card, Escape closes it.
+Forward is Down or Right in both modes. Forty-six separate tab stops in the middle of a page is a
+wall to anyone tabbing past, which is the reason for the roving pattern rather than plain
+focusable dots.
 
 Labels say how many people were at a moment, not who. Eight names read out on every arrow press
 is a wall of its own, and the card names them for anyone who opens it.
@@ -460,8 +462,9 @@ Added to `checks/default.nix`:
 **On demand, not a check:** `nix run .#socal-nug-braid-browser` loads the page in headless
 Chromium and behaves like a visitor: it wheels past the map, drags a finger through it on a
 phone-sized screen, clicks and tabs into cards, switches modes, blocks the layout engine, and
-asks for the dark theme. Twenty-three assertions, each named for what a visitor would notice. It lives in `socal-nug-braid-js/browser/` and is typechecked by
-`braid-types`, which is what stops it rotting between uses.
+asks for the dark theme. Twenty-three assertions, each named for what a visitor would notice. It
+lives in `socal-nug-braid-js/browser/` and is typechecked by `braid-types`, which is what stops it
+rotting between uses.
 
 It is kept out of `nix flake check` on purpose. Everything it looks at is decided by `main.ts`,
 `origins.scss` and `origins.html`; no event, moment or profile can break any of it, so a
