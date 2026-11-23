@@ -69,8 +69,10 @@ export function loomGraphFor(story: Story, mode: Mode): LoomGraph {
 
   const port = (id: string, along: number, offset: number, side: string): ElkPort => ({
     id,
-    width: 1,
-    height: 1,
+    // No size: ELK attaches an edge to a sized port off its corner, which put
+    // every thread a pixel across from its slot.
+    width: 0,
+    height: 0,
     x: river ? offset : along,
     y: river ? along : offset,
     layoutOptions: { "elk.port.side": side },

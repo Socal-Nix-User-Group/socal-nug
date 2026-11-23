@@ -49,6 +49,18 @@ test("everyone through a moment has a port in and a port out, at their slot", ()
   assert.equal(node("founded").layoutOptions!["elk.portConstraints"], "FIXED_POS");
 });
 
+test("every port has no size, so ELK attaches an edge exactly where the port is", () => {
+  // a 1 by 1 port had its edge attached off its corner, a pixel across from
+  // the slot, and the thread stepped sideways inside every oval
+  for (const mode of ["river", "subway"] as const) {
+    for (const n of loomGraphFor(story, mode).graph.children) {
+      for (const p of n.ports ?? []) {
+        assert.deepEqual([p.width, p.height], [0, 0], `${mode} ${p.id}`);
+      }
+    }
+  }
+});
+
 test("a single slot sits in the middle of its moment", () => {
   assert.equal(node("rob-nix").ports![0].x, 9);
 });

@@ -138,6 +138,32 @@ test("a thread runs through every oval on its path, from its slot to its slot", 
   }
 });
 
+test("the piece of thread inside an oval runs straight along time, without stepping across", async () => {
+  for (const mode of ["river", "subway"] as const) {
+    const p = await placeLoom(story, mode, fakeLoomLayout);
+    const across = mode === "river" ? "x" : "y";
+    const slotEnds = new Set(
+      [...p.slots.values()].map((s) => `${s.x},${s.y}`),
+    );
+    let checked = 0;
+    for (const edge of p.edges) {
+      const n = edge.points.length;
+      for (const [end, next] of [[0, 1], [n - 1, n - 2]]) {
+        const point = edge.points[end];
+        if (!slotEnds.has(`${point.x},${point.y}`)) continue;
+        checked += 1;
+        assert.equal(
+          edge.points[next][across],
+          point[across],
+          `${mode} ${edge.meta.slug}: ${JSON.stringify(edge.points)}`,
+        );
+      }
+    }
+    // every hop has two slot ends but a face's first hop, which has one
+    assert.equal(checked, 2 * p.edges.length - story.threads.length, mode);
+  }
+});
+
 test("a label carries the text the layout made room for, anchored as its mode hangs it", async () => {
   const built = loomGraphFor(story, "river");
   const mapped = loomPlacedFrom(
