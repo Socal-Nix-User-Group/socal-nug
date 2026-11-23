@@ -107,6 +107,29 @@ test("trunk edges are asked to stay straight, hard enough to outweigh a busy lay
   }
 });
 
+test("a trunk edge tells the layout how thick it is drawn", () => {
+  // ELK routes a line as if it had no width. The spine is drawn many pixels
+  // wide and is then pulled onto one column, so unless the layout knows how
+  // much room the spine takes, the pull lands it on a neighbour's label.
+  const trunk = graph.edges.filter((e) => meta.get(e.id)?.kind === "trunk");
+  for (const e of trunk) {
+    const m = meta.get(e.id)!;
+    assert.equal(
+      e.layoutOptions!["elk.edge.thickness"],
+      String(m.kind === "trunk" ? m.width : -1),
+      e.id,
+    );
+  }
+});
+
+test("lines keep further from dots and labels than the snap can move the spine", () => {
+  // The snap moves the spine by up to about 12px. At 14px of clearance it
+  // slid under a detour's label in a third of simulated futures a year out
+  // and most of them four years out; at 20px, with the spine's thickness
+  // told to the layout, in none.
+  assert.ok(Number(graph.layoutOptions["elk.spacing.edgeNode"]) >= 20);
+});
+
 test("a trunk edge carries the width its segment draws at", () => {
   const widths = graph.edges
     .filter((e) => meta.get(e.id)?.kind === "trunk")

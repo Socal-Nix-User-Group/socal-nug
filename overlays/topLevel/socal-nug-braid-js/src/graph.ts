@@ -151,20 +151,24 @@ export function graphFor(braid: Braid, mode: Mode): BraidGraph {
 
   braid.trunk.forEach((segment, i) => {
     const id = `trunk:${i}`;
+    const width = trunkWidth(segment.joined, segment.away);
     edges.push({
       id,
       sources: [segment.from.moment.id],
       targets: [segment.to.moment.id],
-      // High enough to outweigh a layer crowded with detours. At 10 the
-      // spine held its column on today's data and wandered a hundred pixels
-      // off it on a simulated year or two of growth; at 1000 it stayed
-      // within a dozen.
-      layoutOptions: { "elk.layered.priority.straightness": "1000" },
+      layoutOptions: {
+        // High enough to outweigh a layer crowded with detours. At 10 the
+        // spine held its column on today's data and wandered a hundred
+        // pixels off it on a simulated year or two of growth; at 1000 it
+        // stayed within a dozen.
+        "elk.layered.priority.straightness": "1000",
+        // ELK routes a line as if it had no width. This one is drawn many
+        // pixels wide and gets wider with every person who joins, so the
+        // room it needs is said here rather than guessed in the spacing.
+        "elk.edge.thickness": String(width),
+      },
     });
-    meta.set(id, {
-      kind: "trunk",
-      width: trunkWidth(segment.joined, segment.away),
-    });
+    meta.set(id, { kind: "trunk", width });
   });
 
   braid.threads.forEach((thread, index) => {
@@ -239,7 +243,10 @@ export function graphFor(braid: Braid, mode: Mode): BraidGraph {
           ? "30"
           : "60",
         "elk.spacing.nodeNode": "28",
-        "elk.spacing.edgeNode": "14",
+        // More than the dozen pixels the trunk snap can move the spine by
+        // after ELK is done, so the snap has room. At 14 the snapped spine
+        // slid under detours' labels as the picture grew.
+        "elk.spacing.edgeNode": "20",
         "elk.spacing.edgeEdge": "10",
         "elk.spacing.labelNode": "12",
         "elk.padding": "[top=40,left=40,bottom=40,right=40]",
