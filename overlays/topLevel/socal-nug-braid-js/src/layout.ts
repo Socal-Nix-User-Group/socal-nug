@@ -117,10 +117,18 @@ export function buildBraid(
       : mine.filter((p) => indexOf.get(p.moment.id)! <= joined);
 
     const segments: ThreadSegment[] = [{ points: approach, kind: "approach" }];
+    // One trip per stretch between two meetups, calling at every detour in
+    // it this person was at, in date order. A person is in one place at a
+    // time: a loop out and back for each detour drew somebody at three of
+    // them as three lines leaving the same meetup.
+    const trips = new Map<string, PlacedMoment[]>();
     for (const excursion of excursions) {
-      if (excursion.leaves.includes(slug)) {
-        segments.push({ points: [excursion.moment], kind: "excursion" });
-      }
+      if (!excursion.leaves.includes(slug)) continue;
+      const stretch = excursion.from.moment.id;
+      trips.set(stretch, [...(trips.get(stretch) ?? []), excursion.moment]);
+    }
+    for (const points of trips.values()) {
+      segments.push({ points, kind: "excursion" });
     }
 
     threads.push({

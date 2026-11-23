@@ -283,8 +283,11 @@ positional in it:
 1. A non-trunk moment after the spine starts that names somebody already on it is a detour. Those
    people leave the trunk at the meetup before it and rejoin at the one after. Anyone else named
    there was there without being in the group yet: recorded, drawn, grants nothing.
-1. A person's thread is an approach (everything up to and including their join) plus one segment
-   per detour they left for. After joining they ride the trunk and are not drawn separately.
+1. A person's thread is an approach (everything up to and including their join) plus one trip
+   per stretch between two meetups in which they left for a detour. A trip calls at every detour
+   in that stretch the person was at, in date order: somebody at three of them is one line
+   through all three, not three loops from the same meetup. After joining they ride the trunk and
+   are not drawn separately.
 1. The trunk thickens by distinct people joined so far and thins by how many are away.
 
 **The placement** (`graph.ts`, `place.ts`) hands that to the Eclipse Layout Kernel's layered
@@ -292,10 +295,15 @@ algorithm and takes back coordinates:
 
 - Every moment is a node pinned to its own layer by date through ELK's partitioning, so the time
   axis is ours and not the layering's. ELK decides order within a layer and where lines go.
-- The trunk is a chain of edges with a straightness priority, which holds it to within a few
-  pixels of a column rather than dead straight.
+- The trunk is a chain of edges with a straightness priority of 1000, which holds ELK's own
+  spine to within about a dozen pixels of a column. `snapTrunk` in `place.ts` then pulls it the
+  rest of the way. That pull happens after ELK has routed everything, so ELK is made to leave
+  room for it: each trunk edge carries the thickness it is drawn at, and lines keep 20px clear
+  of dots and labels. All three numbers were set against simulated growth at the group's own
+  rate, not against today's data, which lays out cleanly at the old values too.
 - Each thread is one edge per hop, from a root node a layer ahead of the person's first moment,
-  where their face goes. A detour is two hops through its moment from the spine and back.
+  where their face goes. A trip leaves the spine at the meetup before it, hops from each of its
+  detours to the next, and returns at the meetup after.
 - Labels are handed to ELK as node labels, sized by their text. That is what makes it leave room
   for them: they become part of the node's margin, nothing else is placed there, and edges route
   around them.
@@ -441,9 +449,11 @@ Added to `checks/default.nix`:
   it, and measures the SVG: everything on the canvas, every person with a moment has a drawn
   segment and a placed face, every `joinsTrunkAt` resolves to a real moment, trunk thickness
   never decreases except across an excursion, no line through a face, no line through a dot its
-  person was not at, no label on either. Every other engine test runs on fixtures and fakes the
-  layout, so without this a plausible typo in the real data, or a layout ELK is happy with that
-  the renderer is not, ships with the whole suite green.
+  person was not at, no label on either, no label drawn wider than its room, and the trunk at
+  its drawn thickness clear of faces, of dots that are not meetups, and of labels. Every other
+  engine test runs on fixtures and fakes the layout, so without this a plausible typo in the
+  real data, or a layout ELK is happy with that the renderer is not, ships with the whole suite
+  green.
 
 ### Netlify interim
 

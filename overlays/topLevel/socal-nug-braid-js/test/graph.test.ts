@@ -248,3 +248,62 @@ test("nothing leaves a root but its own thread", () => {
     assert.ok(m.kind === "thread" && m.slug === thread.person.slug);
   }
 });
+
+// --- trips -------------------------------------------------------------------
+
+const hopsIn = (story: Moment[], slug: string) => {
+  const built = graphFor(buildBraid(story, PEOPLE), "river");
+  return built.graph.edges
+    .filter((e) => {
+      const m = built.meta.get(e.id)!;
+      return m.kind === "thread" && m.slug === slug;
+    })
+    .map((e) => `${e.sources[0]}>${e.targets[0]}`);
+};
+
+const BUSY: Moment[] = [
+  at("founded", "2023-01", ["daniel", "rob"], true),
+  at("vegas", "2023-03", ["rob"]),
+  at("camp", "2023-04", ["daniel", "rob"]),
+  at("conf", "2023-05", ["daniel", "rob"]),
+  at("nug", "2023-06", [], true),
+];
+
+test("a trip through several detours goes out, on from one to the next, and back", () => {
+  // One line per person. As a loop per detour this was six hops for Rob,
+  // three of them leaving the same meetup.
+  assert.deepEqual(hopsIn(BUSY, "rob"), [
+    "root:rob>founded",
+    "founded>vegas",
+    "vegas>camp",
+    "camp>conf",
+    "conf>nug",
+  ]);
+  assert.deepEqual(hopsIn(BUSY, "daniel"), [
+    "root:daniel>founded",
+    "founded>camp",
+    "camp>conf",
+    "conf>nug",
+  ]);
+});
+
+test("a trip after the last meetup goes on from detour to detour and does not come back", () => {
+  const open = BUSY.filter((m) => m.id !== "nug");
+  assert.deepEqual(hopsIn(open, "rob"), [
+    "root:rob>founded",
+    "founded>vegas",
+    "vegas>camp",
+    "camp>conf",
+  ]);
+});
+
+test("every hop of a trip is marked as a detour", () => {
+  const built = graphFor(buildBraid(BUSY, PEOPLE), "river");
+  const kinds = built.graph.edges
+    .filter((e) => e.id.startsWith("rob:") && e.sources[0] !== rootId("rob"))
+    .map((e) => {
+      const m = built.meta.get(e.id)!;
+      return m.kind === "thread" ? m.segment : "";
+    });
+  assert.deepEqual(kinds, ["excursion", "excursion", "excursion", "excursion"]);
+});

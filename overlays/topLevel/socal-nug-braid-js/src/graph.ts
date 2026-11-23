@@ -203,15 +203,21 @@ export function graphFor(braid: Braid, mode: Mode): BraidGraph {
 
     for (const segment of thread.segments) {
       if (segment.kind === "excursion") {
-        // Whoever is on a detour is already in the group, so it leaves the
-        // spine and returns to it, through its moment.
+        // Whoever is on a detour is already in the group, so the trip leaves
+        // the spine, calls at each of its moments in turn, and returns.
+        // Every moment of one trip lies between the same two meetups, so the
+        // first one's says where it leaves from and comes back to.
         const excursion = braid.excursions.find(
           (e) => e.moment.moment.id === segment.points[0].moment.id,
         );
         if (excursion === undefined) continue;
-        hop(excursion.from.moment.id, excursion.moment.moment.id, "excursion");
+        let previous = excursion.from.moment.id;
+        for (const point of segment.points) {
+          hop(previous, point.moment.id, "excursion");
+          previous = point.moment.id;
+        }
         if (excursion.to !== null) {
-          hop(excursion.moment.moment.id, excursion.to.moment.id, "excursion");
+          hop(previous, excursion.to.moment.id, "excursion");
         }
         continue;
       }

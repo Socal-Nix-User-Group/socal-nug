@@ -304,3 +304,39 @@ test("nobody is ever away who has not joined", () => {
     );
   }
 });
+
+// --- trips -------------------------------------------------------------------
+// One stretch between two meetups with three detours in it, and a later
+// stretch with one. Rob is at all four, Daniel at two, Tristan at one. The
+// real one is Nix Vegas, Nix Camp and NixCon between NUG #12 and NUG #13.
+const TRIPS: Braid = buildBraid(
+  [
+    at("founded", "2023-01", ["daniel", "rob", "tristan"], true),
+    at("vegas", "2023-03", ["rob", "tristan"]),
+    at("camp", "2023-04", ["daniel", "rob"]),
+    at("conf", "2023-05", ["daniel", "rob"]),
+    at("nug", "2023-06", [], true),
+    at("later", "2023-08", ["rob"]),
+    at("nug2", "2023-09", [], true),
+  ],
+  PEOPLE,
+);
+const tripsOf = (slug: string) =>
+  TRIPS.threads.find((t) => t.person.slug === slug)!.segments
+    .filter((s) => s.kind === "excursion")
+    .map((s) => s.points.map((p) => p.moment.id));
+
+test("detours between the same two meetups are one trip, in date order", () => {
+  // A person is in one place at a time. A loop out and back for each detour
+  // drew somebody at three of them as three lines leaving the same meetup.
+  assert.deepEqual(tripsOf("rob")[0], ["vegas", "camp", "conf"]);
+});
+
+test("a trip takes in only the detours that person was at", () => {
+  assert.deepEqual(tripsOf("daniel"), [["camp", "conf"]]);
+  assert.deepEqual(tripsOf("tristan"), [["vegas"]]);
+});
+
+test("detours either side of a meetup are separate trips", () => {
+  assert.deepEqual(tripsOf("rob"), [["vegas", "camp", "conf"], ["later"]]);
+});
