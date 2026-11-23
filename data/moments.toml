@@ -13,8 +13,9 @@
 # record says they were there. `away` takes their thread around the oval
 # instead of through it: the record says they were not. With neither, a
 # member's thread runs through the oval with no bead, which says only that
-# they were in the group then. Nobody can be recorded at a meetup before the
-# one they joined at, or away from the one they joined at.
+# they were in the group then, except at the meetup they joined at, where
+# they always have the gold bead. Nobody can be recorded at a meetup before
+# the one they joined at, or away from the one they joined at.
 #
 # `date` accepts YYYY, YYYY-MM or YYYY-MM-DD. Write the precision you actually
 # have; it is never padded, and the page displays what is written here.

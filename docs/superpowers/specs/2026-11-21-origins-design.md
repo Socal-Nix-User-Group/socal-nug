@@ -303,6 +303,9 @@ Kernel's layered algorithm and takes back coordinates:
   their first moment and then from moment to moment.
 - A hidden spine of edges between the ribbon's moments, which ELK is told to keep straight, holds
   the ribbon to one column. It is never placed or drawn.
+- The ribbon's people pass a side moment through an unseen pass-through node in its layer, at
+  their ribbon slots, so only the people the moment names leave the column. Why and what it costs
+  are under "Holding the ribbon to one column" in `2026-11-22-origins-loom-design.md`.
 - Labels are handed to ELK as node labels, sized by their text. That is what makes it leave room
   for them: they become part of the node's margin, nothing else is placed there, and edges route
   around them.

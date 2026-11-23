@@ -170,6 +170,11 @@ It produces, with nothing positional:
   nobody else's thread steps sideways because of it. Anyone through the moment who has not joined
   yet takes the slots after the members'. At a moment off the ribbon the slots are packed: a
   person's slot is their place among the people through it, in slot order.
+- **Who is passing it**: at a moment off the ribbon, the members of the group at its date who are
+  not through it, in slot order, each with their ribbon slot. Nobody is passing a moment on the
+  ribbon or a moment before there is a group, and a member recorded away from a meetup is not
+  passing it: a meetup is on the ribbon, and their thread goes around its oval. The graph gives
+  the people passing a side moment the pass-through under "Holding the ribbon to one column".
 
 Someone named at a conference before they have joined the group is through that moment and
 vouched for there, as they are drawn today. Someone who never joins has a thread through the
@@ -220,17 +225,21 @@ The validator (`verify_moments.py`) rejects, naming the record:
   `max(18, (n − 1) × slot + 2 × pad)`, with a slot of 7px and a pad of 8px; along the time axis
   it is 14px. One root node per person, a layer ahead of their first moment,
   where their face goes, as today. Labels are node labels, cut to their room with an ellipsis, as
-  today.
+  today. A side moment with anyone passing it also has a pass-through node, `pass:<moment id>`, in
+  its layer: as wide as the group's slots, with no label, and never drawn.
 - **Ports.** Each moment carries two ports per person through it: one on the side time comes
   from, one on the side it leaves by, at that person's slot, with
   `elk.portConstraints = FIXED_POS`. This is what keeps threads apart: without ports ELK
   attaches every edge at about the same point. Ports have no size: ELK attaches an edge to a
-  sized port off its corner, which put every thread a pixel across from its slot.
-- **Edges.** For each person, one edge from their root to their first moment, then one from
-  each moment's outgoing port to the next moment's incoming port, through their whole thread.
-  There are no trunk edges. A meetup someone is away from has no edge of theirs into it, so
-  their thread crosses that layer as a long edge and ELK routes it around the oval. The only
-  other edges are the hidden spine under "Holding the ribbon to one column".
+  sized port off its corner, which put every thread a pixel across from its slot. A pass-through
+  carries the same pair for each person passing, at their ribbon slot, and a spine pair.
+- **Edges.** For each person, one edge from their root to their first stop, then one from each
+  stop's outgoing port to the next stop's incoming port, through their whole thread. A stop is a
+  moment they are through or a pass-through they are passing, in date order. There are no trunk
+  edges. A meetup someone is away from has no edge of theirs into it, so their thread crosses
+  that layer as a long edge and ELK routes it around the oval. The only other edges are the
+  hidden spine under "Holding the ribbon to one column", which runs through every ribbon moment
+  and every pass-through in date order.
 - **Options.** The existing ones (layered, partitioning, network simplex, polyline routing,
   spacings) are the starting point. The trunk-only ones (edge thickness, the trunk's
   straightness priority, and the 20px edge-to-node spacing that existed to give the trunk snap
@@ -290,6 +299,22 @@ ribbon after the snap, the 1px assertion could not fail: the snap put every firs
 median by construction. It was deleted for that reason, so the check now measures what ELK
 returned. The edge-to-node spacing is 20 and the edge-to-edge spacing 7.
 
+The ribbon also swung out between its moments, which the measure above does not see. When a side
+moment (a camp, a conference, two people meeting) fell between two ribbon moments, the ribbon's
+threads stepped out around its oval and came back, including people who were not there: on
+today's data 19 of 162 hops between ribbon moments strayed more than a slot, by up to 143px in
+River and 90px in Subway. The cause, tested: ELK orders a side moment next to its attendees'
+threads, inside the ribbon, to avoid crossings, and every thread on the far side has to go around
+the oval. The labels were not the cause: dropping them left the same 19 hops straying. What holds
+it, as built, is a pass-through. In the layer of each side moment that falls while there is a
+group, the ribbon gets an unseen node as wide as the group, with an in-port and an out-port at the
+ribbon slot of each member who is not at the side moment and a spine port pair like a ribbon
+moment's. Those members' threads run straight through it, the spine runs through it between the
+ribbon moments either side, and only the people the moment names leave the column. It costs two
+things: the attendees' threads cross the others on the way out and back, and the graph has one
+more node per such side moment and one more edge for each person passing one. The ribbon measure
+counts pass-throughs as well as moments on the ribbon.
+
 ### Placement
 
 `loom-place.ts` keeps the seam: ELK's output becomes centres, label anchors and a polyline per
@@ -297,8 +322,11 @@ edge, and the layout is injected. It additionally carries, for each moment, its 
 can be drawn to size) and, for each person through it, where their slot is (so a bead can be
 drawn on it). Each polyline is carried on from the port on the oval's edge to the person's slot
 inside the oval, at both ends, so one person's edges meet inside the oval and the thread is
-unbroken. `centreLoomIn` and the per-mode cache in `main.ts` that makes a resize cheap work as
-`centreIn` and its cache did.
+unbroken. A pass-through is not a moment: it comes back under `passes`, keyed by the side moment's
+id, and has no centre, box or label among the moments'. Each person passing has a slot inside it,
+so their two edges meet there the same way. Every edge also says which node it leaves and
+which it arrives at (`from` and `to`), which the smoke check reads. `centreLoomIn` and the
+per-mode cache in `main.ts` that makes a resize cheap work as `centreIn` and its cache did.
 
 ### Drawing
 
@@ -342,9 +370,9 @@ like the toggle. Wording and styling are the builder's.
 ### Checks
 
 - **Unit tests** are rewritten around the new story model, the graph (nodes sized by people,
-  ports at slots, edges port to port, no edge into a meetup someone is away from), placement and
-  drawing. The tests for trunk segments, excursions, trips, trunk width and the trunk snap are
-  deleted with the code they cover.
+  ports at slots, edges port to port, no edge into a meetup someone is away from, a pass-through
+  for the people passing a side moment), placement and drawing. The tests for trunk segments,
+  excursions, trips, trunk width and the trunk snap are deleted with the code they cover.
 
 - **The smoke check** keeps running the real data through the real ELK in both modes and
   measuring the drawn picture. Its assertions become:
@@ -357,15 +385,23 @@ like the toggle. Wording and styling are the builder's.
   - every bead is inside its oval, and a person has a bead exactly where the record vouches for
     them;
   - nobody recorded as away from a meetup has a thread through its oval;
-  - the ribbon holds its column, in the form given above.
+  - the ribbon holds its column, in the form given above, pass-throughs counted with the moments
+    on the ribbon;
+  - no hop from one stop on the ribbon to the next (a ribbon moment or a pass-through, with no
+    ribbon moment between them) has a point more than a slot outside its two ends, across the
+    time axis. A hop that skips a ribbon moment is someone going around a meetup they are away
+    from or not yet part of, and is not measured;
+  - every side moment with anyone passing it has a pass-through, and every person has one edge
+    for each moment they are through and each pass-through they are passing.
 
   Every one of these is fatal on the real data. Decided by Daniel. The ones about layout
-  (overlaps, labels, the ribbon) fail with a message that says so in words an author can act on:
-  that the picture came out wrong for the data as it now stands, that nothing in their change is
-  mistaken, and that a maintainer needs to look at the layout. The rest (a bead with no record
-  behind it, a thread through an oval its person is recorded away from) cannot be caused by data
-  at all; they are faults in the engine and say that instead. Mistakes an author can make and
-  fix are the validator's to catch, before any of this runs.
+  (overlaps, labels, the ribbon, a thread stepping out of it) fail with a message that says so in
+  words an author can act on: that the picture came out wrong for the data as it now stands, that
+  nothing in their change is mistaken, and that a maintainer needs to look at the layout. The rest
+  (a bead with no record behind it, a thread through an oval its person is recorded away from, a
+  missing pass-through or edge) cannot be caused by data at all; they are faults in the engine and
+  say that instead. Mistakes an author can make and fix are the validator's to catch, before any
+  of this runs.
 
 - **Growth, in the smoke check.** Decided by Daniel. The check also lays out a small number of
   **synthetic histories generated in code from fixed seeds**, at about today's size, one year on
@@ -403,25 +439,6 @@ stays plain data.
 
 In no simulated future, out to four years, did a thread run through a moment or a face that was
 not its own, with no step after ELK. That is better than the trunk engine managed.
-
-## Known and not fixed
-
-Between two ribbon meetups, when a side moment (a camp, a conference, two people meeting) falls
-between them, the ribbon's threads step out around its oval and come back. On today's data 19 of
-162 hops between ribbon moments stray more than a slot, by up to about 143px in River and 90px in
-Subway. Nothing overlaps, and the ribbon measure above does not see it.
-
-The cause, tested: ELK orders the side moment next to its attendees' threads, inside the ribbon,
-to avoid crossings, and everything on the far side has to go around the oval and the room around
-it. The label is not the cause. Dropping the side moments' labels leaves the same 19 hops
-straying (worst 84px), and moving the labels to the far side changes nothing.
-
-A fix was prototyped outside the repository and is not built: an unseen pass-through node on the
-ribbon in each side moment's layer, which the people in the group who are not at the side moment
-run straight through. With it 1 of 162 hops strays today (a person not yet in the group going
-around a meetup, which is right) and 0 on six histories, the ribbon stays 0.0px off its column,
-there are no findings, and layout is no slower. It changes the look, because the attendees'
-threads cross the others on their way out and back, so it waits on Daniel's decision.
 
 ## What is deleted
 
