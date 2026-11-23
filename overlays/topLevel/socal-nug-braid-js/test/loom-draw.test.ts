@@ -80,20 +80,64 @@ test("each change of year is marked once, the opening year in the corner", () =>
   assert.equal(withClass(made, "origins-year-tick").length, 2);
 });
 
-test("every thread hop is a path that says whose it is", () => {
+/** The points a path's `d` passes through: its M points and the end of each C. */
+function anchors(d: string): Array<{ x: number; y: number; move: boolean }> {
+  const out: Array<{ x: number; y: number; move: boolean }> = [];
+  for (const part of d.match(/[MC][^MC]*/g) ?? []) {
+    const v = part.slice(1).trim().split(/[\s,]+/).map(Number);
+    if (part[0] === "M") out.push({ x: v[0], y: v[1], move: true });
+    else for (let i = 4; i < v.length; i += 6) out.push({ x: v[i], y: v[i + 1], move: false });
+  }
+  return out;
+}
+
+test("there is exactly one thread path per person, in thread order, that says whose it is", () => {
   const threads = withClass(made, "origins-thread");
-  assert.equal(threads.length, placed.edges.length);
+  assert.deepEqual(
+    threads.map((p) => p.attrs["data-person"]),
+    story.threads.map((t) => t.person.slug),
+  );
   threads.forEach((path, i) => {
-    const edge = placed.edges[i];
+    const meta = placed.edges.find((e) => e.meta.slug === story.threads[i].person.slug)!.meta;
     assert.equal(path.tag, "path");
-    assert.equal(path.attrs["data-person"], edge.meta.slug);
-    assert.equal(path.attrs["data-hue"], String(edge.meta.hue));
+    assert.equal(path.attrs["data-hue"], String(meta.hue));
     assert.equal(path.attrs.fill, "none");
-    assert.ok(path.attrs.d.startsWith("M"));
-    assert.ok(
-      path.attrs.class.split(" ").includes(edge.meta.member ? "is-member" : "is-guest"),
-    );
+    assert.ok(path.attrs.class.split(" ").includes(meta.member ? "is-member" : "is-guest"));
+    // every edge joins the next, so one subpath
+    assert.equal(path.attrs.d.match(/M/g)!.length, 1, meta.slug);
   });
+});
+
+test("a thread path starts at its person's face and passes through their slot at every moment on their path, in order", () => {
+  const near = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+    Math.abs(a.x - b.x) < 0.01 && Math.abs(a.y - b.y) < 0.01;
+  for (const thread of story.threads) {
+    const slug = thread.person.slug;
+    const path = withClass(made, "origins-thread").find((p) => p.attrs["data-person"] === slug)!;
+    const at = anchors(path.attrs.d);
+    assert.ok(near(at[0], placed.roots.get(slug)!), slug);
+    let from = 0;
+    for (const g of thread.path) {
+      const slot = placed.slots.get(slotKey(g.moment.id, slug))!;
+      const found = at.findIndex((p, i) => i >= from && near(p, slot));
+      assert.ok(found >= 0, `${slug} does not pass their slot at ${g.moment.id} in order`);
+      from = found + 1;
+    }
+  }
+});
+
+test("a person whose edges do not all join gets one path with a second M where the gap is", () => {
+  // Rob's fourth edge left out, as if the layout had not routed it.
+  const robs = placed.edges.filter((e) => e.meta.slug === "rob");
+  const gapped = { ...placed, edges: placed.edges.filter((e) => e !== robs[3]) };
+  const { doc, made: drawn } = stubDocument();
+  drawLoom(gapped, story, doc);
+  const rob = withClass(drawn, "origins-thread").filter((p) => p.attrs["data-person"] === "rob");
+  assert.equal(rob.length, 1);
+  const at = anchors(rob[0].attrs.d);
+  assert.equal(at.filter((p) => p.move).length, 2);
+  const second = at.findIndex((p, i) => i > 0 && p.move);
+  assert.deepEqual([at[second].x, at[second].y], [robs[4].points[0].x, robs[4].points[0].y]);
 });
 
 test("no path is a trunk and no ring is drawn", () => {
@@ -256,7 +300,7 @@ test("subway draws the same things turned", async () => {
   const node = withClass(subway.made, "origins-node").find((n) => n.attrs["data-moment"] === "founded")!;
   const oval = node.children.find((c) => c.attrs.class === "origins-oval")!;
   assert.deepEqual([Number(oval.attrs.rx), Number(oval.attrs.ry)], [7, 15]);
-  assert.equal(withClass(subway.made, "origins-thread").length, subway.placed.edges.length);
+  assert.equal(withClass(subway.made, "origins-thread").length, story.threads.length);
   assert.equal(
     withClass(subway.made, "origins-bead").length,
     withClass(made, "origins-bead").length,

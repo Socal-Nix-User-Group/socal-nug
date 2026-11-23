@@ -100,13 +100,32 @@ export function drawLoom(
   }
 
   // --- threads --------------------------------------------------------------
-  for (const edge of placed.edges) {
+  // One path per person, not per edge: two round-capped paths that meet in
+  // open space composite their anti-aliased edges twice and leave a seam. A
+  // person's edges share their ends, each ending at the slot the next starts
+  // from, so they join end to end; where one does not (an edge the layout
+  // left out), a new subpath starts.
+  for (const thread of story.threads) {
+    const edges = placed.edges.filter((e) => e.meta.slug === thread.person.slug);
+    if (edges.length === 0) continue;
+    const runs: Array<Array<readonly [number, number]>> = [];
+    for (const edge of edges) {
+      const points = edge.points.map((p) => [p.x, p.y] as const);
+      const run = runs.at(-1);
+      const end = run?.at(-1);
+      if (run !== undefined && end![0] === points[0][0] && end![1] === points[0][1]) {
+        run.push(...points.slice(1));
+      } else {
+        runs.push(points);
+      }
+    }
+    const meta = edges[0].meta;
     svg.appendChild(
       make(doc, "path", {
-        class: `origins-thread ${edge.meta.member ? "is-member" : "is-guest"}`,
-        "data-person": edge.meta.slug,
-        "data-hue": edge.meta.hue,
-        d: flow(edge.points.map((p) => [p.x, p.y] as const), along),
+        class: `origins-thread ${meta.member ? "is-member" : "is-guest"}`,
+        "data-person": meta.slug,
+        "data-hue": meta.hue,
+        d: runs.map((run) => flow(run, along)).join(" "),
         fill: "none",
       }),
     );
