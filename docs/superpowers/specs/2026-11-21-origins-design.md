@@ -273,45 +273,46 @@ group this size.
 
 ### The layout engine
 
-The engine is in two halves, and the seam between them is the most important line in it.
+The engine is in two halves, and the seam between them is the most important line in it. The
+reasoning for what is drawn now is in `2026-11-22-origins-loom-design.md`; this is what is built.
 
-**The story** (`layout.ts`) reads the moments and decides what the picture is made of, with nothing
-positional in it:
+**The story** (`src/story.ts`) reads the moments and decides what the picture is made of, with
+nothing positional in it beyond a person's slot across a moment:
 
 1. Moments are ordered by date, ties broken by id, so the same data always draws the same.
-1. A join comes only from a trunk moment naming you. Nothing is inferred from company kept.
-1. A non-trunk moment after the spine starts that names somebody already on it is a detour. Those
-   people leave the trunk at the meetup before it and rejoin at the one after. Anyone else named
-   there was there without being in the group yet: recorded, drawn, grants nothing.
-1. A person's thread is an approach (everything up to and including their join) plus one trip
-   per stretch between two meetups in which they left for a detour. A trip calls at every detour
-   in that stretch the person was at, in date order: somebody at three of them is one line
-   through all three, not three loops from the same meetup. After joining they ride the trunk and
-   are not drawn separately.
-1. The trunk thickens by distinct people joined so far and thins by how many are away.
+1. A join comes only from a meetup naming you. Nothing is inferred from company kept.
+1. Every person is one thread from their first moment on, through every moment they are through.
+   At a meetup that is everyone who has joined by then, less anyone the record says was away. At
+   any other moment it is the people it names.
+1. A moment is on the ribbon when it is a meetup, or when everyone in the group at its date is
+   through it. On the ribbon a person keeps a fixed slot, their rank in join order, with a gap
+   where a member is absent. Off it the people named are packed.
+1. A passage through a moment is vouched for where the record says so: at any moment that is not
+   a meetup, at the meetup a person joined at, and where a meetup's record lists them under
+   `there`. Attendance is never inferred.
 
-**The placement** (`graph.ts`, `place.ts`) hands that to the Eclipse Layout Kernel's layered
-algorithm and takes back coordinates:
+**The placement** (`src/loom-graph.ts`, `src/loom-place.ts`) hands that to the Eclipse Layout
+Kernel's layered algorithm and takes back coordinates:
 
 - Every moment is a node pinned to its own layer by date through ELK's partitioning, so the time
   axis is ours and not the layering's. ELK decides order within a layer and where lines go.
-- The trunk is a chain of edges with a straightness priority of 1000, which holds ELK's own
-  spine to within about a dozen pixels of a column. `snapTrunk` in `place.ts` then pulls it the
-  rest of the way. That pull happens after ELK has routed everything, so ELK is made to leave
-  room for it: each trunk edge carries the thickness it is drawn at, and lines keep 20px clear
-  of dots and labels. All three numbers were set against simulated growth at the group's own
-  rate, not against today's data, which lays out cleanly at the old values too.
-- Each thread is one edge per hop, from a root node a layer ahead of the person's first moment,
-  where their face goes. A trip leaves the spine at the meetup before it, hops from each of its
-  detours to the next, and returns at the meetup after.
+- A moment is as wide across the time axis as its slots, with an in-port and an out-port for each
+  person through it at fixed positions. A person's thread is one edge per hop, from their face to
+  their first moment and then from moment to moment.
+- A hidden spine of edges between the ribbon's moments, which ELK is told to keep straight, holds
+  the ribbon to one column. It is never placed or drawn.
 - Labels are handed to ELK as node labels, sized by their text. That is what makes it leave room
   for them: they become part of the node's margin, nothing else is placed there, and edges route
   around them.
 - River is direction DOWN with labels beside nodes; Subway is direction RIGHT with labels above.
-  The same graph, laid out twice. A switch slides each dot from where it was to where it is.
-- The layout is injected into `place.ts`: the page gives the real ELK, the smoke check gives the
-  same vendored copy, and the unit tests give a fake shaped like a layout. None of them runs ELK
-  to test the engine around it.
+  The same graph, laid out twice. Switching modes redraws the picture; nothing slides.
+- The layout is injected into `loom-place.ts`: the page gives the real ELK, the smoke check gives
+  the same vendored copy, and the unit tests give a fake shaped like a layout. None of them runs
+  ELK to test the engine around it.
+
+**The drawing** (`src/loom-draw.ts`) draws the threads, then an oval per moment over them with a
+partly opaque fill so the threads show through, then a bead on a person's slot where the record
+vouches for them, then faces and labels. There is no trunk, and there are no halo rings.
 
 **Why a library, and why this one.** The engine before this was a hand-written lane allocator in
 the style of `git log --graph`, and it was fixed one overlap at a time: labels on faces, lines
@@ -328,12 +329,10 @@ column. ELK's partitioning is the feature itself.
 **What it cost.** A 1.6 MB script the page loads before the engine, vendored under
 `static/js/vendor/` with its EPL-2.0 licence rather than fetched from a CDN, because the site is
 heading for self-hosting. Layout is asynchronous, so the picture appears a beat after the page.
-And the columns mean nothing any more: there is no one column per person, no before-and-after
-side of the spine. ELK puts things where crossings are fewest, and that was the trade.
 
-**What stayed.** Everything either side of the seam: the data model and its validator, the story
-half of the engine, faces, the card and popup, the toggle, the checks. The old allocator, its
-projections and its label sweep were deleted, not kept behind a flag.
+**What stayed.** Everything either side of the seam: the data model and its validator, faces, the
+card and popup, the toggle, the checks. The old allocator, its projections and its label sweep
+were deleted, not kept behind a flag. So was the trunk engine that followed it.
 
 ### Toggle and responsive behaviour
 
@@ -360,7 +359,9 @@ projections and its label sweep were deleted, not kept behind a flag.
   highlighting.
 - A person's card carries avatar, name, alias, description, membership badge, profile link and
   where they joined. A moment's card carries title, date, photo, blurb, who was there, and the
-  event page or outside link.
+  event page or outside link. A meetup's card says "Joined here:" and "Confirmed there:" in place
+  of who was there, because a thread through a meetup says only that its person was in the group
+  then.
 - **Why the rail went.** Once the lanes were wide enough to read, River needed every pixel of its
   width, and a 20rem column beside it was the first thing to give.
 - **What it cost.** The rail was the keyboard route to a person's card, and removing it made
@@ -394,8 +395,8 @@ no number, and a person's first trunk moment need not be a meetup at all.
 
 ### Accessibility
 
-The picture is the accessible version of itself. Its SVG is a named group, every dot and face is
-a `role="button"` with a label, and the braid is one tab stop with a roving tabindex: the arrow
+The picture is the accessible version of itself. Its SVG is a named group, every moment's oval and
+face is a `role="button"` with a label, and the braid is one tab stop with a roving tabindex: the arrow
 keys move a cursor through the story, Enter or Space opens that card, Escape closes it. Forward
 is Down or Right in both modes. Forty-six separate tab stops in the middle of a page is a wall to
 anyone tabbing past, which is the reason for the roving pattern rather than plain focusable dots.
@@ -433,9 +434,9 @@ oversight.
 Added to `checks/default.nix`:
 
 - `braid-engine`: esbuild-compiles the engine and its tests, runs `node --test`. Covers the story
-  half (order, joins, detours, trunk thickness), the graph handed to ELK, the mapping of its
-  output into positions, the drawing from those, cards, and popup placement. None of it runs ELK;
-  the placement tests use a fake shaped like a layout.
+  half (order, joins, who is through each moment, slots, what the record vouches for), the graph
+  handed to ELK, the mapping of its output into positions, the drawing from those, cards, and
+  popup placement. None of it runs ELK; the placement tests use a fake shaped like a layout.
 - `elk-vendored`: the committed `static/js/vendor/elk.bundled.js` is byte for byte the pinned
   upstream release, fetched by hash. The only way a vendored file stays honest about where it
   came from.
@@ -444,29 +445,30 @@ Added to `checks/default.nix`:
   `trunk = true`. An unresolved slug is the likely failure when someone adds themselves, so it
   must fail the build with the offending slug in the message.
 - `frontmatter` extends to the new required `member` field through `profiles.json`.
-- `braid-smoke`: builds the braid from the repository's own `data/moments.toml` and
+- `braid-smoke`: builds the story from the repository's own `data/moments.toml` and
   `content/events/`, not from fixtures, lays it out through the vendored ELK in both modes, draws
   it, and measures the SVG: everything on the canvas, every person with a moment has a drawn
-  segment and a placed face, every `joinsTrunkAt` resolves to a real moment, trunk thickness
-  never decreases except across an excursion, no line through a face, no line through a dot its
-  person was not at, no label on either, no label drawn wider than its room, and the trunk at
-  its drawn thickness clear of faces, of dots that are not meetups, and of labels. Every other
-  engine test runs on fixtures and fakes the layout, so without this a plausible typo in the
-  real data, or a layout ELK is happy with that the renderer is not, ships with the whole suite
-  green.
+  thread and a placed face, no thread, sampled along its drawn curve, inside an oval or a face
+  that is not its own, no label on a face or an oval, off the canvas, wider than its room or
+  under a thread, every bead inside its own oval and exactly where the record vouches, no thread
+  through the oval of a meetup its person is recorded away from, and the ribbon within 1px of one
+  column. It does the same for nine made-up histories generated from fixed seeds
+  (`smoke/histories.ts`). Every other engine test runs on fixtures and fakes the layout, so
+  without this a plausible typo in the real data, or a layout ELK is happy with that the renderer
+  is not, ships with the whole suite green. The reasoning is under "Checks" in the Loom design.
 
 **On demand, not a check:** `nix run .#socal-nug-braid-browser` loads the page in headless
 Chromium and behaves like a visitor: it wheels past the map, drags a finger through it on a
 phone-sized screen, clicks and tabs into cards, switches modes, blocks the layout engine, and
-asks for reduced motion and the dark theme. Twenty-five assertions, each named for what a
-visitor would notice. It lives in `socal-nug-braid-js/browser/` and is typechecked by
+asks for the dark theme. Twenty-three assertions, each named for what a visitor would notice. It lives in `socal-nug-braid-js/browser/` and is typechecked by
 `braid-types`, which is what stops it rotting between uses.
 
 It is kept out of `nix flake check` on purpose. Everything it looks at is decided by `main.ts`,
 `origins.scss` and `origins.html`; no event, moment or profile can break any of it, so a
 content change would pay for a 1.7 GiB Chromium and get nothing back but the chance of a false
 failure. It is run by whoever changes those three files, when they change them. Run against
-the page as it stood before the defects it was written from were fixed, it fails 17 of the 25.
+the page as it stood before the defects it was written from were fixed, it failed 17 of the 25
+it had then.
 
 ### Netlify interim
 
@@ -528,6 +530,7 @@ their permalink from the event and need nothing.
   story, Enter to open a card, Escape to close, focus back where it started.
 - Adding a new profile with `member = true` and a moment referencing it makes a new thread appear
   with no other edit.
-- A non-trunk moment dated after the trunk start renders as an excursion: the named threads leave
-  the spine, meet, and rejoin, and the trunk thins for that stretch. A participant with no prior
-  trunk moment arrives on their own lane and follows the others in.
+- A moment that is not a meetup, dated after the group began, draws the threads of the people it
+  names through its own oval, off the ribbon unless everyone in the group is named. A participant
+  with no prior meetup has a thread that starts at their first moment and runs in toward the
+  ribbon.

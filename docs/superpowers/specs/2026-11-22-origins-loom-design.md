@@ -1,6 +1,6 @@
 # Origins: the Loom
 
-Status: design, awaiting approval. Replaces the drawing and the story model described in
+Status: built. Replaces the drawing and the story model described in
 `2026-11-21-origins-design.md`; everything that document says about the page, the people, the
 data file, the cards, the roster and the toolchain still stands unless this one says otherwise.
 
@@ -105,7 +105,7 @@ the group then" and not as "attended".
   hand in `templates/origins.html`.
 - `tsc --strict` over `src/`, `test/`, `smoke/` and `browser/`.
 - `zola serve` does not watch `data/`.
-- The story half of the engine (`layout.ts`) holds nothing positional, and the layout is
+- The story half of the engine (`story.ts`) holds nothing positional, and the layout is
   injected into placement so tests can fake it. Both stay true.
 
 ## Approaches
@@ -143,7 +143,7 @@ revert away in the branch's history, as they did when the engine moved to ELK.
 
 ### The story model
 
-`layout.ts` stops producing trunk segments, excursions and approach-or-excursion thread segments.
+`story.ts` (it was `layout.ts`) stops producing trunk segments, excursions and approach-or-excursion thread segments.
 It produces, with nothing positional:
 
 - **Moments** in date order, ties broken by id, as today.
@@ -216,18 +216,20 @@ The validator (`verify_moments.py`) rejects, naming the record:
 - **Nodes.** One per moment, pinned to its own layer by date with ELK's partitioning, as today.
   A moment's size across the time axis is the number of slots it has, which is the people
   through it plus, on the ribbon, a gap for any member recorded away:
-  `max(18, (n − 1) × slot + 2 × pad)`, with a slot of about 7px and a pad of about 8px; along
-  the time axis it is about 14px. One root node per person, a layer ahead of their first moment,
+  `max(18, (n − 1) × slot + 2 × pad)`, with a slot of 7px and a pad of 8px; along the time axis
+  it is 14px. One root node per person, a layer ahead of their first moment,
   where their face goes, as today. Labels are node labels, cut to their room with an ellipsis, as
   today.
 - **Ports.** Each moment carries two ports per person through it: one on the side time comes
   from, one on the side it leaves by, at that person's slot, with
   `elk.portConstraints = FIXED_POS`. This is what keeps threads apart: without ports ELK
-  attaches every edge at about the same point.
+  attaches every edge at about the same point. Ports have no size: ELK attaches an edge to a
+  sized port off its corner, which put every thread a pixel across from its slot.
 - **Edges.** For each person, one edge from their root to their first moment, then one from
   each moment's outgoing port to the next moment's incoming port, through their whole thread.
   There are no trunk edges. A meetup someone is away from has no edge of theirs into it, so
-  their thread crosses that layer as a long edge and ELK routes it around the oval.
+  their thread crosses that layer as a long edge and ELK routes it around the oval. The only
+  other edges are the hidden spine under "Holding the ribbon to one column".
 - **Options.** The existing ones (layered, partitioning, network simplex, polyline routing,
   spacings) are the starting point. The trunk-only ones (edge thickness, the trunk's
   straightness priority, and the 20px edge-to-node spacing that existed to give the trunk snap
@@ -266,12 +268,34 @@ and the smoke check exists to see it.
 **If neither holds the ribbon on today's data and on the growth fixtures without overlaps, stop
 and bring it to Daniel.** Do not ship a jog, and do not drop the goal.
 
+What held it, as built. ELK's own options alone did not: with the graph as first built, the
+ribbon was off its column by up to 21px on the real data in both modes, by 76 to 441px in River
+and 45 to 186px in Subway on the made-up histories, and by 441px at worst (seed 2, two years on,
+River). A hidden spine does. Each on-ribbon moment has one more pair of ports, half a slot before
+its first slot, and an edge runs from each on-ribbon moment to the next between them with
+`elk.layered.priority.straightness = 1000`. The spine has no thread behind it and is not placed
+or drawn. With it the ribbon is 0.0px off its column on all twenty layouts the smoke check runs
+(the real data and nine histories: seeds 1 to 3, at today's size and one and two years on, each
+in River and Subway), and it also held on 108 further layouts out to four years on.
+
+Two things do not stand in for it. Giving the threads a straightness priority as well as the
+spine takes the spine's away and the ribbon jogs again, and with the spine's priority at 10
+instead of 1000 the ribbon was up to 150px off. `snapRibbon`, which runs after ELK and moves
+every on-ribbon moment to the median column with its ports, its label and its share of each
+edge, has moved nothing on any real layout once the spine is there, and only unit tests on a fake
+layout exercise it. Without the spine its moves ran to hundreds of pixels and put threads
+through ovals that were not theirs (131 findings over the twenty layouts), so it cannot be what
+holds the ribbon. The edge-to-node spacing is 20 and the edge-to-edge spacing 7.
+
 ### Placement
 
-`place.ts` keeps its seam: ELK's output becomes centres, label anchors and a polyline per edge,
-and the layout is injected. It additionally carries, for each moment, its box (so the oval can
-be drawn to size) and, for each person through it, where their slot is (so a bead can be drawn
-on it). `centreIn` and the cache that makes a resize cheap are unchanged.
+`loom-place.ts` keeps the seam: ELK's output becomes centres, label anchors and a polyline per
+edge, and the layout is injected. It additionally carries, for each moment, its box (so the oval
+can be drawn to size) and, for each person through it, where their slot is (so a bead can be
+drawn on it). Each polyline is carried on from the port on the oval's edge to the person's slot
+inside the oval, at both ends, so one person's edges meet inside the oval and the thread is
+unbroken. `centreLoomIn` and the per-mode cache in `main.ts` that makes a resize cheap work as
+`centreIn` and its cache did.
 
 ### Drawing
 
@@ -376,6 +400,25 @@ stays plain data.
 
 In no simulated future, out to four years, did a thread run through a moment or a face that was
 not its own, with no step after ELK. That is better than the trunk engine managed.
+
+## Known and not fixed
+
+Between two ribbon meetups, when a side moment (a camp, a conference, two people meeting) falls
+between them, the ribbon's threads step out around its oval and come back. On today's data 19 of
+162 hops between ribbon moments stray more than a slot, by up to about 143px in River and 90px in
+Subway. Nothing overlaps, and the ribbon measure above does not see it.
+
+The cause, tested: ELK orders the side moment next to its attendees' threads, inside the ribbon,
+to avoid crossings, and everything on the far side has to go around the oval and the room around
+it. The label is not the cause. Dropping the side moments' labels leaves the same 19 hops
+straying (worst 84px), and moving the labels to the far side changes nothing.
+
+A fix was prototyped outside the repository and is not built: an unseen pass-through node on the
+ribbon in each side moment's layer, which the people in the group who are not at the side moment
+run straight through. With it 1 of 162 hops strays today (a person not yet in the group going
+around a meetup, which is right) and 0 on six histories, the ribbon stays 0.0px off its column,
+there are no findings, and layout is no slower. It changes the look, because the attendees'
+threads cross the others on their way out and back, so it waits on Daniel's decision.
 
 ## What is deleted
 

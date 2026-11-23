@@ -19,7 +19,10 @@ nix flake check
 
 This builds the site, validates the front matter of event posts and member profiles against
 their JSON schemas, runs the build-output tests, checks that `netlify.toml` pins the same Zola
-version as the flake, and checks formatting. CI runs the same command. To fix formatting (Nix,
+version as the flake, and checks formatting. It also runs the Origins page's unit tests and lays
+the Origins picture out through the real layout engine, on the site's own data and on made-up
+histories, and measures it: threads, ovals, faces and labels must not overlap, and the ribbon of
+threads must hold one column. CI runs the same command. To fix formatting (Nix,
 shell scripts and repository Markdown; site content is never formatted):
 
 ```
