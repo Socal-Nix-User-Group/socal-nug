@@ -235,7 +235,11 @@ export function recorder(): { doc: DocumentLike; made: Recorded[] } {
   return { doc, made };
 }
 
-/** Points along a path's `d`. flow() emits one M followed by C commands. */
+/**
+ * Points along a path's `d`. flow() emits one M followed by C commands; a
+ * thread's `d` can hold several such runs back to back, each starting with
+ * its own M.
+ */
 export function sample(d: string): Array<readonly [number, number]> {
   const out: Array<readonly [number, number]> = [];
   let cur: readonly [number, number] = [0, 0];
