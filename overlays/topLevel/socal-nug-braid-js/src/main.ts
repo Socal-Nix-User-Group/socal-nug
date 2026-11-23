@@ -378,7 +378,11 @@ function boot(): void {
     if (event.key === "Escape") closePopup();
   });
 
-  void draw(mode, false);
+  draw(mode, false).then(hideFallback, (error: unknown) => {
+    // Leave the list standing. A layout that will not run should cost the
+    // drawing, not the history.
+    console.error("origins: could not lay out the braid", error);
+  });
 
   const buttons = document.getElementById("origins-toggle");
   if (buttons !== null) {
@@ -389,7 +393,10 @@ function boot(): void {
         if (next === mode) return;
         mode = next;
         writeMode(store, mode);
-        void draw(mode, true);
+        draw(mode, true).catch((error: unknown) => {
+          // The picture already on screen stays; only the switch is lost.
+          console.error("origins: could not switch mode", error);
+        });
         for (const other of buttons.querySelectorAll("[data-origins-mode]")) {
           other.setAttribute(
             "aria-pressed",
@@ -409,10 +416,16 @@ function boot(): void {
   // decoration. The picture now names its own dots and faces and opens the
   // same cards, and the cards carry the blurbs and links the list had, so
   // keeping the list in the accessibility tree only reads the whole history
-  // out twice. Without JavaScript none of this runs and the list is the page.
-  const fallback = document.getElementById("origins-fallback");
-  if (fallback !== null) {
-    fallback.hidden = true;
+  // out twice.
+  //
+  // It is still the page without JavaScript, and the page when the drawing
+  // fails, so it is hidden only once something has actually been drawn.
+  // Layout is asynchronous and runs in a 1.6 MB script that can fail to
+  // load: hiding the list before the first one resolves turns that failure
+  // into a blank page.
+  function hideFallback(): void {
+    const fallback = document.getElementById("origins-fallback");
+    if (fallback !== null) fallback.hidden = true;
   }
 }
 
