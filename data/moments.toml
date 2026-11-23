@@ -146,6 +146,7 @@ people = [
   "tristan-ross",
   "kyle-risse",
   "connor-baker",
+  "mica",
 ]
 blurb = "NixCon North America ran alongside SCaLE 21x, 14 to 17 March."
 links = [
@@ -174,6 +175,7 @@ people = [
   "kyle-risse",
   "connor-baker",
   "morgan-jones",
+  "mica",
 ]
 blurb = "PlanetNix ran alongside SCaLE 22x, 6 to 9 March."
 links = [
@@ -216,6 +218,7 @@ people = [
   "kyle-risse",
   "connor-baker",
   "morgan-jones",
+  "mica",
 ]
 blurb = "PlanetNix ran alongside SCaLE 23x, 5 to 8 March."
 links = [
