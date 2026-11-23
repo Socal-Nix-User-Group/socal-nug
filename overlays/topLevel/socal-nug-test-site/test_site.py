@@ -217,11 +217,16 @@ class SiteBuild(unittest.TestCase):
         self.assertEqual(len(ids), len(set(ids)), 'duplicate moment ids')
         self.assertNotIn('tristan-joins', ids)
 
-    def test_origins_has_a_fallback_list_in_the_source(self):
-        page, _ = self.origins_data()
-        self.assertIn('id="origins-fallback"', page)
-        self.assertIn('Joined the NixOS Discourse', page)
-        self.assertIn('NUG #1', page)
+    def test_origins_carries_its_history_as_data_not_as_a_second_copy(self):
+        # there was a rendered list beside the picture, as the no-script page
+        # and the accessible one. The picture names its own dots and faces
+        # now, so the list was a second copy of the same history to keep
+        # correct; the data block is the one source the page ships.
+        page, data = self.origins_data()
+        self.assertNotIn('origins-fallback', page)
+        titles = [m.get('title') for m in data['moments']]
+        self.assertIn('Joined the NixOS Discourse', titles)
+        self.assertIn('NUG #1', titles)
 
     def test_origins_ships_the_bundle_and_its_controls(self):
         page = (self.out / 'origins' / 'index.html').read_text()

@@ -452,19 +452,3 @@ html[data-theme=dark] .origins-layout {
     margin-bottom: 0.75rem;
 }
 
-// The ordered list the template emits is the page without JavaScript. The
-// script does not delete it; it moves it here, where it stays in the
-// accessibility tree. The braid's SVG is aria-hidden, so this is what a
-// screen reader gets either way.
-.is-visually-hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
-    padding: 0;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    clip-path: inset(50%);
-    white-space: nowrap;
-    border: 0;
-}

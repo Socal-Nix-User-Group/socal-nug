@@ -30,64 +30,8 @@
     moments open inside the map itself, beside whatever was clicked, so there
     is no rail beside it any more. -#}
 <div class="origins-layout">
-  {# The script replaces this with the drawing. Without the script it is the page. #}
+  {# The script fills this with the drawing. #}
   <div id="origins-braid" class="origins-braid"></div>
-</div>
-
-{#- Without the script this list is the page, and with the script it is what a
-    screen reader gets, since the generated SVG is aria-hidden. People are
-    named, not slugged, and a meetup says who joined there. -#}
-<div id="origins-fallback" class="origins-fallback content">
-  <h2 class="title is-4">Paths</h2>
-  <ol>
-    {%- for m in moments %}
-    {%- set anchored = m.event | default(value="") %}
-    {%- if anchored == "" %}
-    <li>
-      <time datetime="{{ m.date }}">{{ m.date }}</time> &mdash; {{ m.title }}
-      {#- No trim filter in this Tera, so carry a running separator. -#}
-      {%- set_global names = "" -%}
-      {%- set_global nsep = "" -%}
-      {%- for slug in m.people %}
-        {%- for p in about.pages %}
-          {%- if p.slug == slug -%}
-            {%- set_global names = names ~ nsep ~ p.extra.name -%}
-            {%- set_global nsep = ", " -%}
-          {%- endif -%}
-        {%- endfor %}
-      {%- endfor %}
-      {%- if names != "" %} ({{ names }}){% endif %}
-      {%- if m.blurb %} {{ m.blurb }}{% endif %}
-    </li>
-    {%- endif %}
-    {%- endfor %}
-  </ol>
-
-  <h2 class="title is-4">Meetups</h2>
-  <ol>
-    {%- for e in meetups %}
-    <li>
-      <time datetime="{{ e.extra.event.date }}">{{ e.extra.event.date }}</time>
-      &mdash; <a href="{{ e.permalink }}">{{ e.title }}</a>
-      {%- set_global joined = "" -%}
-      {%- set_global jsep = "" -%}
-      {%- for m in moments %}
-        {%- set anchored = m.event | default(value="") -%}
-        {%- if anchored == e.slug -%}
-          {%- for slug in m.people %}
-            {%- for p in about.pages %}
-              {%- if p.slug == slug -%}
-                {%- set_global joined = joined ~ jsep ~ p.extra.name -%}
-                {%- set_global jsep = ", " -%}
-              {%- endif -%}
-            {%- endfor %}
-          {%- endfor %}
-        {%- endif -%}
-      {%- endfor %}
-      {%- if joined != "" %} &mdash; {{ joined }} joined here{% endif %}
-    </li>
-    {%- endfor %}
-  </ol>
 </div>
 
 {#

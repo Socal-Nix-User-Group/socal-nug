@@ -118,9 +118,9 @@ layout engine" below.
 1. Build-time generation by a Python tool, in the manner of `socal-nug-make-event-ical`. Works
    without JavaScript, testable, zero new dependencies, but fixed geometry and no animation.
 1. **Client-side TypeScript.** Chosen, with the no-JavaScript cost accepted explicitly: without
-   JavaScript the page shows the fallback list described below and no picture. Chosen for the
-   interaction headroom, since a morph between projections, hover highlighting and popovers are
-   the point of the page feeling good.
+   JavaScript there is no picture. A rendered fallback list stood in for one at first and was
+   later removed; see Accessibility. Chosen for the interaction headroom, since a morph between
+   projections, hover highlighting and popovers are the point of the page feeling good.
 1. Pure Tera. Rejected. Lane assignment and label collision in a template language with no
    functions and no recursion is not worth attempting.
 
@@ -355,11 +355,9 @@ projections and its label sweep were deleted, not kept behind a flag.
   event page or outside link.
 - **Why the rail went.** Once the lanes were wide enough to read, River needed every pixel of its
   width, and a 20rem column beside it was the first thing to give.
-- **What it cost.** The rail was the keyboard route to a person's card: the SVG is
-  `aria-hidden="true"`, so nothing inside it is a tab stop. Removing it makes person cards
-  pointer-only, as moment cards already were. The visually hidden fallback list remains the
-  accessible version of the page. A keyboard route back into the cards, which means focusable
-  faces and moments and an SVG no longer hidden from assistive tech, is an open item.
+- **What it cost.** The rail was the keyboard route to a person's card, and removing it made
+  person cards pointer-only for a while, as moment cards already were. The roving tabindex under
+  Accessibility is what put a keyboard route back.
 
 ### Member and guest treatment
 
@@ -386,19 +384,27 @@ event titles was considered and rejected: the titles are not uniform (`NUG #1`,
 `NUG #14 @ Ten Mile Brewing`, `Mini NUG @ Legend Chicken Hawaiian Gardens`), two of twenty carry
 no number, and a person's first trunk moment need not be a meetup at all.
 
-### Fallback content and accessibility
+### Accessibility
 
-Tera emits the moments as an ordered list of date, title and participants. This is not a second
-layout engine and is not a picture. It exists so that the page source, link previews and scrapers
-contain the history rather than an empty element.
+The picture is the accessible version of itself. Its SVG is a named group, every dot and face is
+a `role="button"` with a label, and the braid is one tab stop with a roving tabindex: the arrow
+keys move a cursor through the story, Enter or Space opens that card, Escape closes it. Forward
+is Down or Right in both modes. Forty-six separate tab stops in the middle of a page is a wall to
+anyone tabbing past, which is the reason for the roving pattern rather than plain focusable dots.
 
-The script does not delete it. On boot the list moves into a visually hidden container that stays
-in the DOM and in the accessibility tree, and the generated SVG is marked `aria-hidden="true"`.
-A screen reader therefore gets the history as a list whether or not the script ran, and the SVG
-is never announced as a meaningless pile of shapes. Building this in up front is cheap;
-retrofitting it is not.
+Labels say how many people were at a moment, not who. Eight names read out on every arrow press
+is a wall of its own, and the card names them for anyone who opens it.
 
-`test_site.py` asserts the list is present in the built HTML.
+**There was a rendered fallback list**, emitted by Tera beside the picture: the page without
+JavaScript, and the accessible version while the SVG was `aria-hidden` decoration. It is gone.
+Once the picture named its own dots and faces and its cards carried the blurbs and links, the
+list was a second copy of the same history to keep correct, and a second thing for a screen
+reader to read. What goes with it: a reader with JavaScript off, or one whose browser fails to
+fetch the 1.6 MB layout engine, gets an empty element instead of a list of moments, and the page
+source carries the history only as the JSON data block. That was an accepted trade, not an
+oversight.
+
+`test_site.py` asserts the list is absent and that the data block carries the history instead.
 
 ### Build and toolchain
 
@@ -483,7 +489,9 @@ defined so that both themes work, following the dark mode work from #97.
 - `nix build .#socal-nug-site` produces `js/braid.js` and an `/origins/` page, and the page
   built this way matches the one from `netlify.toml`'s command on the same source.
 - The page renders in light and dark themes, in both projections, at desktop and phone widths.
-- With JavaScript disabled the page shows the fallback list and no empty region.
+- With JavaScript disabled the page shows no picture, by the trade recorded under Accessibility.
+- The braid is reachable and operable by keyboard alone: one Tab into it, arrows through the
+  story, Enter to open a card, Escape to close, focus back where it started.
 - Adding a new profile with `member = true` and a moment referencing it makes a new thread appear
   with no other edit.
 - A non-trunk moment dated after the trunk start renders as an excursion: the named threads leave

@@ -378,9 +378,7 @@ function boot(): void {
     if (event.key === "Escape") closePopup();
   });
 
-  draw(mode, false).then(hideFallback, (error: unknown) => {
-    // Leave the list standing. A layout that will not run should cost the
-    // drawing, not the history.
+  draw(mode, false).catch((error: unknown) => {
     console.error("origins: could not lay out the braid", error);
   });
 
@@ -410,22 +408,6 @@ function boot(): void {
       );
     }
     buttons.classList.remove("is-hidden");
-  }
-
-  // The list was the accessible version while the picture was aria-hidden
-  // decoration. The picture now names its own dots and faces and opens the
-  // same cards, and the cards carry the blurbs and links the list had, so
-  // keeping the list in the accessibility tree only reads the whole history
-  // out twice.
-  //
-  // It is still the page without JavaScript, and the page when the drawing
-  // fails, so it is hidden only once something has actually been drawn.
-  // Layout is asynchronous and runs in a 1.6 MB script that can fail to
-  // load: hiding the list before the first one resolves turns that failure
-  // into a blank page.
-  function hideFallback(): void {
-    const fallback = document.getElementById("origins-fallback");
-    if (fallback !== null) fallback.hidden = true;
   }
 }
 
