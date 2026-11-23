@@ -17,8 +17,8 @@ test("different seeds differ", () => {
 
 test("a history grows by six meetups and two people a year", () => {
   const count = (y: number) => parseData(history(1, y));
-  assert.equal(count(0).people.size, 9);
-  assert.equal(count(2).people.size, 13);
+  assert.equal(count(0).people.size, 10);
+  assert.equal(count(2).people.size, 14);
   assert.equal(count(0).moments.filter((m) => m.trunk).length, 21);
   assert.equal(count(2).moments.filter((m) => m.trunk).length, 33);
 });
@@ -47,6 +47,75 @@ test("it has a stretch where everyone is away in two parts", () => {
       );
     });
     assert.ok(found, `no such stretch with ${years} years`);
+  }
+});
+
+const every = [1, 2, 3].flatMap((seed) =>
+  [0, 1, 2].map((years) => {
+    const { people, moments } = parseData(history(seed, years));
+    return { name: `seed ${seed} +${years}y`, people, moments, story: buildStory(moments, people) };
+  })
+);
+
+test("every history records a few people there and away at meetups", () => {
+  for (const { name, moments } of every) {
+    const meetups = moments.filter((m) => m.trunk);
+    assert.ok(meetups.filter((m) => m.there !== undefined).length >= 3, name);
+    assert.ok(meetups.filter((m) => m.away !== undefined).length >= 3, name);
+  }
+});
+
+test("every history has a meetup the first person in slot order is away from", () => {
+  for (const { name, story } of every) {
+    assert.ok(
+      story.moments.some((g) => g.moment.trunk && (g.moment.away ?? []).includes(story.order[0])),
+      name,
+    );
+  }
+});
+
+test("every history has a meetup with no joiner that the whole group is away from", () => {
+  for (const { name, story } of every) {
+    assert.ok(
+      story.moments.some((g) =>
+        g.moment.trunk && g.moment.people.length === 0 && g.inGroup > 0 &&
+        g.through.length === 0 && g.moment.away?.length === g.inGroup
+      ),
+      name,
+    );
+  }
+});
+
+test("every history has one guest, who never joins and is at one or two moments that are not meetups", () => {
+  for (const { name, people, story } of every) {
+    const guests = [...people.values()].filter((p) => !p.member);
+    assert.equal(guests.length, 1, name);
+    const thread = story.threads.find((t) => t.person.slug === guests[0].slug)!;
+    assert.equal(thread.joinsTrunkAt, null, name);
+    assert.ok(thread.path.length === 1 || thread.path.length === 2, name);
+    assert.ok(thread.path.every((g) => !g.moment.trunk), name);
+  }
+});
+
+test("nobody is recorded there or away before the meetup they joined at, or away from it", () => {
+  for (const { name, story } of every) {
+    const index = new Map(story.moments.map((g, i) => [g.moment.id, i]));
+    const joined = new Map(
+      story.threads.flatMap((t) =>
+        t.joinsTrunkAt === null ? [] : [[t.person.slug, index.get(t.joinsTrunkAt)!] as const]
+      ),
+    );
+    story.moments.forEach((g, i) => {
+      const there = g.moment.there ?? [];
+      const away = g.moment.away ?? [];
+      for (const slug of there) {
+        assert.ok(joined.has(slug) && joined.get(slug)! <= i, `${name}: ${slug} there at ${g.moment.id}`);
+      }
+      for (const slug of away) {
+        assert.ok(joined.has(slug) && joined.get(slug)! < i, `${name}: ${slug} away at ${g.moment.id}`);
+        assert.ok(!there.includes(slug), `${name}: ${slug} both there and away at ${g.moment.id}`);
+      }
+    });
   }
 });
 

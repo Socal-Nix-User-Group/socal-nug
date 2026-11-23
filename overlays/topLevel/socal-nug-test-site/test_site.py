@@ -220,6 +220,35 @@ class SiteBuild(unittest.TestCase):
             self.assertIsInstance(m['there'], list, m['id'])
             self.assertIsInstance(m['away'], list, m['id'])
 
+    def test_an_attendance_record_merges_into_its_event_beside_its_joins(self):
+        # the data records no attendance yet, so a record is written into the
+        # copy for a meetup that already has two join records, and taken out
+        # again
+        moments = ROOT / 'data' / 'moments.toml'
+        original = moments.read_text()
+        moments.write_text(original + '\n[[moment]]\nid = "nug-3-roll"\nevent = "2023-09-19"\n'
+                           'there = ["daniel-baker"]\naway = ["rob-hernandez"]\n')
+        tmp = pathlib.Path(tempfile.mkdtemp(prefix='socal-nug-attendance-'))
+        try:
+            build(tmp)
+            page = (tmp / 'public' / 'origins' / 'index.html').read_text()
+        finally:
+            moments.write_text(original)
+            shutil.rmtree(tmp, ignore_errors=True)
+        blob = re.search(
+            r'<script type="application/json" id="origins-data">(.*?)</script>',
+            page, re.S)
+        data = json.loads(blob.group(1))
+        nug3 = next(m for m in data['moments'] if m['id'] == '2023-09-19')
+        self.assertEqual(nug3['there'], ['daniel-baker'])
+        self.assertEqual(nug3['away'], ['rob-hernandez'])
+        self.assertIn('tristan-ross', nug3['people'])
+        self.assertIn('kyle-risse', nug3['people'])
+        others = [m['id'] for m in data['moments']
+                  if m['id'] != '2023-09-19' and (m.get('there') or m.get('away'))]
+        self.assertEqual(others, [])
+        self.assertNotIn('nug-3-roll', [m['id'] for m in data['moments']])
+
     def test_a_dated_moment_is_not_duplicated_as_an_event(self):
         _, data = self.origins_data()
         ids = [m['id'] for m in data['moments']]

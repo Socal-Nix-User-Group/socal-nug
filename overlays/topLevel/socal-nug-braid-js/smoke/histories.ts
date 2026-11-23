@@ -31,6 +31,9 @@ interface RawMoment {
   title: string;
   people: string[];
   trunk: boolean;
+  /** On a meetup, as the page carries them: who the record says was there, and away. */
+  there?: string[];
+  away?: string[];
 }
 
 export function history(seed: number, years: number): unknown {
@@ -72,13 +75,17 @@ export function history(seed: number, years: number): unknown {
       title: `Meetup ${n}`,
       people: slugs.filter((_, i) => joinedAt[i] === n),
       trunk: true,
+      there: [],
+      away: [],
     });
   }
 
+  const contactMonth: number[] = [];
   slugs.forEach((slug, i) => {
+    contactMonth[i] = joinMonth(i) - 12 * pick(1, 4);
     moments.push({
       id: `contact-${slug}`,
-      date: month(joinMonth(i) - 12 * pick(1, 4)),
+      date: month(contactMonth[i]),
       title: `First contact ${slug}`,
       people: [slug],
       trunk: false,
@@ -135,6 +142,55 @@ export function history(seed: number, years: number): unknown {
       trunk: false,
     });
   });
+
+  // Attendance, drawn after everything above so that is as it was for a seed.
+  // Only someone who joined at an earlier meetup is recorded at one: nobody
+  // is there or away before the meetup they joined at, or away from it.
+  const meetup = (n: number) => moments.find((m) => m.id === `m${n}`)!;
+  const before = (n: number) => slugs.filter((_, i) => joinedAt[i] < n);
+  const taken = new Set<number>();
+  const free = (candidates: number[]) => {
+    const open = candidates.filter((n) => !taken.has(n));
+    const n = open[pick(0, open.length - 1)];
+    taken.add(n);
+    return n;
+  };
+  const all = Array.from({ length: meetups }, (_, k) => k + 1);
+
+  // A meetup with no joiner that the whole group is away from.
+  const empty = free(all.filter((n) => meetup(n).people.length === 0));
+  meetup(empty).away = before(empty);
+
+  // A meetup the first person in slot order is away from, which leaves its
+  // first slot empty. The founders come first, by their first moment, then
+  // by slug; a founder's first moment is their first contact.
+  const first = [0, 1, 2].sort((a, b) => contactMonth[a] - contactMonth[b] || a - b)[0];
+  meetup(free(all)).away = [slugs[first]];
+
+  // A few meetups with one person recorded there and another away.
+  for (let k = 0; k < 3; k += 1) {
+    const n = free(all);
+    const pool = before(n);
+    const away = pool[pick(0, pool.length - 1)];
+    const rest = pool.filter((slug) => slug !== away);
+    meetup(n).away = [away];
+    meetup(n).there = [rest[pick(0, rest.length - 1)]];
+  }
+
+  // A guest, who never joins, at one or two moments that are not meetups.
+  people.push({ slug: "g0", name: "Guest 0", alias: "@g0", member: false });
+  moments.find((m) => m.id === "stretch-1")!.people.push("g0");
+  if (next() < 0.5) {
+    const n = pick(1, meetups);
+    const pool = membersAt(n);
+    moments.push({
+      id: "guest-visit",
+      date: month(meetupMonth(n) + 1),
+      title: "Guest visit",
+      people: ["g0", pool[pick(0, pool.length - 1)]],
+      trunk: false,
+    });
+  }
 
   return { people, moments };
 }
