@@ -1,5 +1,5 @@
 import { formatFuzzyDate } from "./dates.ts";
-import type { Gathering } from "./story.ts";
+import type { Gathering, Story } from "./story.ts";
 import type { Braid, Person } from "./types.ts";
 
 /**
@@ -23,12 +23,12 @@ export interface FocusTarget {
 }
 
 /** Every focusable thing, in the order the story happened. */
-export function focusOrder(braid: Braid): readonly FocusTarget[] {
+export function focusOrder(story: Story): readonly FocusTarget[] {
   // A face belongs a step ahead of its person's first moment, which is where
   // it is drawn, so that is where it sits in the order too.
   const facesAt = new Map<string, string[]>();
-  for (const thread of braid.threads) {
-    const first = thread.segments[0]?.points[0];
+  for (const thread of story.threads) {
+    const first = thread.path[0];
     if (first === undefined) continue;
     const at = facesAt.get(first.moment.id) ?? [];
     at.push(thread.person.slug);
@@ -36,11 +36,11 @@ export function focusOrder(braid: Braid): readonly FocusTarget[] {
   }
 
   const order: FocusTarget[] = [];
-  for (const placed of braid.moments) {
-    for (const slug of facesAt.get(placed.moment.id) ?? []) {
+  for (const gathering of story.moments) {
+    for (const slug of facesAt.get(gathering.moment.id) ?? []) {
       order.push({ id: slug, kind: "person" });
     }
-    order.push({ id: placed.moment.id, kind: "moment" });
+    order.push({ id: gathering.moment.id, kind: "moment" });
   }
   return order;
 }

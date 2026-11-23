@@ -1,13 +1,13 @@
 import { detailFor, personCardFor, rosterFor } from "./cards.ts";
-import { drawPlaced } from "./draw.ts";
+import type { ElkGraph, Mode } from "./elk.ts";
 import { focusOrder, nextIndex } from "./focus.ts";
-import type { ElkGraph, Mode } from "./graph.ts";
-import { buildBraid } from "./layout.ts";
+import { drawLoom } from "./loom-draw.ts";
+import { centreLoomIn, placeLoom } from "./loom-place.ts";
+import type { LoomPlaced } from "./loom-place.ts";
 import { parseData } from "./parse.ts";
-import { centreIn, placeBraid } from "./place.ts";
-import type { Placed } from "./place.ts";
 import { placePopup } from "./popup.ts";
 import type { DocumentLike, ElementLike } from "./render.ts";
+import { buildStory } from "./story.ts";
 import { readMode, writeMode } from "./toggle.ts";
 import type { StorageLike } from "./toggle.ts";
 
@@ -48,7 +48,6 @@ interface PageElement extends ElementLike {
   contains(node: PageElement | null): boolean;
   closest(selector: string): PageElement | null;
   focus(options?: { preventScroll?: boolean }): void;
-  animate(frames: unknown[], options: unknown): void;
 }
 
 interface DomEvent {
@@ -74,7 +73,6 @@ declare const window: {
   addEventListener(type: string, listener: () => void): void;
   setTimeout(body: () => void, ms: number): number;
   clearTimeout(handle: number): void;
-  matchMedia(query: string): { readonly matches: boolean };
 } | undefined;
 declare const console: { error(...args: unknown[]): void };
 
@@ -83,8 +81,6 @@ declare const ELK: new () => {
   layout(graph: ElkGraph): Promise<ElkGraph>;
 };
 
-/** How long the dots take to slide between the two layouts. */
-const MORPH_MS = 420;
 /** How long a window drag has to stop before the picture is redrawn. */
 const RESIZE_SETTLE_MS = 150;
 
@@ -94,12 +90,6 @@ function storage(): StorageLike | null {
   } catch {
     return null;
   }
-}
-
-/** Whether the reader has asked their system for less motion. */
-function wantsStill(): boolean {
-  return window !== undefined &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 /**
@@ -127,10 +117,9 @@ function boot(): void {
   }
 
   const cast = data.people;
-  const braid = buildBraid(data.moments, cast);
+  const story = buildStory(data.moments, cast);
   const store = storage();
   let mode: Mode = readMode(store);
-  let previous: ReadonlyMap<string, { x: number; y: number }> = new Map();
   // Made on first use, inside the drawing, not here. The engine is a second
   // script and can fail to arrive; reaching for it at boot threw before the
   // roster was built, so a missing picture took the people with it.
@@ -143,7 +132,7 @@ function boot(): void {
    * re-centres one of these rather than running the engine again, and a
    * second visit to a mode is instant.
    */
-  const laidOut = new Map<Mode, Placed>();
+  const laidOut = new Map<Mode, LoomPlaced>();
   let shownAt = 0;
 
   // The one card, opened beside whatever was clicked. It lives inside the
@@ -155,7 +144,7 @@ function boot(): void {
   /** What opened the card, so focus can go back to it when the card closes. */
   let openedBy: PageElement | null = null;
 
-  async function draw(next: Mode, animate: boolean): Promise<void> {
+  async function draw(next: Mode): Promise<void> {
     // Layout is asynchronous and a reader can switch modes faster than ELK
     // lays out, so a drawing that was overtaken is dropped rather than
     // landing on top of the newer one.
@@ -168,8 +157,8 @@ function boot(): void {
     document.getElementById("origins-layout")?.setAttribute("data-mode", next);
     let bare = laidOut.get(next);
     if (bare === undefined) {
-      bare = await placeBraid(
-        braid,
+      bare = await placeLoom(
+        story,
         next,
         (graph) => (elk ??= new ELK()).layout(graph),
       );
@@ -178,31 +167,9 @@ function boot(): void {
     }
 
     shownAt = mount!.clientWidth;
-    const placed = centreIn(bare, shownAt);
-    mount!.replaceChildren(drawPlaced(placed, braid, document), popup);
+    const placed = centreLoomIn(bare, shownAt);
+    mount!.replaceChildren(drawLoom(placed, story, document), popup);
 
-    const now = placed.moments;
-    if (animate && !wantsStill()) {
-      // The two layouts place the same dots, so a switch slides each from
-      // where it was to where it is. Transforms animate reliably; `d` does not.
-      for (const node of mount!.querySelectorAll("[data-moment]")) {
-        const id = node.dataset.moment;
-        const from = id === undefined ? undefined : previous.get(id);
-        const to = id === undefined ? undefined : now.get(id);
-        if (from === undefined || to === undefined) continue;
-        node.animate(
-          [
-            {
-              transform:
-                `translate(${from.x - to.x}px, ${from.y - to.y}px)`,
-            },
-            { transform: "none" },
-          ],
-          { duration: MORPH_MS, easing: "ease-in-out" },
-        );
-      }
-    }
-    previous = now;
     // The old nodes went with replaceChildren, so the card has nothing left to
     // point at.
     closePopup();
@@ -305,9 +272,9 @@ function boot(): void {
     byKeyboard = false,
   ): void {
     if (id === undefined) return;
-    const placed = braid.moments.find((m) => m.moment.id === id);
-    if (placed === undefined) return;
-    openPopup(anchor, detailFor(placed, cast, document), byKeyboard);
+    const gathering = story.moments.find((m) => m.moment.id === id);
+    if (gathering === undefined) return;
+    openPopup(anchor, detailFor(gathering, cast, document), byKeyboard);
     markOpen(id);
   }
 
@@ -317,9 +284,9 @@ function boot(): void {
     byKeyboard = false,
   ): void {
     if (slug === undefined) return;
-    const thread = braid.threads.find((t) => t.person.slug === slug);
+    const thread = story.threads.find((t) => t.person.slug === slug);
     if (thread === undefined) return;
-    openPopup(anchor, personCardFor(thread, braid, document), byKeyboard);
+    openPopup(anchor, personCardFor(thread, story, document), byKeyboard);
     markOpen(undefined);
   }
 
@@ -328,7 +295,7 @@ function boot(): void {
   // story, and only the target under it is tabbable, so tabbing past the
   // braid takes one press rather than forty-six.
 
-  const order = focusOrder(braid);
+  const order = focusOrder(story);
   let cursor = 0;
 
   const elementAt = (index: number): PageElement | null => {
@@ -402,14 +369,14 @@ function boot(): void {
       });
     }
 
-    // Hovering a moment lights the threads of everyone who was there; clicking
+    // Hovering a moment lights the threads of everyone through it; clicking
     // it opens the card. Hover is for "who was in this", click is for "tell me
     // about it", which is the part worth dwelling on.
     for (const node of mount!.querySelectorAll("[data-moment]")) {
       const id = node.dataset.moment;
-      const placed = braid.moments.find((m) => m.moment.id === id);
-      if (placed === undefined) continue;
-      const who = placed.moment.people;
+      const gathering = story.moments.find((m) => m.moment.id === id);
+      if (gathering === undefined) continue;
+      const who = gathering.through.map((p) => p.slug);
       node.addEventListener("pointerenter", (e) => {
         if (!hovers(e)) return;
         for (const slug of who) highlight(slug, true);
@@ -444,7 +411,7 @@ function boot(): void {
   });
 
   if (roster !== null) {
-    roster.replaceChildren(rosterFor(braid, document));
+    roster.replaceChildren(rosterFor(story, document));
     for (const card of roster.querySelectorAll("[data-person]")) {
       for (
         const [type, on] of [
@@ -472,7 +439,7 @@ function boot(): void {
       window.clearTimeout(settling);
       settling = window.setTimeout(() => {
         if (mount!.clientWidth === shownAt) return;
-        void draw(mode, false);
+        void draw(mode);
       }, RESIZE_SETTLE_MS);
     });
   }
@@ -497,7 +464,7 @@ function boot(): void {
         if (next === mode) return;
         mode = next;
         writeMode(store, mode);
-        draw(mode, true).catch((error: unknown) => {
+        draw(mode).catch((error: unknown) => {
           // The picture already on screen stays; only the switch is lost.
           console.error("origins: could not switch mode", error);
         });
@@ -507,10 +474,19 @@ function boot(): void {
     showMode();
   }
 
-  draw(mode, false).then(() => {
+  draw(mode).then(() => {
     // Shown once there is a picture to switch, so a reader whose layout
-    // engine never arrived is not offered a control that does nothing.
+    // engine never arrived is not offered a control that does nothing. The
+    // legend goes with it: it explains marks that are not there without one.
     buttons?.classList.remove("is-hidden");
+    document.getElementById("origins-legend")?.classList.remove("is-hidden");
+    // The mark for "the record says they were not there" only when the
+    // record says that of someone.
+    if (story.moments.some((g) => (g.moment.away ?? []).length > 0)) {
+      document.getElementById("origins-legend-away")?.classList.remove(
+        "is-hidden",
+      );
+    }
   }).catch((error: unknown) => {
     console.error("origins: could not lay out the braid", error);
     // Say so in the box. The roster beside it still lists everyone; an

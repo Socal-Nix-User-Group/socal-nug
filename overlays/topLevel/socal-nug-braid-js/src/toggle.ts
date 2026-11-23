@@ -1,4 +1,4 @@
-import type { Mode } from "./graph.ts";
+import type { Mode } from "./elk.ts";
 
 /** The slice of `localStorage` this uses. Private browsing throws on both. */
 export interface StorageLike {

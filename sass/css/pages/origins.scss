@@ -6,7 +6,9 @@
 // does the identifying instead, because forty distinguishable hues do not
 // exist.
 
-.origins-layout {
+// The legend sits above the map, outside .origins-layout, and draws with the
+// same palette, so the palette is a mixin both include.
+@mixin origins-light-palette {
     --origins-trunk: #5277c3;
     --origins-muted: #8a8f98;
     --origins-ink: #1f2430;
@@ -25,6 +27,13 @@
     --origins-hue-9: #2f9c8f;
     --origins-hue-10: #a85ba8;
     --origins-hue-11: #8a7a3c;
+
+    // Where someone joined. Gold in both themes, and no person's palette slot.
+    --origins-join: #e3a008;
+}
+
+.origins-layout {
+    @include origins-light-palette;
 
     // The map scrolls inside its own box, so without this its edge sits hard
     // against whatever follows it down the page.
@@ -125,6 +134,20 @@ html[data-theme=dark] .origins-layout {
     @include origins-dark-palette;
 }
 
+.origins-legend {
+    @include origins-light-palette;
+}
+
+@media (prefers-color-scheme: dark) {
+    html:not([data-theme=light]) .origins-legend {
+        @include origins-dark-palette;
+    }
+}
+
+html[data-theme=dark] .origins-legend {
+    @include origins-dark-palette;
+}
+
 // Palette slots. -1 is the muted slot the renderer falls back to.
 @for $i from 0 through 11 {
     [data-hue="#{$i}"] {
@@ -192,11 +215,6 @@ html[data-theme=dark] .origins-layout {
     max-width: 100%;
 }
 
-.origins-trunk {
-    stroke: var(--origins-trunk);
-    stroke-linecap: round;
-}
-
 .origins-thread {
     stroke: var(--origins-thread, var(--origins-muted));
     stroke-width: 3;
@@ -210,56 +228,49 @@ html[data-theme=dark] .origins-layout {
         stroke-width: 2;
         stroke-dasharray: 5 5;
     }
-
-    &.is-excursion {
-        stroke-dasharray: 2 6;
-    }
-}
-
-// A gap cut in the spine behind each of its dots, in the page's own colour,
-// so a thick spine does not swallow them. Sized to leave a ring showing
-// around the dot: hovering grows the dot into that ring, which is what makes
-// the hover obvious on a line this heavy.
-.origins-node-halo {
-    fill: var(--bulma-scheme-main, #fff);
-    pointer-events: none;
 }
 
 .origins-node {
-    fill: var(--origins-trunk);
     cursor: pointer;
-    transition: r 0.12s ease;
+}
 
-    // `r` is a geometry property, so the dot can grow on hover and the
-    // transition above has something to animate.
-    &.is-trunk:hover,
-    &.is-trunk.is-open {
-        r: 9.5px;
+// Drawn over the threads in the page's own colour, partly opaque, so the
+// threads through a moment show through its oval.
+.origins-oval {
+    fill: var(--bulma-scheme-main, #fff);
+    fill-opacity: 0.6;
+    stroke: var(--origins-muted);
+    stroke-width: 1.5;
+    transition: stroke-width 0.12s ease;
+}
+
+// Before :hover and .is-open, which are no more specific than this and have
+// to win over it.
+.origins-node.is-trunk .origins-oval {
+    stroke: var(--origins-trunk);
+}
+
+.origins-node:hover .origins-oval,
+.origins-node.is-open .origins-oval {
+    stroke: var(--origins-ink);
+    stroke-width: 3;
+}
+
+// A little larger than the oval, so a thin one is still easy to hit.
+.origins-node-hit {
+    fill: transparent;
+    pointer-events: all;
+}
+
+// Where the record vouches for someone. Decoration for pointer purposes: the
+// oval under it is what a reader aims at.
+.origins-bead {
+    fill: var(--origins-thread, var(--origins-muted));
+    pointer-events: none;
+
+    &.is-join {
+        fill: var(--origins-join);
     }
-
-    // A bigger invisible hit area than the dot, so a 4.5 unit node is still
-    // clickable.
-    stroke: rgba(0, 0, 0, 0);
-    stroke-width: 14;
-    paint-order: stroke;
-
-    // Before :hover and .is-open, which are no more specific than this. After
-    // them it won, and a side dot stayed grey under the pointer and while its
-    // card was open.
-    &.is-side {
-        fill: var(--origins-muted);
-    }
-
-    &:hover {
-        fill: var(--origins-ink);
-    }
-
-    &.is-open {
-        fill: var(--origins-ink);
-        stroke: var(--origins-ink);
-        stroke-width: 3;
-    }
-
 }
 
 .origins-label {
@@ -289,10 +300,9 @@ html[data-theme=dark] .origins-layout {
     pointer-events: none;
 }
 
-// Threads and the trunk are decoration for pointer purposes; the nodes and
-// the root avatars are what a reader aims at.
-.origins-thread,
-.origins-trunk {
+// Threads are decoration for pointer purposes; the ovals and the root
+// avatars are what a reader aims at.
+.origins-thread {
     pointer-events: none;
 }
 
@@ -558,5 +568,39 @@ html[data-theme=dark] .origins-layout {
 
 .origins-toggle {
     margin-bottom: 0.75rem;
+}
+
+// One line under the toggle, wrapping on a phone.
+.origins-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.72rem;
+    opacity: 0.85;
+}
+
+.origins-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.origins-legend-mark {
+    flex: none;
+}
+
+.origins-legend-thread {
+    fill: none;
+    stroke: var(--origins-thread, var(--origins-muted));
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+.origins-legend-oval {
+    fill: var(--bulma-scheme-main, #fff);
+    fill-opacity: 0.6;
+    stroke: var(--origins-trunk);
+    stroke-width: 1.5;
 }
 

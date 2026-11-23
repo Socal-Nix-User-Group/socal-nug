@@ -278,6 +278,14 @@ class SiteBuild(unittest.TestCase):
         toggle = page.split('id="origins-toggle"')[1].split('>')[0]
         self.assertIn('is-hidden', toggle)
 
+    def test_origins_has_a_legend_hidden_until_the_script_runs(self):
+        # it explains marks a reader without the picture never sees, and
+        # the mark for an absence only once the record has one
+        page = (self.out / 'origins' / 'index.html').read_text()
+        for element in ('origins-legend', 'origins-legend-away'):
+            tag = page.split(f'id="{element}"')[1].split('>')[0]
+            self.assertIn('is-hidden', tag, element)
+
     def test_origins_palette_follows_the_three_state_theme(self):
         self.assertIn(
             '@media (prefers-color-scheme: dark){html:not([data-theme=light]) '

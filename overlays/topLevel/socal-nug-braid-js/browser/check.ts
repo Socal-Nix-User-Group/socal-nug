@@ -273,22 +273,22 @@ async function run(): Promise<void> {
 
   await load("river");
   {
-    const fill = `getComputedStyle(document.querySelector(${JSON.stringify(SIDE_DOT)})).fill`;
+    const stroke = `getComputedStyle(document.querySelector(${JSON.stringify(`${SIDE_DOT} .origins-oval`)})).stroke`;
     const dot = await centreOf(SIDE_DOT);
     await tab.move(5, 5);
     await sleep(200);
-    const rest = await tab.evaluate<string>(fill);
+    const rest = await tab.evaluate<string>(stroke);
     await tab.move(dot.x, dot.y);
     check(
-      await tab.waitFor(`${fill} !== ${JSON.stringify(rest)}`),
+      await tab.waitFor(`${stroke} !== ${JSON.stringify(rest)}`),
       "a side dot changes when the pointer is over it",
-      { rest, hover: await tab.evaluate(fill) },
+      { rest, hover: await tab.evaluate(stroke) },
     );
     await tab.click(dot.x, dot.y);
     await tab.waitFor(popupOpen);
     await tab.move(5, 5);
     await sleep(300);
-    const open = await tab.evaluate<string>(fill);
+    const open = await tab.evaluate<string>(stroke);
     check(open !== rest, "a side dot is filled in while its card is open", {
       rest,
       open,
@@ -362,43 +362,6 @@ async function run(): Promise<void> {
     );
     await tab.send("Network.setBlockedURLs", { urls: [] });
     await tab.send("Network.setCacheDisabled", { cacheDisabled: false });
-  }
-
-  // --- reduced motion -----------------------------------------------------------------
-
-  /** Switch to Subway with its layout already made, and count dots in flight. */
-  async function slidingAfterSwitch(): Promise<number> {
-    await load("river");
-    const there = await centreOf(`[data-origins-mode="subway"]`);
-    const back = await centreOf(`[data-origins-mode="river"]`);
-    const shows = (mode: string) =>
-      tab.waitFor(`document.querySelector("#origins-braid svg.is-${mode}") !== null`, 15_000);
-    // once each way first, so the switch that is measured has no layout to wait for
-    await tab.click(there.x, there.y);
-    await shows("subway");
-    await tab.click(back.x, back.y);
-    await shows("river");
-    await tab.click(there.x, there.y);
-    await shows("subway");
-    return tab.evaluate(
-      `document.getAnimations().filter((a) => a.constructor.name === "Animation" && a.effect && a.effect.target && a.effect.target.matches("[data-moment]")).length`,
-    );
-  }
-  {
-    const motion = (value: string) =>
-      tab.send("Emulation.setEmulatedMedia", {
-        features: value === "" ? [] : [{ name: "prefers-reduced-motion", value }],
-      });
-    await motion("reduce");
-    const reduced = await slidingAfterSwitch();
-    check(
-      reduced === 0,
-      "with reduced motion asked for, switching modes slides nothing",
-      { slidingDots: reduced },
-    );
-    await motion("");
-    const usual = await slidingAfterSwitch();
-    check(usual > 0, "without it, the dots still slide", { slidingDots: usual });
   }
 
   // --- touch, the dark theme, and a mouse ------------------------------------------------

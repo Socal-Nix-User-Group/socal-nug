@@ -1,7 +1,8 @@
 import { formatFuzzyDate } from "./dates.ts";
 import { hueFor } from "./palette.ts";
 import type { DocumentLike, ElementLike } from "./render.ts";
-import type { Braid, Person, PlacedMoment, Thread } from "./types.ts";
+import type { Gathering, Story, Thread } from "./story.ts";
+import type { Person } from "./types.ts";
 
 const XHTML = "http://www.w3.org/1999/xhtml";
 
@@ -17,18 +18,18 @@ export interface JoinLine {
  */
 export function joinLineFor(
   thread: Thread,
-  moments: readonly PlacedMoment[],
+  moments: readonly Gathering[],
 ): JoinLine | null {
   if (thread.joinsTrunkAt === null) {
     return null;
   }
-  const placed = moments.find((m) => m.moment.id === thread.joinsTrunkAt);
-  if (placed === undefined) {
+  const gathering = moments.find((m) => m.moment.id === thread.joinsTrunkAt);
+  if (gathering === undefined) {
     return null;
   }
   return {
-    title: placed.moment.title,
-    date: formatFuzzyDate(placed.moment.date),
+    title: gathering.moment.title,
+    date: formatFuzzyDate(gathering.moment.date),
   };
 }
 
@@ -57,11 +58,11 @@ function el(
  * there instead.
  */
 export function detailFor(
-  placed: PlacedMoment,
+  gathering: Gathering,
   people: ReadonlyMap<string, Person>,
   doc: DocumentLike,
 ): ElementLike {
-  const moment = placed.moment;
+  const moment = gathering.moment;
   const card = el(doc, "div", {
     class: "origins-detail-card",
     "data-moment": moment.id,
@@ -99,13 +100,28 @@ export function detailFor(
     );
   }
 
-  const names = moment.people
-    .map((slug) => people.get(slug)?.name)
-    .filter((name): name is string => name !== undefined);
-  if (names.length > 0) {
+  const namesOf = (slugs: readonly string[]) =>
+    slugs
+      .map((slug) => people.get(slug)?.name)
+      .filter((name): name is string => name !== undefined);
+  const line = (prefix: string, names: readonly string[]) => {
+    if (names.length === 0) return;
     card.appendChild(
-      el(doc, "p", { class: "origins-detail-people" }, names.join(", ")),
+      el(doc, "p", { class: "origins-detail-people" }, `${prefix}${names.join(", ")}`),
     );
+  };
+  // A thread through a meetup says "in the group then", not "was there", so
+  // a meetup names only who joined there and who the record confirms. Who
+  // was away is said by their thread going around the oval.
+  if (moment.trunk) {
+    line("Joined here: ", namesOf(
+      gathering.through.filter((p) => p.joined).map((p) => p.slug),
+    ));
+    line("Confirmed there: ", namesOf(
+      gathering.through.filter((p) => p.vouched && !p.joined).map((p) => p.slug),
+    ));
+  } else {
+    line("", namesOf(moment.people));
   }
 
   // A meetup links to its own page here. An outside event links to whoever
@@ -144,7 +160,7 @@ export function detailFor(
  */
 export function personCardFor(
   thread: Thread,
-  braid: Braid,
+  story: Story,
   doc: DocumentLike,
   /**
    * The popup opens over the picture and needs a way to shut it. The roster
@@ -158,7 +174,7 @@ export function personCardFor(
   const card = el(doc, "div", {
     class: `origins-card ${kind}`,
     "data-person": person.slug,
-    "data-hue": String(hueFor(braid.threads.indexOf(thread))),
+    "data-hue": String(hueFor(story.threads.indexOf(thread))),
   });
 
   if (person.imageUrl !== "") {
@@ -219,7 +235,7 @@ export function personCardFor(
     ),
   );
 
-  const join = joinLineFor(thread, braid.moments);
+  const join = joinLineFor(thread, story.moments);
   if (join !== null) {
     body.appendChild(
       el(
@@ -244,11 +260,11 @@ export function personCardFor(
  * allocator's was, so there is room beside the picture again. A list, because
  * that is what it is, and in thread order so it matches the palette.
  */
-export function rosterFor(braid: Braid, doc: DocumentLike): ElementLike {
+export function rosterFor(story: Story, doc: DocumentLike): ElementLike {
   const list = el(doc, "ul", { class: "origins-roster" });
-  for (const thread of braid.threads) {
+  for (const thread of story.threads) {
     const item = el(doc, "li", { class: "origins-roster-item" });
-    item.appendChild(personCardFor(thread, braid, doc, false));
+    item.appendChild(personCardFor(thread, story, doc, false));
     list.appendChild(item);
   }
   return list;

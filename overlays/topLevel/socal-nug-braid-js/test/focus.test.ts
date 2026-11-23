@@ -9,7 +9,13 @@ import {
 } from "../src/focus.ts";
 import { at, braid, PEOPLE } from "./fake-elk.ts";
 import { buildBraid } from "../src/layout.ts";
-import { person, story } from "./story-fixture.ts";
+import { buildStory } from "../src/story.ts";
+import {
+  at as storyAt,
+  PEOPLE as STORY_PEOPLE,
+  person,
+  story,
+} from "./story-fixture.ts";
 
 // The braid is one tab stop. Inside it the arrow keys move through the story
 // in the order it happened, which is the same order in both modes: time runs
@@ -17,43 +23,52 @@ import { person, story } from "./story-fixture.ts";
 
 test("the order is the story's order, a face just before its first moment", () => {
   assert.deepEqual(
-    focusOrder(braid).map((t) => `${t.kind}:${t.id}`),
+    focusOrder(story).map((t) => `${t.kind}:${t.id}`),
     [
-      "person:a",
-      "moment:a-root",
+      "person:rob",
+      "moment:rob-nix",
+      "person:daniel",
+      "person:david",
+      "person:mica",
+      "moment:booth",
       "moment:founded",
-      "person:b",
+      "person:jared",
+      "moment:nug1",
+      "moment:nug2",
       "moment:camp",
-      "moment:nug",
+      "moment:nug3",
+      "person:connor",
+      "moment:scale",
+      "moment:nug4",
     ],
   );
 });
 
 test("every moment and every face is reachable, and nothing twice", () => {
-  const order = focusOrder(braid);
+  const order = focusOrder(story);
   const ids = order.map((t) => `${t.kind}:${t.id}`);
   assert.equal(new Set(ids).size, ids.length, "a target appears twice");
   assert.equal(
     order.filter((t) => t.kind === "moment").length,
-    braid.moments.length,
+    story.moments.length,
   );
   assert.equal(
     order.filter((t) => t.kind === "person").length,
-    braid.threads.length,
+    story.threads.length,
   );
 });
 
 test("two people starting at one moment both come before it, in thread order", () => {
-  const together = buildBraid(
+  const together = buildStory(
     [
-      at("meet", "2021-01", ["a", "b"]),
-      at("founded", "2023-01", ["a"], true),
+      storyAt("meet", "2021-01", ["daniel", "rob"]),
+      storyAt("founded", "2023-01", ["daniel"], true),
     ],
-    PEOPLE,
+    STORY_PEOPLE,
   );
   assert.deepEqual(
     focusOrder(together).map((t) => `${t.kind}:${t.id}`),
-    ["person:a", "person:b", "moment:meet", "moment:founded"],
+    ["person:rob", "person:daniel", "moment:meet", "moment:founded"],
   );
 });
 
@@ -99,32 +114,23 @@ test("a moment reads as its title and date", () => {
     ],
     PEOPLE,
   );
-  const target = focusOrder(quiet).find((t) => t.id === "nug2")!;
+  const target = { id: "nug2", kind: "moment" } as const;
   assert.equal(labelFor(target, quiet), "nug2, March 2023");
 });
 
 test("a moment with people says how many, since the card names them", () => {
-  const order = focusOrder(braid);
-  const camp = order.find((t) => t.id === "camp")!;
+  const camp = { id: "camp", kind: "moment" } as const;
   assert.equal(labelFor(camp, braid), "camp, April 2023, 2 people");
 });
 
 test("a moment with one person says one person, not 1 people", () => {
-  const order = focusOrder(braid);
-  const root = order.find((t) => t.id === "a-root")!;
+  const root = { id: "a-root", kind: "moment" } as const;
   assert.equal(labelFor(root, braid), "a-root, January 2021, 1 person");
 });
 
 test("a face reads as its person, and whether they are a member", () => {
-  const order = focusOrder(braid);
-  assert.equal(
-    labelFor(order.find((t) => t.kind === "person" && t.id === "a")!, braid),
-    "A, member",
-  );
-  assert.equal(
-    labelFor(order.find((t) => t.kind === "person" && t.id === "b")!, braid),
-    "B, guest",
-  );
+  assert.equal(labelFor({ id: "a", kind: "person" }, braid), "A, member");
+  assert.equal(labelFor({ id: "b", kind: "person" }, braid), "B, guest");
 });
 
 const g = (id: string) => story.moments.find((m) => m.moment.id === id)!;
