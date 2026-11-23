@@ -455,6 +455,19 @@ Added to `checks/default.nix`:
   real data, or a layout ELK is happy with that the renderer is not, ships with the whole suite
   green.
 
+**On demand, not a check:** `nix run .#socal-nug-braid-browser` loads the page in headless
+Chromium and behaves like a visitor: it wheels past the map, drags a finger through it on a
+phone-sized screen, clicks and tabs into cards, switches modes, blocks the layout engine, and
+asks for reduced motion and the dark theme. Twenty-five assertions, each named for what a
+visitor would notice. It lives in `socal-nug-braid-js/browser/` and is typechecked by
+`braid-types`, which is what stops it rotting between uses.
+
+It is kept out of `nix flake check` on purpose. Everything it looks at is decided by `main.ts`,
+`origins.scss` and `origins.html`; no event, moment or profile can break any of it, so a
+content change would pay for a 1.7 GiB Chromium and get nothing back but the chance of a false
+failure. It is run by whoever changes those three files, when they change them. Run against
+the page as it stood before the defects it was written from were fixed, it fails 17 of the 25.
+
 ### Netlify interim
 
 Netlify cannot run esbuild without a node toolchain, and adding one would create a second build

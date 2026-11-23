@@ -46,4 +46,59 @@ declare module "node:fs" {
   export function readFileSync(path: string, encoding: "utf8"): string;
   export function readFileSync(path: string): Uint8Array;
   export function writeFileSync(path: string, data: string): void;
+  export function existsSync(path: string): boolean;
+  export function statSync(path: string): { isDirectory(): boolean };
+  /** Makes a fresh directory whose name starts with `prefix`; returns it. */
+  export function mkdtempSync(prefix: string): string;
+  export function rmSync(
+    path: string,
+    options: {
+      recursive: boolean;
+      force: boolean;
+      /** Tries again when the directory is busy or not yet empty. */
+      maxRetries: number;
+      retryDelay: number;
+    },
+  ): void;
+}
+
+// What follows is for the browser check, which starts a browser and serves
+// it the built site. The tests and the smoke check use none of it.
+
+declare module "node:os" {
+  export function tmpdir(): string;
+}
+
+declare module "node:path" {
+  export function join(...parts: string[]): string;
+  export function normalize(path: string): string;
+  /** The last extension with its dot, or "" when there is none. */
+  export function extname(path: string): string;
+}
+
+declare module "node:child_process" {
+  export function spawn(
+    command: string,
+    args: string[],
+    options: { stdio: "ignore" },
+  ): { kill(): boolean };
+}
+
+declare module "node:http" {
+  interface Request {
+    readonly url?: string;
+  }
+  interface Response {
+    writeHead(status: number, headers?: Record<string, string>): void;
+    end(body?: Uint8Array): void;
+  }
+  interface Server {
+    listen(port: number, host: string, ready: () => void): void;
+    /** The port is the one the system picked when asked for 0. */
+    address(): { port: number };
+    close(): void;
+  }
+  export function createServer(
+    handler: (request: Request, response: Response) => void,
+  ): Server;
 }

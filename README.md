@@ -43,6 +43,11 @@ Each lives under `overlays/topLevel/` and runs with `nix run`:
 - `.#socal-nug-make-event-ical`: generate the calendar files from event posts.
 - `.#socal-nug-test-site`: the build-output tests, given the site source directory.
 - `.#socal-nug-logos`: regenerate the sibling group logos in `static/siblings/`.
+- `.#socal-nug-braid-browser`: load the Origins page in headless Chromium and check how it
+  behaves when scrolled, clicked, tabbed through and tapped. Linux only, needs the network, and
+  is not part of `nix flake check`. Run it after changing
+  `overlays/topLevel/socal-nug-braid-js/src/main.ts`, `sass/css/pages/origins.scss` or
+  `templates/origins.html`.
 
 ## Deploys
 

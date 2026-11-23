@@ -84,11 +84,13 @@ inputs.nixpkgs.lib.mapAttrs (system: pkgs: {
         # so a test file outside tsc's reach has no types at all. Adding a
         # required field to an interface then surfaces as a confusing test
         # failure rather than an error naming every fixture that needs it.
-        # types/node.d.ts covers what the tests import from node.
+        # types/node.d.ts covers what the tests import from node. browser/ is
+        # the on-demand browser check: nothing here runs it, so being
+        # typechecked is what stops it rotting unnoticed between uses.
         tsc --noEmit --strict \
           --target es2022 --module esnext --moduleResolution bundler \
           --allowImportingTsExtensions --skipLibCheck \
-          types/*.d.ts src/*.ts test/*.ts smoke/*.ts
+          types/*.d.ts src/*.ts test/*.ts smoke/*.ts browser/*.ts
         touch "$out"
       '';
 
