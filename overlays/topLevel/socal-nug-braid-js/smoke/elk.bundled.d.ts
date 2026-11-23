@@ -1,4 +1,4 @@
-import type { ElkGraph } from "../src/graph.ts";
+import type { ElkGraph } from "../src/elk.ts";
 
 /**
  * The Eclipse Layout Kernel, as the smoke check imports it.

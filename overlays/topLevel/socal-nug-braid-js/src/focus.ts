@@ -1,6 +1,6 @@
 import { formatFuzzyDate } from "./dates.ts";
 import type { Gathering, Story } from "./story.ts";
-import type { Braid, Person } from "./types.ts";
+import type { Person } from "./types.ts";
 
 /**
  * Moving through the braid by keyboard.
@@ -73,30 +73,6 @@ export function nextIndex(
     default:
       return null;
   }
-}
-
-/** What a screen reader says when the cursor lands on something. */
-export function labelFor(target: FocusTarget, braid: Braid): string {
-  if (target.kind === "person") {
-    const thread = braid.threads.find((t) => t.person.slug === target.id);
-    if (thread === undefined) return target.id;
-    return `${thread.person.name}, ${
-      thread.person.member ? "member" : "guest"
-    }`;
-  }
-
-  const placed = braid.moments.find((m) => m.moment.id === target.id);
-  if (placed === undefined) return target.id;
-  const moment = placed.moment;
-  const parts = [moment.title, formatFuzzyDate(moment.date)];
-  // How many, not who: eight names read out on every arrow press is a wall,
-  // and the card names them for anyone who opens it.
-  if (moment.people.length === 1) {
-    parts.push("1 person");
-  } else if (moment.people.length > 1) {
-    parts.push(`${moment.people.length} people`);
-  }
-  return parts.join(", ");
 }
 
 /** What a screen reader says for a gathering: a meetup says how many are in the group. */

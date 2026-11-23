@@ -4,11 +4,8 @@ import {
   describeGathering,
   describePerson,
   focusOrder,
-  labelFor,
   nextIndex,
 } from "../src/focus.ts";
-import { at, braid, PEOPLE } from "./fake-elk.ts";
-import { buildBraid } from "../src/layout.ts";
 import { buildStory } from "../src/story.ts";
 import {
   at as storyAt,
@@ -103,35 +100,6 @@ test("an empty braid has nowhere to go", () => {
 });
 
 // --- what a screen reader hears ---------------------------------------------
-
-test("a moment reads as its title and date", () => {
-  // a meetup nobody joined at names nobody, so the label stops at the date
-  const quiet = buildBraid(
-    [
-      at("a-root", "2021-01", ["a"]),
-      at("founded", "2023-01", ["a"], true),
-      at("nug2", "2023-03", [], true),
-    ],
-    PEOPLE,
-  );
-  const target = { id: "nug2", kind: "moment" } as const;
-  assert.equal(labelFor(target, quiet), "nug2, March 2023");
-});
-
-test("a moment with people says how many, since the card names them", () => {
-  const camp = { id: "camp", kind: "moment" } as const;
-  assert.equal(labelFor(camp, braid), "camp, April 2023, 2 people");
-});
-
-test("a moment with one person says one person, not 1 people", () => {
-  const root = { id: "a-root", kind: "moment" } as const;
-  assert.equal(labelFor(root, braid), "a-root, January 2021, 1 person");
-});
-
-test("a face reads as its person, and whether they are a member", () => {
-  assert.equal(labelFor({ id: "a", kind: "person" }, braid), "A, member");
-  assert.equal(labelFor({ id: "b", kind: "person" }, braid), "B, guest");
-});
 
 const g = (id: string) => story.moments.find((m) => m.moment.id === id)!;
 

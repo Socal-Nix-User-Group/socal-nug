@@ -1,4 +1,4 @@
-import { LABEL_MAX } from "../src/graph.ts";
+import { LABEL_MAX } from "../src/elk.ts";
 import { launch, sleep } from "./cdp.ts";
 import { serve } from "./serve.ts";
 
