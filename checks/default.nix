@@ -88,7 +88,7 @@ inputs.nixpkgs.lib.mapAttrs (system: pkgs: {
         tsc --noEmit --strict \
           --target es2022 --module esnext --moduleResolution bundler \
           --allowImportingTsExtensions --skipLibCheck \
-          types/*.d.ts src/*.ts test/*.ts
+          types/*.d.ts src/*.ts test/*.ts smoke/*.ts
         touch "$out"
       '';
 

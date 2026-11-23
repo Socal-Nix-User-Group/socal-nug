@@ -5,6 +5,7 @@ import { LABEL_MAX } from "../src/graph.ts";
 import { buildBraid } from "../src/layout.ts";
 import { parseData } from "../src/parse.ts";
 import { placeBraid } from "../src/place.ts";
+import type { DocumentLike, ElementLike } from "../src/render.ts";
 
 /**
  * The only check that runs on the repository's real data, through the real
@@ -93,18 +94,18 @@ interface Recorded {
 }
 
 /** A `document` that records instead of building a DOM. No DOM library here. */
-function recorder() {
+function recorder(): { doc: DocumentLike; made: Recorded[] } {
   const made: Recorded[] = [];
-  const doc = {
-    createElementNS(_ns: string, tag: string) {
+  const doc: DocumentLike = {
+    createElementNS(_ns: string, tag: string): ElementLike {
       const node: Recorded = { tag, attrs: {}, text: "" };
       made.push(node);
-      return {
+      const element = {
         node,
         setAttribute(name: string, value: string) {
           node.attrs[name] = value;
         },
-        appendChild(child: unknown) {
+        appendChild(child: ElementLike) {
           return child;
         },
         set textContent(value: string) {
@@ -114,6 +115,7 @@ function recorder() {
           return node.text;
         },
       };
+      return element as unknown as ElementLike;
     },
   };
   return { doc, made };
@@ -150,16 +152,10 @@ function sample(d: string): Array<readonly [number, number]> {
 
 const AVATAR = 18;
 const LABEL_HEIGHT = 14;
-const elk = new (ELK as unknown as new () => {
-  layout(graph: unknown): Promise<unknown>;
-})();
+const elk = new ELK();
 
 for (const mode of ["river", "subway"] as const) {
-  const placed = await placeBraid(
-    braid,
-    mode,
-    (graph) => elk.layout(graph) as never,
-  );
+  const placed = await placeBraid(braid, mode, (graph) => elk.layout(graph));
   if (!(placed.width > 0 && placed.height > 0)) {
     fail(`${mode}: ELK gave the picture no size`);
   }
@@ -175,7 +171,7 @@ for (const mode of ["river", "subway"] as const) {
   }
 
   const { doc, made } = recorder();
-  drawPlaced(placed, braid, doc as never);
+  drawPlaced(placed, braid, doc);
 
   const faces = made
     .filter((n) => n.tag === "g" && n.attrs.class === "origins-root")
