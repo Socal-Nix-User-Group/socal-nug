@@ -146,6 +146,11 @@ export function personCardFor(
   thread: Thread,
   braid: Braid,
   doc: DocumentLike,
+  /**
+   * The popup opens over the picture and needs a way to shut it. The roster
+   * covers nothing, so an X there would be a button that does nothing.
+   */
+  dismissable = true,
 ): ElementLike {
   const person = thread.person;
   const kind = person.member ? "is-member" : "is-guest";
@@ -227,8 +232,26 @@ export function personCardFor(
   }
 
   card.appendChild(body);
-  card.appendChild(dismissFor(doc));
+  if (dismissable) card.appendChild(dismissFor(doc));
   return card;
+}
+
+/**
+ * Everyone, as a grid of the same cards.
+ *
+ * This is the roster rail returning in a different shape. It went when River
+ * needed every pixel of its width; ELK's layout is narrower than the lane
+ * allocator's was, so there is room beside the picture again. A list, because
+ * that is what it is, and in thread order so it matches the palette.
+ */
+export function rosterFor(braid: Braid, doc: DocumentLike): ElementLike {
+  const list = el(doc, "ul", { class: "origins-roster" });
+  for (const thread of braid.threads) {
+    const item = el(doc, "li", { class: "origins-roster-item" });
+    item.appendChild(personCardFor(thread, braid, doc, false));
+    list.appendChild(item);
+  }
+  return list;
 }
 
 /** The X in a card's corner. Clicking outside the card closes it as well. */

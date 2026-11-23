@@ -18,7 +18,7 @@
 [[moment]]
 id = "rob-finds-nix"
 date = "2018-07" # CONFIRM: "around the middle of 2018"
-title = "Rob finds Nix"
+title = "Finds Nix"
 people = ["rob-hernandez"]
 
 # --- Daniel Baker ----------------------------------------------------------
@@ -26,9 +26,9 @@ people = ["rob-hernandez"]
 [[moment]]
 id = "daniel-finds-nix"
 date = "2021-10-23"
-title = "Joined the NixOS Discourse"
+title = "Finds Nix"
 people = ["daniel-baker"]
-blurb = "Found Nix in October 2021. This is the earliest dated trace of it."
+blurb = "Daniel Baker joined the NixOS Discourse. It is the earliest dated trace of him using Nix; he had found it some time before that."
 
 [[moment]]
 id = "tweag"
@@ -39,14 +39,16 @@ people = ["daniel-baker"]
 [[moment]]
 id = "meets-connor"
 date = "2022-03" # CONFIRM: "let's say March"
-title = "Met Connor Baker at Tweag"
+title = "Met"
 people = ["daniel-baker", "connor-baker"]
+blurb = "Daniel Baker and Connor Baker met working at Tweag."
 
 [[moment]]
 id = "code-and-coffee"
 date = "2022-08-27"
-title = "Met David Nuon at Code and Coffee"
+title = "Met"
 people = ["daniel-baker", "david-nuon"]
+blurb = "Daniel Baker and David Nuon met at a Code and Coffee meetup."
 
 # --- Conferences and camps -------------------------------------------------
 # Dates are the first day of each event.
@@ -54,14 +56,14 @@ people = ["daniel-baker", "david-nuon"]
 [[moment]]
 id = "nix-camp-2022"
 date = "2022-09-12"
-title = "Nix Camp 2022"
+title = "Nix Camp"
 people = ["rob-hernandez"]
 links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
 
 [[moment]]
 id = "nixcon-2022"
 date = "2022-10-20"
-title = "NixCon 2022"
+title = "NixCon"
 people = ["daniel-baker", "connor-baker"]
 links = [{ title = "NixCon 2022", url = "https://2022.nixcon.org/" }]
 
@@ -72,12 +74,12 @@ id = "scale-20x"
 date = "2023-03-09" # SCaLE 20x ran 9 to 12 March
 title = "Nix booth at SCaLE 20x"
 people = ["daniel-baker", "rob-hernandez", "david-nuon", "mica"]
-blurb = "Boothing with Daniel Fullmer and Ben. Daniel and David both met Rob here."
+blurb = "Daniel Baker, Daniel Fullmer and Ben Futoriansky were at the booth. Daniel Baker and David Nuon met Rob Hernandez there."
 
 [[moment]]
 id = "snug-founded"
 date = "2023-04"
-title = "The SNUG is founded"
+title = "SNUG founded"
 people = ["daniel-baker", "david-nuon", "rob-hernandez"]
 trunk = true
 blurb = "A group chat called 'Cool Guys from SCaLE'."
@@ -117,7 +119,7 @@ people = ["morgan-jones"]
 [[moment]]
 id = "meets-morgan"
 date = "2024-05-06"
-title = "Met Morgan Jones"
+title = "Met"
 people = ["daniel-baker", "morgan-jones"]
 
 # No `trunk` key on any of these: dated after the spine starts and naming
@@ -126,7 +128,7 @@ people = ["daniel-baker", "morgan-jones"]
 [[moment]]
 id = "nix-camp-2023"
 date = "2023-09-24"
-title = "Nix Camp 2023"
+title = "Nix Camp"
 people = ["daniel-baker", "rob-hernandez", "david-nuon", "kyle-risse"]
 links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
 
@@ -157,7 +159,7 @@ links = [
 [[moment]]
 id = "nix-camp-2024"
 date = "2024-09-02"
-title = "Nix Camp 2024"
+title = "Nix Camp"
 people = ["daniel-baker", "david-nuon"]
 links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
 
@@ -186,21 +188,21 @@ links = [
 [[moment]]
 id = "nix-vegas-2025"
 date = "2025-08-07"
-title = "Nix Vegas 2025"
+title = "Nix Vegas"
 people = ["morgan-jones", "tristan-ross", "rob-hernandez", "kyle-risse"]
 links = [{ title = "Nix Vegas 2025", url = "https://nix.vegas/2025/" }]
 
 [[moment]]
 id = "nix-camp-2025"
 date = "2025-08-27"
-title = "Nix Camp 2025"
+title = "Nix Camp"
 people = ["daniel-baker", "rob-hernandez", "connor-baker", "jared-baur"]
 links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
 
 [[moment]]
 id = "nixcon-2025"
 date = "2025-09-05"
-title = "NixCon 2025"
+title = "NixCon"
 people = ["daniel-baker", "rob-hernandez", "connor-baker", "jared-baur"]
 links = [{ title = "NixCon 2025", url = "https://2025.nixcon.org/" }]
 
@@ -229,14 +231,14 @@ links = [
 [[moment]]
 id = "nix-vegas-2026"
 date = "2026-08-06"
-title = "Nix Vegas 2026"
+title = "Nix Vegas"
 people = ["morgan-jones", "tristan-ross", "rob-hernandez", "daniel-baker"]
 links = [{ title = "Nix Vegas 2026", url = "https://nix.vegas/2026/" }]
 
 [[moment]]
 id = "nixcon-2026"
 date = "2026-09-25"
-title = "NixCon 2026"
+title = "NixCon"
 people = [
   "daniel-baker",
   "connor-baker",

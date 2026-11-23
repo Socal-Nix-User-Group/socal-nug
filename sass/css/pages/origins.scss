@@ -26,13 +26,64 @@
     --origins-hue-10: #a85ba8;
     --origins-hue-11: #8a7a3c;
 
-    // Nothing else lives here: the map takes the full width and the cards for
-    // people and moments open inside it. A rail beside it cost River a 20rem
-    // column it could not spare once the lanes were wide enough to read.
-
     // The map scrolls inside its own box, so without this its edge sits hard
     // against whatever follows it down the page.
     margin-bottom: 3rem;
+
+    // River's picture is tall and narrow, so the roster sits beside it. A
+    // rail cost too much when the lane allocator drew River over a thousand
+    // pixels wide; ELK's is a third of that, and the room is there again.
+    display: grid;
+    gap: 1.5rem;
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+
+    // Subway runs time across the page and is already full width, so the
+    // roster goes underneath as a grid of its own.
+    &[data-mode="subway"] {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    @media screen and (max-width: 1023px) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+// Beside the picture it is one column; under it, as many as fit. Driven by
+// the layout's mode rather than by width alone, because Subway is full width
+// at every size.
+.origins-roster {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.origins-layout[data-mode="subway"] .origins-roster {
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+}
+
+@media screen and (max-width: 1023px) {
+    .origins-roster {
+        grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    }
+}
+
+.origins-roster-item {
+    display: grid;
+    min-width: 0;
+}
+
+// In the roster a card is a tile among many, so it carries the hover
+// treatment the popup does not need.
+.origins-roster .origins-card {
+    transition: background 0.15s ease;
+
+    &.is-lit {
+        background: color-mix(in srgb, var(--origins-trunk) 16%, transparent);
+    }
 }
 
 // Zola compiles every file under sass/ on its own as well as through

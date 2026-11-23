@@ -2,7 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { parseFuzzyDate } from "../src/dates.ts";
 import { buildBraid } from "../src/layout.ts";
-import { detailFor, joinLineFor, personCardFor } from "../src/cards.ts";
+import {
+  detailFor,
+  joinLineFor,
+  personCardFor,
+  rosterFor,
+} from "../src/cards.ts";
 import type { DocumentLike, ElementLike } from "../src/render.ts";
 import type { Moment, Person } from "../src/types.ts";
 
@@ -252,4 +257,57 @@ test("somebody with no quote gets no empty quotation", () => {
   const { doc, made } = stubDocument();
   personCardFor(thread("daniel"), braid, doc);
   assert.equal(made.some((n) => n.tag === "blockquote"), false);
+});
+
+// --- the roster --------------------------------------------------------------
+// The same card in two places: in a popup beside whatever was clicked, and in
+// a grid of everyone. The popup one needs a way to shut it; the grid one is
+// not covering anything, so an X there would be a button that does nothing.
+
+test("the roster is one card per thread, in thread order", () => {
+  const { doc, made } = stubDocument();
+  rosterFor(braid, doc);
+  const cards = made.filter((n) =>
+    (n.attrs.class ?? "").split(" ").includes("origins-card")
+  );
+  assert.deepEqual(
+    cards.map((n) => n.attrs["data-person"]),
+    braid.threads.map((t) => t.person.slug),
+  );
+});
+
+test("a roster card carries no dismiss control", () => {
+  const { doc, made } = stubDocument();
+  rosterFor(braid, doc);
+  assert.equal(
+    made.some((n) => n.attrs["data-origins-dismiss"] !== undefined),
+    false,
+  );
+});
+
+test("a popup card still carries one", () => {
+  const { doc, made } = stubDocument();
+  personCardFor(thread("daniel"), braid, doc);
+  assert.ok(made.some((n) => n.attrs["data-origins-dismiss"] !== undefined));
+});
+
+test("the roster is a list, so it reads as a list of people", () => {
+  const { doc, made } = stubDocument();
+  rosterFor(braid, doc);
+  assert.ok(made.some((n) => n.tag === "ul"));
+  assert.equal(
+    made.filter((n) => n.tag === "li").length,
+    braid.threads.length,
+  );
+});
+
+test("a roster card says the same things as its popup card", () => {
+  const roster = stubDocument();
+  rosterFor(braid, roster.doc);
+  const popup = stubDocument();
+  for (const t of braid.threads) personCardFor(t, braid, popup.doc);
+
+  const words = (made: Node[]) =>
+    made.map((n) => n.text).filter((t) => t !== "" && t !== "×").sort();
+  assert.deepEqual(words(roster.made), words(popup.made));
 });

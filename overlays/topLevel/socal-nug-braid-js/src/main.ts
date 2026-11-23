@@ -1,4 +1,4 @@
-import { detailFor, personCardFor } from "./cards.ts";
+import { detailFor, personCardFor, rosterFor } from "./cards.ts";
 import { drawPlaced } from "./draw.ts";
 import { focusOrder, nextIndex } from "./focus.ts";
 import type { ElkGraph, Mode } from "./graph.ts";
@@ -127,6 +127,9 @@ function boot(): void {
     if (token !== drawing) return;
 
     mount!.setAttribute("data-mode", next);
+    // The layout carries it too: the roster sits beside the picture in River
+    // and below it in Subway, where the picture is already full width.
+    document.getElementById("origins-layout")?.setAttribute("data-mode", next);
     mount!.replaceChildren(drawPlaced(placed, braid, document), popup);
 
     const now = placed.moments;
@@ -158,10 +161,18 @@ function boot(): void {
     wireKeyboard();
   }
 
+  // Lighting a person lights them everywhere: their line and face in the
+  // picture, and their card in the roster, in both directions.
+  const roster = document.getElementById("origins-roster");
+
   function highlight(slug: string | undefined, on: boolean): void {
     if (slug === undefined) return;
     for (const node of mount!.querySelectorAll(`[data-person="${slug}"]`)) {
       node.classList.toggle("is-lit", on);
+    }
+    if (roster === null) return;
+    for (const card of roster.querySelectorAll(`[data-person="${slug}"]`)) {
+      card.classList.toggle("is-lit", on);
     }
   }
 
@@ -377,6 +388,24 @@ function boot(): void {
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closePopup();
   });
+
+  if (roster !== null) {
+    roster.replaceChildren(rosterFor(braid, document));
+    for (const card of roster.querySelectorAll("[data-person]")) {
+      for (
+        const [type, on] of [
+          ["mouseenter", true],
+          ["focusin", true],
+          ["mouseleave", false],
+          ["focusout", false],
+        ] as const
+      ) {
+        card.addEventListener(type, (event) => {
+          highlight(event.currentTarget.dataset.person, on);
+        });
+      }
+    }
+  }
 
   draw(mode, false).catch((error: unknown) => {
     console.error("origins: could not lay out the braid", error);

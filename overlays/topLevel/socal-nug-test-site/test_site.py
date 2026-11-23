@@ -225,9 +225,12 @@ class SiteBuild(unittest.TestCase):
         # correct; the data block is the one source the page ships.
         page, data = self.origins_data()
         self.assertNotIn('origins-fallback', page)
-        titles = [m.get('title') for m in data['moments']]
-        self.assertIn('Joined the NixOS Discourse', titles)
-        self.assertIn('NUG #1', titles)
+        # one from the moments file and one resolved from an event page, so
+        # both halves of the merge are proved to reach the block. Titles get
+        # reworded, so these are the ids rather than the words.
+        ids = [m.get('id') for m in data['moments']]
+        self.assertIn('daniel-finds-nix', ids)
+        self.assertIn('2023-05-30', ids)
 
     def test_origins_ships_the_bundle_and_its_controls(self):
         page = (self.out / 'origins' / 'index.html').read_text()
@@ -246,13 +249,21 @@ class SiteBuild(unittest.TestCase):
         self.assertTrue((self.out / 'js' / 'vendor' / 'elk.bundled.js').exists())
         self.assertTrue((self.out / 'js' / 'vendor' / 'elk.LICENSE.md').exists())
 
-    def test_origins_has_no_rail_beside_the_map(self):
-        # cards open inside the map now; a rail beside it cost River a column
-        # it could not spare once the lanes were wide enough to read
+    def test_origins_has_a_roster_and_a_popup(self):
+        # the roster rail went when the lane allocator drew River over a
+        # thousand pixels wide, and came back as a grid once ELK's layout
+        # turned out to be a third of that. Cards still open in the map too:
+        # the roster is everyone, the popup is whatever was just clicked.
         page = (self.out / 'origins' / 'index.html').read_text()
-        self.assertNotIn('id="origins-roster"', page)
-        self.assertNotIn('origins-side', page)
+        self.assertIn('id="origins-roster"', page)
         self.assertIn('.origins-popup{position:absolute;', self.css)
+
+    def test_origins_roster_moves_below_the_map_in_subway(self):
+        # River's picture is tall and narrow so the roster sits beside it;
+        # Subway is full width, so a column beside it would squeeze the one
+        # axis that map needs
+        self.assertIn(
+            '.origins-layout[data-mode=subway] .origins-roster{', self.css)
 
     def test_origins_toggle_is_hidden_until_the_script_reveals_it(self):
         page = (self.out / 'origins' / 'index.html').read_text()

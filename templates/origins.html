@@ -29,9 +29,10 @@
 {#- The wrapper carries the palette; the map fills it. Cards for people and
     moments open inside the map itself, beside whatever was clicked, so there
     is no rail beside it any more. -#}
-<div class="origins-layout">
-  {# The script fills this with the drawing. #}
+<div class="origins-layout" id="origins-layout" data-mode="river">
+  {# The script fills these with the drawing and the roster. #}
   <div id="origins-braid" class="origins-braid"></div>
+  <div id="origins-roster" class="origins-roster-rail"></div>
 </div>
 
 {#
