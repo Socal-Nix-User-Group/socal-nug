@@ -92,7 +92,8 @@ test("an edge comes back as its points in order, with whose thread it is", async
   );
   const index = (id: string) =>
     built.graph.children.findIndex((n) => n.id === id);
-  // rob's first edge runs from his root to the in-port of his first moment
+  // rob's first edge runs from his root to the in-port of his first moment,
+  // and on to his slot inside it
   const root = rootId("rob");
   const rootAt = index(root);
   const nodeAt = index("rob-nix");
@@ -109,11 +110,32 @@ test("an edge comes back as its points in order, with whose thread it is", async
     },
     { x: 7, y: 7 },
     { x: 100 + nodeAt * 20 + port.x, y: 1 * 50 + port.y },
+    mapped.slots.get(slotKey("rob-nix", "rob")),
   ]);
   // Every thread's edges and nothing else: the spine is not placed.
   const spine = built.graph.edges.filter((e) => e.id.startsWith("spine:"));
   assert.equal(spine.length, 5);
   assert.equal(mapped.edges.length, built.graph.edges.length - spine.length);
+});
+
+test("a thread runs through every oval on its path, from its slot to its slot", () => {
+  const same = (a: ElkPoint, b: ElkPoint) => a.x === b.x && a.y === b.y;
+  for (const thread of story.threads) {
+    const slug = thread.person.slug;
+    const edges = placed.edges.filter((e) => e.meta.slug === slug);
+    thread.path.forEach((g, index) => {
+      const slot = placed.slots.get(slotKey(g.moment.id, slug))!;
+      assert.ok(
+        edges.some((e) => same(e.points[e.points.length - 1], slot)),
+        `${slug} does not arrive at their slot at ${g.moment.id}`,
+      );
+      if (index === thread.path.length - 1) return;
+      assert.ok(
+        edges.some((e) => same(e.points[0], slot)),
+        `${slug} does not leave from their slot at ${g.moment.id}`,
+      );
+    });
+  }
 });
 
 test("a label carries the text the layout made room for, anchored as its mode hangs it", async () => {
@@ -242,13 +264,16 @@ test("placement snaps: boxes, slots and threads are on the column", () => {
   // the fake hangs a label 12 to the left of its node, and it has gone with it
   const label = placed.labels.get("founded")!.x;
   assert.ok(Math.abs(label - (placed.boxes.get("founded")!.x - 12)) < 1e-9, String(label));
-  // rob's hop from the founding to nug1 leaves and arrives in the first slot
+  // rob's hop from the founding to nug1 leaves and arrives in the first slot,
+  // through the founding's out-port and nug1's in-port
   const hop = placed.edges.filter((e) => e.meta.slug === "rob")[3];
   assert.deepEqual(
-    [hop.points[0], hop.points[hop.points.length - 1]],
+    [hop.points[0], hop.points[1], hop.points.at(-2), hop.points.at(-1)],
     [
+      { x: 208, y: placed.boxes.get("founded")!.y + 7 },
       { x: 208, y: placed.boxes.get("founded")!.y + 14 },
       { x: 208, y: placed.boxes.get("nug1")!.y },
+      { x: 208, y: placed.boxes.get("nug1")!.y + 7 },
     ],
   );
 });

@@ -119,16 +119,29 @@ export function loomPlacedFrom(
     }
   }
 
+  // ELK runs an edge from a port on one box's edge to a port on the next, so
+  // a thread drawn from that alone stops at every oval. Each end on a port is
+  // carried on to the person's slot inside the oval; an end on a face is
+  // already where it belongs. A port id is `${moment}|${side}|${slug}`.
+  const slotAt = (end: string): Point[] => {
+    const [moment, , slug] = end.split("|");
+    return slug === undefined ? [] : [slots.get(slotKey(moment, slug))!];
+  };
+
   // An edge ELK routed nowhere is left out rather than drawn from nothing.
   const edges = laidOut.edges.flatMap((edge) => {
     const meta = built.meta.get(edge.id);
     const section = edge.sections?.[0];
     if (meta === undefined || section === undefined) return [];
     const points = [
-      section.startPoint,
-      ...(section.bendPoints ?? []),
-      section.endPoint,
-    ].map((p) => ({ x: p.x, y: p.y }));
+      ...slotAt(edge.sources[0]),
+      ...[
+        section.startPoint,
+        ...(section.bendPoints ?? []),
+        section.endPoint,
+      ].map((p) => ({ x: p.x, y: p.y })),
+      ...slotAt(edge.targets[0]),
+    ];
     return [{ meta, points }];
   });
 
