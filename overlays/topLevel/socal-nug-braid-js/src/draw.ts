@@ -192,7 +192,7 @@ export function drawPlaced(
       y: round(label.y),
       "text-anchor": label.anchor,
     });
-    text.textContent = placedMoment.moment.title;
+    text.textContent = label.text;
     svg.appendChild(text);
   }
 

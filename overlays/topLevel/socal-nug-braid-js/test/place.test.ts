@@ -66,6 +66,19 @@ test("a label anchors at the end of its box in river and the middle in subway", 
   assert.equal(subway.labels.get("camp")!.anchor, "middle");
 });
 
+test("a label carries the text the layout made room for", async () => {
+  const title = "Mini NUG @ Legend Chicken Hawaiian Gardens";
+  const story = buildBraid(
+    [{ ...at("long", "2021-01", ["a"]), title }, at("founded", "2023-01", ["a"], true)],
+    PEOPLE,
+  );
+  const given = graphFor(story, "river").graph.children
+    .find((n) => n.id === "long")!.labels![0].text;
+  const placed = await placeBraid(story, "river", fakeLayout);
+  assert.equal(placed.labels.get("long")!.text, given);
+  assert.notEqual(given, title);
+});
+
 test("an edge the layout gave no section to is left out, not drawn from nothing", () => {
   const built = graphFor(braid, "river");
   const laidOut: ElkGraph = {
@@ -235,7 +248,7 @@ const base = {
   height: 2000,
   moments: new Map([["a", { x: 100, y: 50 }]]),
   roots: new Map([["p", { x: 40, y: 20 }]]),
-  labels: new Map([["a", { x: 80, y: 54, anchor: "end" as const }]]),
+  labels: new Map([["a", { x: 80, y: 54, anchor: "end" as const, text: "a" }]]),
   edges: [{
     meta: { kind: "trunk" as const, width: 3 },
     points: [{ x: 10, y: 10 }, { x: 60, y: 90 }],

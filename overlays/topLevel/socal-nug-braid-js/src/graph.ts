@@ -82,11 +82,23 @@ export interface BraidGraph {
 export const TRUNK_R = 7;
 export const SIDE_R = 4.5;
 export const AVATAR = 18;
-/** What a label may claim beside its node; longer titles are clipped. */
+/** What a label may claim beside its node; longer titles are cut to it. */
 export const LABEL_MAX = 150;
 export const LABEL_HEIGHT = 14;
 /** Pixels per character at the label's 11px, near enough to reserve room. */
 const CHAR = 6.4;
+
+/**
+ * A title as its label shows it: whole when it fits the room a label may
+ * claim, cut and ended with an ellipsis when it does not. The card and the
+ * screen reader's name for the dot carry the whole title either way.
+ */
+function shown(title: string): string {
+  const fits = Math.floor(LABEL_MAX / CHAR);
+  return title.length <= fits
+    ? title
+    : `${title.slice(0, fits - 1).trimEnd()}…`;
+}
 
 const ROOT = "root:";
 /** The node a person's face sits on, a layer ahead of their first moment. */
@@ -116,6 +128,10 @@ export function graphFor(braid: Braid, mode: Mode): BraidGraph {
   for (const placed of braid.moments) {
     const m = placed.moment;
     const r = m.trunk ? TRUNK_R : SIDE_R;
+    // The text ELK makes room for is the text that is drawn, which is why
+    // the label carries it out of here rather than the renderer reading the
+    // title again.
+    const text = shown(m.title);
     children.push({
       id: m.id,
       width: r * 2 + 4,
@@ -126,8 +142,8 @@ export function graphFor(braid: Braid, mode: Mode): BraidGraph {
         "elk.nodeLabels.placement": placement,
       },
       labels: [{
-        text: m.title,
-        width: Math.min(LABEL_MAX, Math.round(m.title.length * CHAR * 10) / 10),
+        text,
+        width: Math.round(text.length * CHAR * 10) / 10,
         height: LABEL_HEIGHT,
       }],
     });

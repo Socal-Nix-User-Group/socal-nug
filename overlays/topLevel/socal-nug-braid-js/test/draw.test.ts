@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { drawPlaced } from "../src/draw.ts";
 import { placeBraid } from "../src/place.ts";
 import type { DocumentLike, ElementLike } from "../src/render.ts";
-import { braid, fakeLayout } from "./fake-elk.ts";
+import { buildBraid } from "../src/layout.ts";
+import { at, braid, fakeLayout, PEOPLE } from "./fake-elk.ts";
 
 interface Node {
   tag: string;
@@ -207,6 +208,20 @@ test("every moment gets its title as a label where the layout put it", async () 
   assert.equal(Number(camp.attrs.x), at.x);
   assert.equal(Number(camp.attrs.y), at.y);
   assert.equal(camp.attrs["text-anchor"], "end");
+});
+
+test("a label draws the text the layout made room for, not the whole title", async () => {
+  const title = "Mini NUG @ Legend Chicken Hawaiian Gardens";
+  const story = buildBraid(
+    [{ ...at("long", "2021-01", ["a"]), title }, at("founded", "2023-01", ["a"], true)],
+    PEOPLE,
+  );
+  const placed = await placeBraid(story, "river", fakeLayout);
+  const { doc, made } = stubDocument();
+  drawPlaced(placed, story, doc);
+  const drawn = withClass(made, "origins-label").map((l) => l.text);
+  assert.ok(drawn.includes(placed.labels.get("long")!.text), drawn.join(" | "));
+  assert.ok(!drawn.includes(title), "the whole title was drawn");
 });
 
 test("years are marked: the first in the corner, each change as a line across", async () => {

@@ -28,6 +28,8 @@ export interface PlacedLabel {
   readonly x: number;
   readonly y: number;
   readonly anchor: "end" | "middle";
+  /** What the layout made room for, which is not always the whole title. */
+  readonly text: string;
 }
 
 export interface PlacedEdge {
@@ -81,11 +83,13 @@ export function placedFrom(
             x: x + label.x + label.width,
             y: y + label.y + BASELINE,
             anchor: "end",
+            text: label.text,
           }
           : {
             x: x + label.x + label.width / 2,
             y: y + label.y + BASELINE,
             anchor: "middle",
+            text: label.text,
           },
       );
     }

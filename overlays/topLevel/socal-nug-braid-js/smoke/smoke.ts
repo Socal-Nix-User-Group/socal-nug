@@ -250,7 +250,16 @@ for (const mode of ["river", "subway"] as const) {
     const x = +label.attrs.x;
     const y = +label.attrs.y;
     const anchor = label.attrs["text-anchor"];
-    const w = Math.min(LABEL_MAX, label.text.length * 6.4);
+    // The text as drawn, at the layout's own measure. Not clamped to the
+    // room a label may claim: a clamp here measures what the layout hoped
+    // for, and hid two meetup names running off the left of the picture.
+    const w = label.text.length * 6.4;
+    if (w > LABEL_MAX) {
+      fail(
+        `${mode}: label "${label.text}" is drawn wider than the ` +
+          `${LABEL_MAX}px the layout reserved for it`,
+      );
+    }
     const left = anchor === "end" ? x - w : anchor === "middle" ? x - w / 2 : x;
     const box = { left, right: left + w, top: y - LABEL_HEIGHT, bottom: y };
 

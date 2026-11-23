@@ -159,15 +159,42 @@ test("a detour's hops are marked as such and an approach's are not", () => {
   assert.ok(tweag.kind === "thread" && tweag.segment === "approach");
 });
 
-test("labels are sized by their text and capped", () => {
-  const long = { ...STORY[0], title: "x".repeat(80) };
-  const g = graphFor(buildBraid([long, ...STORY.slice(1)], PEOPLE), "river");
-  const label = g.graph.children.find((n) => n.id === long.id)!.labels![0];
-  assert.equal(label.width, LABEL_MAX);
-  assert.equal(label.height, 14);
+const labelOf = (title: string) => {
+  const titled = { ...STORY[0], title };
+  const g = graphFor(buildBraid([titled, ...STORY.slice(1)], PEOPLE), "river");
+  return g.graph.children.find((n) => n.id === titled.id)!.labels![0];
+};
+
+test("a label's room is the width of the text it shows", () => {
   const short = node("tweag").labels![0];
-  assert.ok(short.width < LABEL_MAX && short.width > 0);
   assert.equal(short.text, "tweag");
+  assert.equal(short.width, 5 * 6.4);
+  assert.equal(short.height, 14);
+});
+
+test("a title too long for a label is cut to fit, and ends in an ellipsis", () => {
+  // The text ELK is given room for is the text that gets drawn. Reserving
+  // 150px and then drawing 220px of title put the start of two meetup names
+  // off the left edge of the picture on a phone.
+  const title = "Mini NUG @ Legend Chicken Hawaiian Gardens";
+  const label = labelOf(title);
+  assert.ok(label.text.endsWith("…"), label.text);
+  assert.ok(title.startsWith(label.text.slice(0, -1)), label.text);
+  assert.ok(label.width <= LABEL_MAX, `${label.width}px claimed`);
+  assert.equal(label.width, Math.round(label.text.length * 6.4 * 10) / 10);
+});
+
+test("a cut title keeps as much as fits", () => {
+  const label = labelOf("x".repeat(80));
+  assert.ok(
+    (label.text.length + 1) * 6.4 > LABEL_MAX,
+    `${label.text.length} characters shown, and one more would have fitted`,
+  );
+});
+
+test("a title that fits exactly is left whole", () => {
+  const title = "x".repeat(Math.floor(LABEL_MAX / 6.4));
+  assert.equal(labelOf(title).text, title);
 });
 
 test("river hangs labels beside the node and runs down; subway above and across", () => {
