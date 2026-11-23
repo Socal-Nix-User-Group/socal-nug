@@ -80,10 +80,15 @@ inputs.nixpkgs.lib.mapAttrs (system: pkgs: {
       ''
         cp -r ${pkgs.socal-nug-braid-js.src}/. .
         chmod -R u+w .
+        # Tests too, not just src: esbuild strips types without checking them,
+        # so a test file outside tsc's reach has no types at all. Adding a
+        # required field to an interface then surfaces as a confusing test
+        # failure rather than an error naming every fixture that needs it.
+        # types/node.d.ts covers what the tests import from node.
         tsc --noEmit --strict \
           --target es2022 --module esnext --moduleResolution bundler \
           --allowImportingTsExtensions --skipLibCheck \
-          src/*.ts
+          types/*.d.ts src/*.ts test/*.ts
         touch "$out"
       '';
 

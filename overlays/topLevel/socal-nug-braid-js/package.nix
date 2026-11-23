@@ -7,14 +7,16 @@ stdenvNoCC.mkDerivation {
   pname = "socal-nug-braid-js";
   version = "0-unstable";
 
-  # The engine and its tests. `src` is exposed so the braid-engine check can
-  # compile the tests from the same tree the bundle is built from.
+  # The engine, its tests, and the node declarations the typecheck needs for
+  # them. `src` is exposed so the braid-engine check can compile the tests
+  # from the same tree the bundle is built from.
   src = lib.fileset.toSource {
     root = ./.;
     fileset = lib.fileset.unions [
       ./src
       ./test
       ./smoke
+      ./types
     ];
   };
 
