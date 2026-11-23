@@ -112,6 +112,11 @@ test("another moment is described by how many were there", () =>
 test("one person is one person", () =>
   assert.equal(describeGathering(g("rob-nix")), "rob-nix, July 2018, 1 person"));
 
+test("a moment that is not a meetup and names nobody stops at its date", () => {
+  const empty = buildStory([storyAt("quiet", "2023-02", [])], STORY_PEOPLE).moments[0];
+  assert.equal(describeGathering(empty), "quiet, February 2023");
+});
+
 test("a member and a guest are described as what they are", () => {
   assert.equal(describePerson(person("rob")), "ROB, member");
   assert.equal(describePerson(person("rob", false)), "ROB, guest");

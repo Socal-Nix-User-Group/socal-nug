@@ -78,12 +78,14 @@ export function nextIndex(
 /** What a screen reader says for a gathering: a meetup says how many are in the group. */
 export function describeGathering(gathering: Gathering): string {
   const { moment } = gathering;
+  const when = `${moment.title}, ${formatFuzzyDate(moment.date)}`;
+  if (!moment.trunk && gathering.through.length === 0) return when;
   const count = moment.trunk
     ? `${gathering.inGroup} in the group`
     : gathering.through.length === 1
       ? "1 person"
       : `${gathering.through.length} people`;
-  return `${moment.title}, ${formatFuzzyDate(moment.date)}, ${count}`;
+  return `${when}, ${count}`;
 }
 
 /** What a screen reader says for a face. */

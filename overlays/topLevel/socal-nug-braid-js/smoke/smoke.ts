@@ -60,36 +60,48 @@ const elk = new ELK();
 
 declare const performance: { now(): number };
 
-const loomCases: Array<[string, unknown]> = [["today", JSON.parse(block[1])]];
+// Each case says whether it is made up, which changes what a layout finding
+// tells the reader about who could have caused it.
+const loomCases: Array<[string, unknown, boolean]> = [
+  ["today", JSON.parse(block[1]), false],
+];
 for (const seed of [1, 2, 3]) {
   for (const years of [0, 1, 2]) {
-    loomCases.push([`seed ${seed} +${years}y`, history(seed, years)]);
+    loomCases.push([`seed ${seed} +${years}y`, history(seed, years), true]);
   }
 }
 
 const loomFailures: string[] = [];
-for (const [name, raw] of loomCases) {
-  const data = parseData(raw);
-  const story = buildStory(data.moments, data.people);
+for (const [name, raw, madeUp] of loomCases) {
   for (const mode of ["river", "subway"] as const) {
-    const started = performance.now();
-    const placed = await placeLoom(story, mode, (graph) => elk.layout(graph));
-    const took = performance.now() - started;
-    console.log(
-      `loom ${name} ${mode}: ${story.moments.length} moments, ` +
-        `${story.threads.length} people, ribbon off its column by up to ` +
-        `${ribbonSpread(story, placed).toFixed(1)}px, ` +
-        `${placed.width.toFixed(0)}x${placed.height.toFixed(0)}, ` +
-        `${took.toFixed(0)}ms`,
-    );
-    const { doc, made } = recorder();
-    drawLoom(placed, story, doc);
-    const findings = [
-      ...inspectPlacement(story, placed),
-      ...inspectDrawing(story, placed, made),
-    ];
-    for (const finding of findings) {
-      loomFailures.push(`loom ${name} ${mode}: ${explain(finding)}`);
+    // A throw is the engine's, and is reported as one so the rest still run.
+    try {
+      const data = parseData(raw);
+      const story = buildStory(data.moments, data.people);
+      const started = performance.now();
+      const placed = await placeLoom(story, mode, (graph) => elk.layout(graph));
+      const took = performance.now() - started;
+      console.log(
+        `loom ${name} ${mode}: ${story.moments.length} moments, ` +
+          `${story.threads.length} people, ribbon off its column by up to ` +
+          `${ribbonSpread(story, placed).toFixed(1)}px, ` +
+          `${placed.width.toFixed(0)}x${placed.height.toFixed(0)}, ` +
+          `${took.toFixed(0)}ms`,
+      );
+      const { doc, made } = recorder();
+      drawLoom(placed, story, doc);
+      const findings = [
+        ...inspectPlacement(story, placed),
+        ...inspectDrawing(story, placed, made),
+      ];
+      for (const finding of findings) {
+        loomFailures.push(`loom ${name} ${mode}: ${explain(finding, madeUp)}`);
+      }
+    } catch (error) {
+      const message = `it threw: ${error instanceof Error ? error.message : String(error)}`;
+      loomFailures.push(
+        `loom ${name} ${mode}: ${explain({ kind: "engine", message }, madeUp)}`,
+      );
     }
   }
 }

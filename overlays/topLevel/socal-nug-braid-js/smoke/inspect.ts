@@ -70,8 +70,14 @@ export function inspectPlacement(story: Story, placed: LoomPlaced): Finding[] {
     if (!placed.roots.has(t.person.slug)) {
       found.push({ kind: "engine", message: `${t.person.slug}'s face has no position` });
     }
-    if (!placed.edges.some((e) => e.meta.slug === t.person.slug)) {
-      found.push({ kind: "engine", message: `${t.person.slug} has no edge` });
+    // One edge into each moment on the thread, the first from the face. An
+    // edge ELK returned without a section is left out of the placement.
+    const edges = placed.edges.filter((e) => e.meta.slug === t.person.slug).length;
+    if (edges < t.path.length) {
+      found.push({
+        kind: "engine",
+        message: `${t.person.slug} has ${edges} of the ${t.path.length} edges their thread needs`,
+      });
     }
   }
 
@@ -422,10 +428,18 @@ export function inspectDrawing(
 const LAYOUT_ENDING = "This is a fault in how the picture was laid out for the " +
   "data as it now stands. Nothing in your change is mistaken. It needs a " +
   "maintainer who knows the layout engine in overlays/topLevel/socal-nug-braid-js.";
+const MADE_UP_ENDING = "This history is made up from a fixed seed, so only a change to the layout engine in overlays/topLevel/socal-nug-braid-js can have caused it.";
 const ENGINE_ENDING = "This is a bug in the engine, not in the data.";
 
-/** A finding as the check prints it. */
-export function explain(finding: Finding): string {
-  const ending = finding.kind === "layout" ? LAYOUT_ENDING : ENGINE_ENDING;
+/**
+ * A finding as the check prints it. On a made-up history no change to the
+ * data can have caused a layout finding, so it does not say so to an author.
+ */
+export function explain(finding: Finding, madeUp = false): string {
+  const ending = finding.kind === "engine"
+    ? ENGINE_ENDING
+    : madeUp
+    ? MADE_UP_ENDING
+    : LAYOUT_ENDING;
   return `${finding.message}. ${ending}`;
 }

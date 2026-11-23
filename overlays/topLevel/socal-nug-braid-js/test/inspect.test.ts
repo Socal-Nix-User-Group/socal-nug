@@ -151,6 +151,16 @@ test("a moment, a face or a thread the engine left out is an engine finding", ()
   assert.ok(/connor/.test(text));
 });
 
+test("a person with fewer edges than moments on their thread is an engine finding naming them", () => {
+  const base = clean();
+  const dropped = base.edges.findIndex((e) => e.meta.slug === "mica");
+  const edges = base.edges.filter((_, i) => i !== dropped);
+  const found = inspectPlacement(story, { ...base, edges });
+  assert.equal(found.length, 1, JSON.stringify(found));
+  assert.equal(found[0].kind, "engine");
+  assert.ok(/mica/.test(found[0].message), found[0].message);
+});
+
 // --- the drawn picture ---------------------------------------------------------
 
 /**
@@ -354,4 +364,14 @@ test("explain ends a layout finding with the words for an author and an engine f
   );
   const engine = explain({ kind: "engine", message: "mica has no bead" });
   assert.ok(engine.endsWith("This is a bug in the engine, not in the data."));
+});
+
+test("explain says a layout finding on a made-up history can only come from a change to the engine", () => {
+  const layout = explain({ kind: "layout", message: "rob's thread runs through nug3's oval" }, true);
+  assert.equal(
+    layout,
+    "rob's thread runs through nug3's oval. This history is made up from a fixed seed, so only a change to the layout engine in overlays/topLevel/socal-nug-braid-js can have caused it.",
+  );
+  const engine = explain({ kind: "engine", message: "mica has no bead" }, true);
+  assert.equal(engine, "mica has no bead. This is a bug in the engine, not in the data.");
 });
