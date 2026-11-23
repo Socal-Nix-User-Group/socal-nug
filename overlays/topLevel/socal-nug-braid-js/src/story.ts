@@ -30,7 +30,8 @@ export interface Gathering {
   /**
    * The people in the group at this date who are not at this moment, each at
    * their ribbon slot. They pass it by. Empty for a moment on the ribbon and
-   * before there is a group.
+   * before there is a group. Only someone whose thread goes on to a later
+   * moment passes one: a thread stops at its person's last moment.
    */
   readonly passing: readonly { readonly slug: string; readonly slot: number }[];
 }
@@ -81,9 +82,11 @@ export function buildStory(
   });
 
   const firstMoment = new Map<string, number>();
+  const lastMoment = new Map<string, number>();
   through.forEach((slugs, index) => {
     for (const slug of slugs) {
       if (!firstMoment.has(slug)) firstMoment.set(slug, index);
+      lastMoment.set(slug, index);
     }
   });
 
@@ -123,7 +126,7 @@ export function buildStory(
       passing: onRibbon
         ? []
         : group
-          .filter((slug) => !here.includes(slug))
+          .filter((slug) => !here.includes(slug) && lastMoment.get(slug)! > index)
           .sort((a, b) => rank(a) - rank(b))
           .map((slug) => ({ slug, slot: rank(slug) })),
     };

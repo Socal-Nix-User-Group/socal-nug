@@ -252,6 +252,24 @@ test("a person at the side moment has no port on its pass-through", () => {
   assert.ok(hops("daniel").includes("nug2|out|daniel>camp|in|daniel"));
 });
 
+test("with a trailing side moment no person's last edge ends at a pass-through, and no pass-through exists that nobody passes", () => {
+  for (const extra of [
+    [at("conf", "2024-09", ["rob", "daniel"])],
+    [at("conf", "2024-09", ["rob", "daniel"]), at("camp2", "2024-10", ["mica"])],
+  ]) {
+    const s = buildStory([...MOMENTS, ...extra], PEOPLE);
+    const built = loomGraphFor(s, "river");
+    const ids = extra.map((m) => m.id).join(" ");
+    for (const t of s.threads) {
+      const mine = built.graph.edges.filter((e) => built.meta.get(e.id)?.slug === t.person.slug);
+      assert.ok(!mine.at(-1)!.targets[0].startsWith("pass:"), `${ids}: ${t.person.slug}`);
+    }
+    for (const n of built.graph.children.filter((c) => c.id.startsWith("pass:"))) {
+      assert.ok(n.ports!.some((p) => !p.id.endsWith("|~")), `${ids}: ${n.id}`);
+    }
+  }
+});
+
 test("the spine runs through the pass-through between the meetups either side of it, each piece held straight", () => {
   const into = spine.find((e) => e.targets[0] === "pass:camp|in|~")!;
   const out = spine.find((e) => e.sources[0] === "pass:camp|out|~")!;

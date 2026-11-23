@@ -110,6 +110,26 @@ test("someone who has not joined yet is never passing", () => {
     ["daniel", "david", "jared", "mica"],
   );
 });
+test("a side moment after the last meetup has nobody passing", () => {
+  const s = buildStory([...MOMENTS, at("conf", "2024-09", ["rob", "daniel"])], PEOPLE);
+  const conf = s.moments.find((m) => m.moment.id === "conf")!;
+  assert.equal(conf.onRibbon, false);
+  assert.equal(conf.inGroup, 6);
+  assert.deepEqual(conf.passing, []);
+});
+test("a member passes a trailing side moment only if their thread goes on to a later one", () => {
+  // Mica is at the later camp and not the earlier conference; David is at neither.
+  const s = buildStory(
+    [...MOMENTS, at("conf", "2024-09", ["rob", "daniel"]), at("camp2", "2024-10", ["mica"])],
+    PEOPLE,
+  );
+  const m = (id: string) => s.moments.find((x) => x.moment.id === id)!;
+  assert.deepEqual(m("conf").passing, [{ slug: "mica", slot: 4 }]);
+  assert.deepEqual(m("camp2").passing, []);
+  for (const id of ["conf", "camp2"]) {
+    assert.ok(!m(id).passing.some((p) => p.slug === "david"), id);
+  }
+});
 test("a person whose first moment is the meetup they join at starts there, joined", () => {
   const jared = story.threads.find((t) => t.person.slug === "jared")!;
   assert.equal(jared.path[0].moment.id, "nug1");
