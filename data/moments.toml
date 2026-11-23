@@ -18,7 +18,7 @@
 [[moment]]
 id = "rob-finds-nix"
 date = "2018-07" # CONFIRM: "around the middle of 2018"
-title = "Finds Nix"
+title = "First contact"
 people = ["rob-hernandez"]
 
 # --- Daniel Baker ----------------------------------------------------------
@@ -26,7 +26,7 @@ people = ["rob-hernandez"]
 [[moment]]
 id = "daniel-finds-nix"
 date = "2021-10-23"
-title = "Finds Nix"
+title = "First contact"
 people = ["daniel-baker"]
 blurb = "Daniel Baker joined the NixOS Discourse. It is the earliest dated trace of him using Nix; he had found it some time before that."
 
@@ -39,14 +39,14 @@ people = ["daniel-baker"]
 [[moment]]
 id = "meets-connor"
 date = "2022-03" # CONFIRM: "let's say March"
-title = "Met"
+title = "Paths cross"
 people = ["daniel-baker", "connor-baker"]
 blurb = "Daniel Baker and Connor Baker met working at Tweag."
 
 [[moment]]
 id = "code-and-coffee"
 date = "2022-08-27"
-title = "Met"
+title = "Paths cross"
 people = ["daniel-baker", "david-nuon"]
 blurb = "Daniel Baker and David Nuon met at a Code and Coffee meetup."
 
@@ -119,8 +119,9 @@ people = ["morgan-jones"]
 [[moment]]
 id = "meets-morgan"
 date = "2024-05-06"
-title = "Met"
+title = "Paths cross"
 people = ["daniel-baker", "morgan-jones"]
+blurb = "Daniel Baker and Morgan Jones met on Discord, talking about Mallory."
 
 # No `trunk` key on any of these: dated after the spine starts and naming
 # people already in it, so the engine reads them as excursions.
