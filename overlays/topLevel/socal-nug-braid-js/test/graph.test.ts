@@ -12,6 +12,7 @@ function person(slug: string, member = true): Person {
     name: slug,
     alias: `@${slug}`,
     description: "",
+    quote: "",
     imageUrl: "",
     profileUrl: "",
     member,

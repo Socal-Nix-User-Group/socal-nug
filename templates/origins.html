@@ -50,6 +50,7 @@
       "name": {{ p.extra.name | json_encode | safe }},
       "alias": {{ p.extra.alias | json_encode | safe }},
       "description": {{ p.extra.description | default(value="") | json_encode | safe }},
+      "quote": {{ p.extra.quote | default(value="") | json_encode | safe }},
       "imageUrl": {{ p.extra.image_url | default(value="") | json_encode | safe }},
       "profileUrl": {{ p.extra.profile_url | default(value="") | json_encode | safe }},
       "member": {{ p.extra.member | json_encode | safe }}

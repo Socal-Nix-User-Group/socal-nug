@@ -47,6 +47,7 @@ export function person(slug: string, member = true, imageUrl = ""): Person {
     name: slug.toUpperCase(),
     alias: `@${slug}`,
     description: "",
+    quote: "",
     imageUrl,
     profileUrl: "",
     member,

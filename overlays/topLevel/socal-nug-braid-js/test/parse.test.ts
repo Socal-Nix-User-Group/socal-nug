@@ -154,3 +154,17 @@ test("a link without a url is rejected, naming the moment and the field", () => 
     /x.*links\[0\]\.url/,
   );
 });
+
+test("a person with no quote gets an empty one, not undefined", () => {
+  const { people } = parseData(PAYLOAD);
+  assert.equal(people.get("daniel-baker")!.quote, "");
+});
+
+test("a quote comes through as written, inner quotation marks and all", () => {
+  const said = 'I was like "whoa other people use this?"';
+  const { people } = parseData({
+    ...PAYLOAD,
+    people: [{ ...PAYLOAD.people[0], quote: said }],
+  });
+  assert.equal(people.get("daniel-baker")!.quote, said);
+});

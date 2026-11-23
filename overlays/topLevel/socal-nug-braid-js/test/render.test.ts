@@ -46,6 +46,7 @@ function person(slug: string, member: boolean, imageUrl = ""): Person {
     name: slug.toUpperCase(),
     alias: `@${slug}`,
     description: "",
+    quote: "",
     imageUrl,
     profileUrl: "",
     member,

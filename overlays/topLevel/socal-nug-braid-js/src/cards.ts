@@ -191,6 +191,14 @@ export function personCardFor(
     ),
   );
 
+  if (person.quote !== "") {
+    // Their words, marked up as theirs. A description is prose about
+    // somebody and reads as the site talking; a quote reads as them.
+    body.appendChild(
+      el(doc, "blockquote", { class: "origins-card-quote" }, person.quote),
+    );
+  }
+
   if (person.description !== "") {
     body.appendChild(
       el(doc, "p", { class: "origins-card-desc" }, person.description),

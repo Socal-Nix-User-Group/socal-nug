@@ -49,6 +49,7 @@ function toPerson(raw: unknown, index: number): Person {
     description: typeof record.description === "string"
       ? record.description
       : "",
+    quote: typeof record.quote === "string" ? record.quote : "",
     imageUrl: typeof record.imageUrl === "string" ? record.imageUrl : "",
     profileUrl: typeof record.profileUrl === "string"
       ? record.profileUrl

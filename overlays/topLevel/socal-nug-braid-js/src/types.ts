@@ -20,6 +20,8 @@ export interface Person {
   readonly name: string;
   readonly alias: string;
   readonly description: string;
+  /** Their own words, shown as a quotation. Prose about them is `description`. */
+  readonly quote: string;
   readonly imageUrl: string;
   readonly profileUrl: string;
   readonly member: boolean;

@@ -148,9 +148,11 @@ export function drawPlaced(
     const at = placed.moments.get(moment.id)!;
     svg.appendChild(
       make(doc, "circle", {
-        class: `origins-node ${moment.trunk ? "is-trunk" : "is-side"} ${
-          moment.date.precision === "day" ? "is-exact" : "is-fuzzy"
-        }`,
+        // Dots are solid whatever the date's precision. A hollow dot for a
+        // date known only to the month read as a different kind of moment
+        // rather than as a gap in the record; the card and the label say
+        // "March 2023" against "9 March 2023", which is where that belongs.
+        class: `origins-node ${moment.trunk ? "is-trunk" : "is-side"}`,
         "data-moment": moment.id,
         cx: round(at.x),
         cy: round(at.y),

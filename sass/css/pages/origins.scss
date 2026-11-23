@@ -184,14 +184,6 @@ html[data-theme=dark] .origins-layout {
         fill: var(--origins-muted);
     }
 
-    // A date we only know to the month or the year is drawn hollow rather than
-    // stretched along an axis, because spacing is by rank and carries no time.
-    &.is-fuzzy {
-        fill: var(--origins-surface);
-        stroke: var(--origins-muted);
-        stroke-width: 2;
-        stroke-dasharray: 2 2;
-    }
 }
 
 .origins-label {
@@ -379,6 +371,26 @@ html[data-theme=dark] .origins-layout {
 .origins-card-join {
     font-size: 0.62rem;
     opacity: 0.75;
+}
+
+// Somebody's own words. Set apart from the prose around them by a rule in
+// their thread's colour, so a card that has both does not read as one voice.
+.origins-card-quote {
+    font-size: 0.66rem;
+    font-style: italic;
+    line-height: 1.4;
+    margin: 0.3rem 0 0;
+    padding-left: 0.5rem;
+    border-left: 2px solid var(--origins-thread, var(--origins-muted));
+    opacity: 0.9;
+
+    &::before {
+        content: "\201C";
+    }
+
+    &::after {
+        content: "\201D";
+    }
 }
 
 .origins-card-desc {

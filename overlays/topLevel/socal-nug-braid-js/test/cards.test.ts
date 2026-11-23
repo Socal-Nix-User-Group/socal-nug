@@ -47,6 +47,7 @@ function person(slug: string, member: boolean): Person {
     name: slug.toUpperCase(),
     alias: `@${slug}`,
     description: `about ${slug}`,
+    quote: "",
     imageUrl: "",
     profileUrl: `https://example.com/${slug}`,
     member,
@@ -222,4 +223,33 @@ test("a detail card renders every outside link with its own title", () => {
     links.map((l) => [l.title, l.url]),
   );
   assert.ok(anchors.every((a) => a.attrs.rel === "noopener"));
+});
+
+// --- a person's own words ----------------------------------------------------
+// A description is prose about somebody; a quote is what they said. They are
+// different things and the card shows them differently, so they are separate
+// fields rather than one field the card has to guess about.
+
+test("a quote is rendered as a quotation, not as prose", () => {
+  const { doc, made } = stubDocument();
+  const speaker = {
+    ...PEOPLE.get("daniel")!,
+    description: "Co-founder.",
+    quote: 'I was like "whoa other people use this?"',
+  };
+  personCardFor({ ...thread("daniel"), person: speaker }, braid, doc);
+  const quote = made.find((n) => n.tag === "blockquote")!;
+  assert.ok(quote !== undefined, "no blockquote in the card");
+  assert.equal(quote.text, 'I was like "whoa other people use this?"');
+  // and the description is still its own paragraph
+  const desc = made.find((n) =>
+    (n.attrs.class ?? "").includes("origins-card-desc")
+  )!;
+  assert.equal(desc.text, "Co-founder.");
+});
+
+test("somebody with no quote gets no empty quotation", () => {
+  const { doc, made } = stubDocument();
+  personCardFor(thread("daniel"), braid, doc);
+  assert.equal(made.some((n) => n.tag === "blockquote"), false);
 });

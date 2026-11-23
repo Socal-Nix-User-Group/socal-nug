@@ -69,9 +69,9 @@ links = [{ title = "NixCon 2022", url = "https://2022.nixcon.org/" }]
 
 [[moment]]
 id = "scale-20x"
-date = "2023-03" # CONFIRM: exact days of SCaLE 20x
+date = "2023-03-09" # SCaLE 20x ran 9 to 12 March
 title = "Nix booth at SCaLE 20x"
-people = ["daniel-baker", "rob-hernandez", "david-nuon"]
+people = ["daniel-baker", "rob-hernandez", "david-nuon", "mica"]
 blurb = "Boothing with Daniel Fullmer and Ben. Daniel and David both met Rob here."
 
 [[moment]]
