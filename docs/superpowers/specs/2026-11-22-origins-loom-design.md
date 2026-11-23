@@ -173,8 +173,10 @@ It produces, with nothing positional:
 - **Who is passing it**: at a moment off the ribbon, the members of the group at its date who are
   not through it, in slot order, each with their ribbon slot. Nobody is passing a moment on the
   ribbon or a moment before there is a group, and a member recorded away from a meetup is not
-  passing it: a meetup is on the ribbon, and their thread goes around its oval. The graph gives
-  the people passing a side moment the pass-through under "Holding the ribbon to one column".
+  passing it: a meetup is on the ribbon, and their thread goes around its oval. A thread stops at
+  its person's last moment, so a member passes a side moment only if they are through a later
+  one. The graph gives the people passing a side moment the pass-through under "Holding the
+  ribbon to one column".
 
 Someone named at a conference before they have joined the group is through that moment and
 vouched for there, as they are drawn today. Someone who never joins has a thread through the
@@ -306,14 +308,36 @@ today's data 19 of 162 hops between ribbon moments strayed more than a slot, by 
 River and 90px in Subway. The cause, tested: ELK orders a side moment next to its attendees'
 threads, inside the ribbon, to avoid crossings, and every thread on the far side has to go around
 the oval. The labels were not the cause: dropping them left the same 19 hops straying. What holds
-it, as built, is a pass-through. In the layer of each side moment that falls while there is a
-group, the ribbon gets an unseen node as wide as the group, with an in-port and an out-port at the
-ribbon slot of each member who is not at the side moment and a spine port pair like a ribbon
+it, as built, is a pass-through. In the layer of each side moment that someone in the group passes
+(see "The story model"), the ribbon gets an unseen node as wide as the group, with an in-port and
+an out-port at the ribbon slot of each member passing it and a spine port pair like a ribbon
 moment's. Those members' threads run straight through it, the spine runs through it between the
 ribbon moments either side, and only the people the moment names leave the column. It costs two
 things: the attendees' threads cross the others on the way out and back, and the graph has one
-more node per such side moment and one more edge for each person passing one. The ribbon measure
-counts pass-throughs as well as moments on the ribbon.
+more node per such side moment, one more edge for each person passing one, and one more spine
+edge for each pass-through. The ribbon measure counts pass-throughs as well as moments on the
+ribbon.
+
+Measured through the real ELK on the measure the smoke check now uses: a hop between two
+consecutive stops on the ribbon steps out when a point of it lies more than a slot outside its
+two ends. Before the pass-throughs:
+
+- 18 of 161 hops stepped out on today's data;
+- 8 to 20 per layout stepped out on six made-up histories.
+
+With them:
+
+- 0 of 201 step out on today's data, in River and in Subway;
+- 0 step out on any of the nine histories the smoke check runs, in either mode, out of 121 to
+  310 measured per layout.
+
+Today's graph has 8 pass-throughs. It has 277 thread edges, against 237 before, and 31 spine
+edges, against 23. Today's canvas grew:
+
+| Mode   | Before      | After       |
+| ------ | ----------- | ----------- |
+| River  | 504 by 2369 | 504 by 2385 |
+| Subway | 5631 by 362 | 5653 by 435 |
 
 ### Placement
 
@@ -330,8 +354,12 @@ per-mode cache in `main.ts` that makes a resize cheap work as `centreIn` and its
 
 ### Drawing
 
-- **Threads.** One path per edge, solid, in the person's palette slot, eased with `flow()` as
-  today. No dashed detour style: there are no detours.
+- **Threads.** One path per person, solid, in the person's palette slot, eased with `flow()` as
+  today. A person's edges join end to end, each ending at the slot the next starts from. One path
+  per edge would leave a faint seam wherever two of them meet in open space, as at a
+  pass-through, because two overlapping round-capped paths composite their anti-aliased edges
+  twice. An edge the layout left out starts a new subpath. No dashed detour style: there are no
+  detours.
 - **Moments.** An ellipse sized to the moment's box in place of the dot, styled as a meetup or as
   another moment where the dot was styled trunk or side. It is the click, hover and focus target
   and keeps `data-moment`, `role="button"`, its `aria-label` and its place in the roving

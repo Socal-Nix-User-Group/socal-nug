@@ -300,9 +300,10 @@ Kernel's layered algorithm and takes back coordinates:
   axis is ours and not the layering's. ELK decides order within a layer and where lines go.
 - A moment is as wide across the time axis as its slots, with an in-port and an out-port for each
   person through it at fixed positions. A person's thread is one edge per hop, from their face to
-  their first moment and then from moment to moment.
-- A hidden spine of edges between the ribbon's moments, which ELK is told to keep straight, holds
-  the ribbon to one column. It is never placed or drawn.
+  their first moment and then from moment to moment, by way of the pass-through of each side
+  moment they pass (below).
+- A hidden spine of edges through the ribbon's moments and the pass-throughs, which ELK is told to
+  keep straight, holds the ribbon to one column. It is never placed or drawn.
 - The ribbon's people pass a side moment through an unseen pass-through node in its layer, at
   their ribbon slots, so only the people the moment names leave the column. Why and what it costs
   are under "Holding the ribbon to one column" in `2026-11-22-origins-loom-design.md`.
