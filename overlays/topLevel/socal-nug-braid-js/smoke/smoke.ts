@@ -337,7 +337,8 @@ console.log(
 
 // --- the loom, through the same engine -----------------------------------------
 // The real page's data and made-up histories, laid out by the real ELK. A
-// finding fails the check. The spread is printed and not asserted on.
+// finding fails the check, a ribbon off its column among them, but only after
+// every case has printed its line, so one run shows them all.
 
 declare const performance: { now(): number };
 
@@ -348,6 +349,7 @@ for (const seed of [1, 2, 3]) {
   }
 }
 
+const loomFailures: string[] = [];
 for (const [name, raw] of loomCases) {
   const data = parseData(raw);
   const story = buildStory(data.moments, data.people);
@@ -355,17 +357,22 @@ for (const [name, raw] of loomCases) {
     const started = performance.now();
     const placed = await placeLoom(story, mode, (graph) => elk.layout(graph));
     const took = performance.now() - started;
+    console.log(
+      `loom ${name} ${mode}: ${story.moments.length} moments, ` +
+        `${story.threads.length} people, ribbon off its column by up to ` +
+        `${ribbonSpread(story, placed).toFixed(1)}px, ` +
+        `${placed.width.toFixed(0)}x${placed.height.toFixed(0)}, ` +
+        `${took.toFixed(0)}ms`,
+    );
     const findings = inspectPlacement(story, placed);
     if (findings.length > 0) {
-      fail(
+      loomFailures.push(
         `loom ${name} ${mode}: ` +
           findings.map((f) => `${f.kind}: ${f.message}`).join("; "),
       );
     }
-    console.log(
-      `loom ${name} ${mode}: ${story.moments.length} moments, ` +
-        `${story.threads.length} people, ribbon off its column by up to ` +
-        `${ribbonSpread(story, placed).toFixed(1)}px, ${took.toFixed(0)}ms`,
-    );
   }
+}
+if (loomFailures.length > 0) {
+  fail(loomFailures.join("\norigins smoke: "));
 }

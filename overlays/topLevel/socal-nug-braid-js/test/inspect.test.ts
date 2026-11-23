@@ -90,6 +90,20 @@ test("a clean placement has no findings", () => {
   assert.deepEqual(inspectPlacement(story, clean()), []);
 });
 
+test("a ribbon more than a pixel off its column is a layout finding naming the moment furthest off", () => {
+  const base = shifted(clean(), "nug1", 12);
+  const found = inspectPlacement(story, shifted(base, "nug3", 30));
+  assert.equal(found.length, 1);
+  assert.equal(found[0].kind, "layout");
+  assert.ok(/nug3/.test(found[0].message), found[0].message);
+  assert.ok(/30\.0px/.test(found[0].message), found[0].message);
+  assert.ok(!/nug1/.test(found[0].message), found[0].message);
+});
+
+test("a ribbon within a pixel of its column is not a finding", () => {
+  assert.deepEqual(inspectPlacement(story, shifted(clean(), "nug3", 0.5)), []);
+});
+
 test("a thread through a moment that is not its own is a layout finding", () => {
   const base = clean();
   const nug3 = base.boxes.get("nug3")!;

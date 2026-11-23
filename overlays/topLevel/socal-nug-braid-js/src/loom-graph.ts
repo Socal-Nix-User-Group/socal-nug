@@ -12,6 +12,10 @@ import type { Story } from "./story.ts";
  * threads apart instead of attaching every edge at about the same point. A
  * person's thread is one edge from their root to their first moment and one
  * from each moment to the next they are through.
+ *
+ * One more edge chain is nobody's thread: the spine, from each moment on the
+ * ribbon to the next, which ELK is told to keep straight. It is what holds
+ * the ribbon to one column, and it is never placed or drawn.
  */
 
 /** Between one thread and the next across a moment. */
@@ -34,6 +38,9 @@ export function slotOffset(slots: number, slot: number): number {
 export function portId(moment: string, side: "in" | "out", slug: string): string {
   return `${moment}|${side}|${slug}`;
 }
+
+/** Stands where a slug would in the ids of the spine's ports. It is nobody's slug. */
+const SPINE = "~";
 
 export interface ThreadMeta {
   readonly slug: string;
@@ -73,13 +80,16 @@ export function loomGraphFor(story: Story, mode: Mode): LoomGraph {
     const m = gathering.moment;
     const size = across(gathering.slots);
     const text = shown(m.title);
-    const ports = gathering.through.flatMap((p) => {
-      const offset = slotOffset(gathering.slots, p.slot);
-      return [
-        port(portId(m.id, "in", p.slug), 0, offset, river ? "NORTH" : "WEST"),
-        port(portId(m.id, "out", p.slug), THICK, offset, river ? "SOUTH" : "EAST"),
-      ];
-    });
+    const pair = (who: string, offset: number) => [
+      port(portId(m.id, "in", who), 0, offset, river ? "NORTH" : "WEST"),
+      port(portId(m.id, "out", who), THICK, offset, river ? "SOUTH" : "EAST"),
+    ];
+    const ports = gathering.through.flatMap((p) =>
+      pair(p.slug, slotOffset(gathering.slots, p.slot))
+    );
+    if (gathering.onRibbon) {
+      ports.push(...pair(SPINE, slotOffset(gathering.slots, 0) - SLOT / 2));
+    }
     children.push({
       id: m.id,
       width: river ? size : THICK,
@@ -118,6 +128,24 @@ export function loomGraphFor(story: Story, mode: Mode): LoomGraph {
       edges.push({ id, sources: [source], targets: [portId(m, "in", slug)] });
       meta.set(id, info);
       source = portId(m, "out", slug);
+    });
+  });
+
+  // The spine: an edge from each moment on the ribbon to the next, half a slot
+  // before the first slot, that ELK is told to keep straight above all else.
+  // A straight spine is a first slot in the same place at both its ends, so
+  // this is what holds the ribbon to one column. The threads cannot do it:
+  // where the group splits up between two meetups no thread runs from the one
+  // to the other, and giving the threads a priority as well as the spine
+  // takes the spine's away and lets the ribbon jog again. It has no meta, so
+  // nothing places or draws it.
+  const ribbon = story.moments.filter((g) => g.onRibbon);
+  ribbon.slice(1).forEach((gathering, n) => {
+    edges.push({
+      id: `spine:${n}`,
+      sources: [portId(ribbon[n].moment.id, "out", SPINE)],
+      targets: [portId(gathering.moment.id, "in", SPINE)],
+      layoutOptions: { "elk.layered.priority.straightness": "1000" },
     });
   });
 

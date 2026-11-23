@@ -21,20 +21,43 @@ function slotZero(story: Story, placed: LoomPlaced, id: string): number {
   return (placed.mode === "river" ? box.x : box.y) + slotOffset(slots, 0);
 }
 
+/** The on-ribbon moment whose slot 0 sits furthest from the median of them, and how far. */
+function furthestOff(
+  story: Story,
+  placed: LoomPlaced,
+): { id: string; by: number } | null {
+  const ids = story.moments
+    .filter((g) => g.onRibbon && placed.boxes.has(g.moment.id))
+    .map((g) => g.moment.id);
+  if (ids.length === 0) return null;
+  const at = ids.map((id) => slotZero(story, placed, id));
+  const sorted = [...at].sort((a, b) => a - b);
+  const mid = sorted.length >> 1;
+  const median = sorted.length % 2 === 1
+    ? sorted[mid]
+    : (sorted[mid - 1] + sorted[mid]) / 2;
+  let worst = 0;
+  at.forEach((x, i) => {
+    if (Math.abs(x - median) > Math.abs(at[worst] - median)) worst = i;
+  });
+  return { id: ids[worst], by: Math.abs(at[worst] - median) };
+}
+
 /** How far any on-ribbon moment's slot 0 sits from the median of them, across the time axis. */
 export function ribbonSpread(story: Story, placed: LoomPlaced): number {
-  const at = story.moments
-    .filter((g) => g.onRibbon && placed.boxes.has(g.moment.id))
-    .map((g) => slotZero(story, placed, g.moment.id))
-    .sort((a, b) => a - b);
-  if (at.length === 0) return 0;
-  const mid = at.length >> 1;
-  const median = at.length % 2 === 1 ? at[mid] : (at[mid - 1] + at[mid]) / 2;
-  return Math.max(...at.map((x) => Math.abs(x - median)));
+  return furthestOff(story, placed)?.by ?? 0;
 }
 
 export function inspectPlacement(story: Story, placed: LoomPlaced): Finding[] {
   const found: Finding[] = [];
+
+  const off = furthestOff(story, placed);
+  if (off !== null && off.by > 1) {
+    found.push({
+      kind: "layout",
+      message: `the ribbon is ${off.by.toFixed(1)}px off its column at ${off.id}`,
+    });
+  }
 
   for (const g of story.moments) {
     if (!placed.moments.has(g.moment.id) || !placed.boxes.has(g.moment.id)) {
