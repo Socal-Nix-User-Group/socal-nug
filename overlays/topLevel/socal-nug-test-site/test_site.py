@@ -143,7 +143,8 @@ class SiteBuild(unittest.TestCase):
     # --- about page ------------------------------------------------------------
 
     MEMBERS = ['Daniel Baker', 'David Nuon', 'Rob Hernandez', 'Tristan Ross',
-               'Connor Baker', 'Jared Baur', 'Kyle Risse', 'Morgan Jones']
+               'Connor Baker', 'Jared Baur', 'Kyle Risse', 'Morgan Jones',
+               'Mica']
 
     def test_about_members_are_in_curated_order(self):
         about = (self.out / 'about' / 'index.html').read_text()

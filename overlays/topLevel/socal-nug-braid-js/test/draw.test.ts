@@ -227,3 +227,51 @@ test("a year line sits between the last moment of one year and the first of the 
   const after = placed.moments.get("founded")!.y;
   assert.ok(y > before && y < after, `${y} is not between ${before} and ${after}`);
 });
+
+// --- dots on the spine -------------------------------------------------------
+// The spine thickens with every person who joins, and past a certain weight
+// it swallows the dots sitting on it. A ring of the page's own colour behind
+// each one cuts a gap in the line so the dot reads as a dot.
+
+test("a spine dot gets a ring behind it; a side dot does not", async () => {
+  const { made } = await draw();
+  const halos = withClass(made, "origins-node-halo");
+  const trunk = braid.moments.filter((m) => m.moment.trunk);
+  assert.equal(halos.length, trunk.length);
+  assert.ok(trunk.length > 0 && trunk.length < braid.moments.length);
+});
+
+test("a ring sits on its dot and is bigger than it", async () => {
+  const { placed, made } = await draw();
+  const halo = withClass(made, "origins-node-halo")[0];
+  const dot = withClass(made, "origins-node").find((n) =>
+    n.attrs.cx === halo.attrs.cx && n.attrs.cy === halo.attrs.cy
+  )!;
+  const at = placed.moments.get(dot.attrs["data-moment"])!;
+  assert.equal(Number(halo.attrs.cx), at.x);
+  assert.equal(Number(halo.attrs.cy), at.y);
+  assert.ok(
+    Number(halo.attrs.r) > Number(dot.attrs.r),
+    `ring ${halo.attrs.r} is not bigger than dot ${dot.attrs.r}`,
+  );
+});
+
+test("a ring is drawn before its dot, so the dot sits on top", async () => {
+  const { made } = await draw();
+  const lastHalo = Math.max(
+    ...withClass(made, "origins-node-halo").map((n) => made.indexOf(n)),
+  );
+  const firstDot = Math.min(
+    ...withClass(made, "origins-node").map((n) => made.indexOf(n)),
+  );
+  assert.ok(lastHalo < firstDot, "a ring would cover a dot");
+});
+
+test("a ring is not a target: it has no moment, role or tab stop", async () => {
+  const { made } = await draw();
+  for (const halo of withClass(made, "origins-node-halo")) {
+    assert.equal(halo.attrs["data-moment"], undefined);
+    assert.equal(halo.attrs.role, undefined);
+    assert.equal(halo.attrs.tabindex, undefined);
+  }
+});

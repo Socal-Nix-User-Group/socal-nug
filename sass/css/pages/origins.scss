@@ -29,6 +29,10 @@
     // Nothing else lives here: the map takes the full width and the cards for
     // people and moments open inside it. A rail beside it cost River a 20rem
     // column it could not spare once the lanes were wide enough to read.
+
+    // The map scrolls inside its own box, so without this its edge sits hard
+    // against whatever follows it down the page.
+    margin-bottom: 3rem;
 }
 
 // Zola compiles every file under sass/ on its own as well as through
@@ -139,10 +143,26 @@ html[data-theme=dark] .origins-layout {
     }
 }
 
+// A gap cut in the spine behind each of its dots, in the page's own colour,
+// so a thick spine does not swallow them. Sized to leave a ring showing
+// around the dot: hovering grows the dot into that ring, which is what makes
+// the hover obvious on a line this heavy.
+.origins-node-halo {
+    fill: var(--bulma-scheme-main, #fff);
+    pointer-events: none;
+}
+
 .origins-node {
     fill: var(--origins-trunk);
     cursor: pointer;
     transition: r 0.12s ease;
+
+    // `r` is a geometry property, so the dot can grow on hover and the
+    // transition above has something to animate.
+    &.is-trunk:hover,
+    &.is-trunk.is-open {
+        r: 9.5px;
+    }
 
     // A bigger invisible hit area than the dot, so a 4.5 unit node is still
     // clickable.

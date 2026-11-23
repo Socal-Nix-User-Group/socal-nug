@@ -140,9 +140,14 @@ export function buildBraid(
     for (const joined of joinIndex.values()) {
       if (joined <= fromIndex) count += 1;
     }
-    const away = excursions
-      .filter((e) => e.from.moment.id === from.moment.id)
-      .reduce((total, e) => total + e.leaves.length, 0);
+    // Distinct people, not leaver-slots. Several detours can fall between one
+    // pair of meetups with the same people at more than one of them, and
+    // adding up their leavers made more people away than had ever joined.
+    const away = new Set(
+      excursions
+        .filter((e) => e.from.moment.id === from.moment.id)
+        .flatMap((e) => e.leaves),
+    ).size;
     trunk.push({ from, to: trunkPlaced[i + 1], joined: count, away });
   }
 

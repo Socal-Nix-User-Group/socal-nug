@@ -18,16 +18,21 @@
     {% if profile.extra.member %}
     <div class="column is-half-desktop is-full-mobile">
       <div class="media">
+        {#- Not everyone has a picture. An empty src resolves against the page
+            URL and fetches the page, so the figure is left out entirely. -#}
+        {%- set portrait = profile.extra.image_url | default(value="") %}
+        {%- if portrait != "" %}
         <div class="media-left">
           <figure>
             <img
             class="image"
               width="128"
-              src="{{ profile.extra.image_url }}"
+              src="{{ portrait }}"
               alt="{{ profile.extra.name | lower | split(pat=" ") | join(sep="-") }}"
             />
           </figure>
         </div>
+        {%- endif %}
             <div class="media-content content">
               <h4 class="title is-4">{{ profile.extra.name }}</h4>
               <h6 class="subtitle is-6">

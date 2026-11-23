@@ -273,3 +273,33 @@ test("a moment naming only people not yet in the group is not a detour", () => {
     ["meet", "nug"],
   );
 });
+
+test("someone on two detours in one stretch is away once, not twice", () => {
+  // Nix Vegas, Nix Camp and NixCon all fall between the same two meetups,
+  // and several people are at more than one of them. Counting each detour's
+  // leavers separately made more people away than had ever joined, which the
+  // spine then drew thinner than it has any right to be.
+  const busy = buildBraid(
+    [
+      at("root", "2021", ["daniel"]),
+      at("founded", "2023-01", ["daniel", "rob"], true),
+      at("camp", "2023-03", ["daniel", "rob"]),
+      at("conf", "2023-04", ["daniel", "rob"]),
+      at("nug", "2023-06", [], true),
+    ],
+    PEOPLE,
+  );
+  const stretch = busy.trunk.find((s) => s.from.moment.id === "founded")!;
+  assert.equal(busy.excursions.length, 2, "both detours are in one stretch");
+  assert.equal(stretch.joined, 2);
+  assert.equal(stretch.away, 2);
+});
+
+test("nobody is ever away who has not joined", () => {
+  for (const segment of braid.trunk) {
+    assert.ok(
+      segment.away <= segment.joined,
+      `${segment.from.moment.id}: ${segment.away} away of ${segment.joined}`,
+    );
+  }
+});

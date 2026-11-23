@@ -126,6 +126,23 @@ export function drawPlaced(
   }
 
   // --- nodes ----------------------------------------------------------------
+  // The spine thickens with every person who joins, and past a certain weight
+  // it swallows the dots sitting on it. Each spine dot gets a ring of the
+  // page's own colour behind it first, which cuts a gap in the line so the
+  // dot reads as a dot. Decoration only: no moment, no role, no tab stop.
+  for (const placedMoment of braid.moments) {
+    if (!placedMoment.moment.trunk) continue;
+    const at = placed.moments.get(placedMoment.moment.id)!;
+    svg.appendChild(
+      make(doc, "circle", {
+        class: "origins-node-halo",
+        cx: round(at.x),
+        cy: round(at.y),
+        r: TRUNK_R + 3,
+      }),
+    );
+  }
+
   for (const placedMoment of braid.moments) {
     const moment = placedMoment.moment;
     const at = placed.moments.get(moment.id)!;
