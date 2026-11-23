@@ -103,6 +103,40 @@ const scrolled = (): Promise<{ page: number; map: number }> =>
     `({ page: Math.round(scrollY), map: Math.round(${MAP}.scrollTop) })`,
   );
 
+/** Where the page and the map are scrolled to, unrounded, as one string. */
+const scrollState = `(scrollY + "," + ${MAP}.scrollTop)`;
+
+/**
+ * Repeat a gesture inside the map, as a visitor would, until the page itself
+ * has moved. After each gesture, wait for the map or the page to move and
+ * then to come to rest. A gesture that moves neither is a stall.
+ */
+async function untilThePageMoves(
+  gesture: () => Promise<void>,
+): Promise<{ ok: boolean; detail: Record<string, unknown> }> {
+  const start = await scrolled();
+  for (let gestures = 1; gestures <= 40; gestures += 1) {
+    const before = await tab.evaluate<string>(scrollState);
+    await gesture();
+    const moved = await tab.waitFor(`${scrollState} !== ${JSON.stringify(before)}`);
+    if (!moved) {
+      return { ok: false, detail: { stalledOn: gestures, ...(await scrolled()) } };
+    }
+    // At rest: the same place on two polls in a row.
+    await tab.waitFor(`(() => {
+      const now = ${scrollState};
+      const same = now === window.__originsLastScroll;
+      window.__originsLastScroll = now;
+      return same;
+    })()`);
+    const now = await scrolled();
+    if (now.page !== start.page) {
+      return { ok: true, detail: { gestures, ...now } };
+    }
+  }
+  return { ok: false, detail: { gestures: 40, pageNeverMoved: true, ...(await scrolled()) } };
+}
+
 const popupOpen = `${POPUP} !== null && !${POPUP}.hidden`;
 const popupShut = `${POPUP}.hidden`;
 
@@ -110,15 +144,18 @@ const popupShut = `${POPUP}.hidden`;
 async function run(): Promise<void> {
   // --- scrolling past the map ---------------------------------------------------
 
+  // The map's end is reached the way a visitor reaches it. A scripted jump to
+  // scrollHeight can land a fraction of a pixel past the real end of a box
+  // whose extent is not a whole pixel, and the next gesture is then spent
+  // coming back, which no visitor can cause.
   await load("river");
   {
-    await tab.evaluate(`${MAP}.scrollTop = ${MAP}.scrollHeight`);
     const at = await insideMap(0.5);
-    await tab.wheel(at.x, at.y, 300);
+    const { ok, detail } = await untilThePageMoves(() => tab.wheel(at.x, at.y, 300));
     check(
-      await tab.waitFor(`scrollY > 0`),
-      "River: the wheel carries on down the page once the map reaches its end",
-      await scrolled(),
+      ok,
+      "River: the wheel never stalls inside the map, and carries on down the page at its end",
+      detail,
     );
   }
 
@@ -136,15 +173,13 @@ async function run(): Promise<void> {
   await load("river", 390, 844, true);
   {
     await tab.evaluate(`${MAP}.scrollIntoView({ block: "center" })`);
-    await tab.evaluate(`${MAP}.scrollTop = ${MAP}.scrollHeight`);
-    const before = await scrolled();
     const from = await insideMap(0.75);
     const to = await insideMap(0.25);
-    await tab.drag(from.x, from.y, to.y);
+    const { ok, detail } = await untilThePageMoves(() => tab.drag(from.x, from.y, to.y));
     check(
-      await tab.waitFor(`scrollY > ${before.page}`),
-      "phone: a finger inside the map scrolls the page once the map is at its end",
-      { before, after: await scrolled() },
+      ok,
+      "phone: a finger never stalls inside the map, and scrolls the page once the map is at its end",
+      detail,
     );
   }
 
