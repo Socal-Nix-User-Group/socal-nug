@@ -285,3 +285,27 @@ test("a box of nothing leaves the canvas as it is", () => {
   assert.equal(placed.width, 500);
   assert.equal(placed.moments.get("a")!.x, 100);
 });
+
+test("centring later gives what centring during placement would have", async () => {
+  // What makes a resize cheap: the layout does not depend on the width of
+  // the box, so a window drag re-centres a layout already in hand instead of
+  // running the engine again. If that ever stops holding, this fails.
+  const direct = await placeBraid(braid, "river", fakeLayout, 900);
+  const cached = await placeBraid(braid, "river", fakeLayout);
+  assert.deepEqual(centreIn(cached, 900), direct);
+});
+
+test("re-centring is idempotent for a given box", () => {
+  const once = centreIn({ ...base, width: 500 }, 900);
+  assert.deepEqual(centreIn(once, 900), once);
+});
+
+test("a layout can be re-centred to a different box from the same original", () => {
+  const original = { ...base, width: 500 };
+  const wide = centreIn(original, 900);
+  const narrow = centreIn(original, 600);
+  assert.equal(wide.moments.get("a")!.x, 300);
+  assert.equal(narrow.moments.get("a")!.x, 150);
+  // the original is untouched, which is what lets it be the cache
+  assert.equal(original.moments.get("a")!.x, 100);
+});

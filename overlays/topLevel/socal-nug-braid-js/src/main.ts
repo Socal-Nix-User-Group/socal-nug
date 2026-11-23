@@ -4,7 +4,8 @@ import { focusOrder, nextIndex } from "./focus.ts";
 import type { ElkGraph, Mode } from "./graph.ts";
 import { buildBraid } from "./layout.ts";
 import { parseData } from "./parse.ts";
-import { placeBraid } from "./place.ts";
+import { centreIn, placeBraid } from "./place.ts";
+import type { Placed } from "./place.ts";
 import { placePopup } from "./popup.ts";
 import type { DocumentLike, ElementLike } from "./render.ts";
 import { readMode, writeMode } from "./toggle.ts";
@@ -65,7 +66,12 @@ declare const document: DocumentLike & {
 
 const XHTML = "http://www.w3.org/1999/xhtml";
 
-declare const window: { localStorage: StorageLike } | undefined;
+declare const window: {
+  localStorage: StorageLike;
+  addEventListener(type: string, listener: () => void): void;
+  setTimeout(body: () => void, ms: number): number;
+  clearTimeout(handle: number): void;
+} | undefined;
 declare const console: { error(...args: unknown[]): void };
 
 /** The Eclipse Layout Kernel, which the page loads as a classic script. */
@@ -75,6 +81,8 @@ declare const ELK: new () => {
 
 /** How long the dots take to slide between the two layouts. */
 const MORPH_MS = 420;
+/** How long a window drag has to stop before the picture is redrawn. */
+const RESIZE_SETTLE_MS = 150;
 
 function storage(): StorageLike | null {
   try {
@@ -108,6 +116,15 @@ function boot(): void {
   let previous: ReadonlyMap<string, { x: number; y: number }> = new Map();
   const elk = new ELK();
   let drawing = 0;
+  /**
+   * What ELK made of each mode, before it was centred in anything.
+   *
+   * The layout does not depend on the width of the box, so a window resize
+   * re-centres one of these rather than running the engine again, and a
+   * second visit to a mode is instant.
+   */
+  const laidOut = new Map<Mode, Placed>();
+  let shownAt = 0;
 
   // The one card, opened beside whatever was clicked. It lives inside the
   // scrolling map so it pans with it, and is put back after every redraw
@@ -129,16 +146,15 @@ function boot(): void {
     // are leaving and centres the picture in a box it is not in.
     mount!.setAttribute("data-mode", next);
     document.getElementById("origins-layout")?.setAttribute("data-mode", next);
-    const available = mount!.clientWidth;
+    let bare = laidOut.get(next);
+    if (bare === undefined) {
+      bare = await placeBraid(braid, next, (graph) => elk.layout(graph));
+      if (token !== drawing) return;
+      laidOut.set(next, bare);
+    }
 
-    const placed = await placeBraid(
-      braid,
-      next,
-      (graph) => elk.layout(graph),
-      available,
-    );
-    if (token !== drawing) return;
-
+    shownAt = mount!.clientWidth;
+    const placed = centreIn(bare, shownAt);
     mount!.replaceChildren(drawPlaced(placed, braid, document), popup);
 
     const now = placed.moments;
@@ -419,6 +435,21 @@ function boot(): void {
   draw(mode, false).catch((error: unknown) => {
     console.error("origins: could not lay out the braid", error);
   });
+
+  // The canvas is sized to its box, so a resized window needs a redraw. It
+  // needs no new layout though, only re-centring, which is why this can run
+  // on a drag at all. Settle first: a drag fires continuously, and the width
+  // that matters is the one it stops at.
+  if (window !== undefined) {
+    let settling = 0;
+    window.addEventListener("resize", () => {
+      window.clearTimeout(settling);
+      settling = window.setTimeout(() => {
+        if (mount!.clientWidth === shownAt) return;
+        void draw(mode, false);
+      }, RESIZE_SETTLE_MS);
+    });
+  }
 
   const buttons = document.getElementById("origins-toggle");
   if (buttons !== null) {

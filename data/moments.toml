@@ -121,7 +121,7 @@ id = "meets-morgan"
 date = "2024-05-06"
 title = "Paths cross"
 people = ["daniel-baker", "morgan-jones"]
-blurb = "Daniel Baker and Morgan Jones met on Discord, talking about Mallory."
+blurb = "Daniel Baker and Morgan Jones met on Discord."
 
 # No `trunk` key on any of these: dated after the spine starts and naming
 # people already in it, so the engine reads them as excursions.
