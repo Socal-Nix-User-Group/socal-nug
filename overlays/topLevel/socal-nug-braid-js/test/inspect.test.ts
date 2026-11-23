@@ -1,29 +1,44 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { slotOffset } from "../src/loom-graph.ts";
-import { shown } from "../src/elk.ts";
+import { across, passId, SLOT, slotOffset, THICK } from "../src/loom-graph.ts";
+import { rootId, shown } from "../src/elk.ts";
 import { drawLoom } from "../src/loom-draw.ts";
 import { placeLoom, slotKey } from "../src/loom-place.ts";
 import type { Box, LoomPlaced, PlacedLabel, Point } from "../src/loom-place.ts";
+import { buildStory } from "../src/story.ts";
+import type { Story } from "../src/story.ts";
 import { explain, inspectDrawing, inspectPlacement, recorder, ribbonSpread } from "../smoke/inspect.ts";
 import type { Recorded } from "../smoke/inspect.ts";
 import { fakeLoomLayout } from "./fake-loom-elk.ts";
-import { story } from "./story-fixture.ts";
+import { at, PEOPLE, story } from "./story-fixture.ts";
 
 const fake = await placeLoom(story, "river", fakeLoomLayout);
 
-/** Every on-ribbon moment has its first slot at x = 100, one moment to a row. */
-function aligned(): LoomPlaced {
-  const boxes = new Map(fake.boxes);
-  story.moments.forEach((g, row) => {
-    const box = fake.boxes.get(g.moment.id)!;
+/**
+ * Every on-ribbon moment and pass-through has its first slot at x = 100, one
+ * moment to a row, and a side moment stands off at x = 300 beside its
+ * pass-through.
+ */
+function aligned(s: Story = story, base: LoomPlaced = fake): LoomPlaced {
+  const boxes = new Map(base.boxes);
+  const passes = new Map<string, Box>();
+  s.moments.forEach((g, row) => {
+    const box = base.boxes.get(g.moment.id)!;
     boxes.set(g.moment.id, {
       ...box,
       x: g.onRibbon ? 100 - slotOffset(g.slots, 0) : 300,
       y: row * 50,
     });
+    if (g.passing.length > 0) {
+      passes.set(g.moment.id, {
+        x: 100 - slotOffset(g.inGroup, 0),
+        y: row * 50,
+        width: across(g.inGroup),
+        height: THICK,
+      });
+    }
   });
-  return { ...fake, boxes };
+  return { ...base, boxes, passes };
 }
 
 function shifted(placed: LoomPlaced, id: string, by: number): LoomPlaced {
@@ -51,11 +66,14 @@ test("a moment off the ribbon does not count toward the spread", () => {
 test("subway measures down the page", async () => {
   const subway = await placeLoom(story, "subway", fakeLoomLayout);
   const boxes = new Map(subway.boxes);
+  const passes = new Map(subway.passes);
   for (const g of story.moments) {
     const box = boxes.get(g.moment.id)!;
     boxes.set(g.moment.id, { ...box, y: 100 - slotOffset(g.slots, 0) });
+    const pass = passes.get(g.moment.id);
+    if (pass !== undefined) passes.set(g.moment.id, { ...pass, y: 100 - slotOffset(g.inGroup, 0) });
   }
-  const base = { ...subway, boxes };
+  const base = { ...subway, boxes, passes };
   assert.equal(ribbonSpread(story, base), 0);
   const box = boxes.get("nug3")!;
   const moved = new Map(boxes).set("nug3", { ...box, y: box.y + 12 });
@@ -63,30 +81,76 @@ test("subway measures down the page", async () => {
 });
 
 /**
- * Each thread goes from one of its own things to the next by way of a gutter
- * to the right of everything, so nothing it passes through is another's.
+ * Each thread goes from one of its own stops to the next. A hop from one stop
+ * on the ribbon to the next goes straight down the column. Any other hop goes
+ * by way of a gutter to the right of everything, so nothing it passes through
+ * is another's.
  */
-function clean(): LoomPlaced {
-  const base = aligned();
+function clean(s: Story = story, base: LoomPlaced = fake): LoomPlaced {
+  const placed = aligned(s, base);
+  const centre = (box: Box): Point => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
   const moments = new Map<string, Point>();
-  for (const [id, box] of base.boxes) {
-    moments.set(id, { x: box.x + box.width / 2, y: box.y + box.height / 2 });
-  }
+  for (const [id, box] of placed.boxes) moments.set(id, centre(box));
   const roots = new Map<string, Point>();
-  story.threads.forEach((t, k) => roots.set(t.person.slug, { x: 0, y: -100 * (k + 1) }));
+  s.threads.forEach((t, k) => roots.set(t.person.slug, { x: 0, y: -100 * (k + 1) }));
+
+  const where = new Map<string, Point>(moments);
+  for (const [slug, root] of roots) where.set(rootId(slug), root);
+  for (const [id, box] of placed.passes) where.set(passId(id), centre(box));
+  // Each stop on the ribbon and its place in date order.
+  const ribbon = new Map<string, number>();
+  s.moments.forEach((g, i) => {
+    if (g.onRibbon) ribbon.set(g.moment.id, i);
+    if (g.passing.length > 0) ribbon.set(passId(g.moment.id), i);
+  });
+  const meetups = s.moments.flatMap((g, i) => (g.onRibbon ? [i] : []));
+  const straight = (from: string, to: string) =>
+    ribbon.has(from) && ribbon.has(to) &&
+    !meetups.some((i) => i > ribbon.get(from)! && i < ribbon.get(to)!);
+
   let gutter = 2000;
-  const edges = story.threads.flatMap((t) => {
-    const things = [roots.get(t.person.slug)!, ...t.path.map((g) => moments.get(g.moment.id)!)];
-    return things.slice(1).map((to, i) => {
+  const edges = s.threads.flatMap((t) => {
+    const slug = t.person.slug;
+    const stops = [
+      rootId(slug),
+      ...s.moments.flatMap((g) =>
+        g.through.some((p) => p.slug === slug)
+          ? [g.moment.id]
+          : g.passing.some((p) => p.slug === slug)
+          ? [passId(g.moment.id)]
+          : []
+      ),
+    ];
+    return stops.slice(1).map((to, i) => {
       gutter += 3;
-      const from = things[i];
+      const from = stops[i];
+      const a = where.get(from)!;
+      const b = where.get(to)!;
       return {
-        meta: { slug: t.person.slug, hue: 0, member: true },
-        points: [from, { x: gutter, y: from.y }, { x: gutter, y: to.y }, to],
+        meta: { slug, hue: 0, member: true },
+        from,
+        to,
+        points: straight(from, to)
+          ? [a, b]
+          : [a, { x: gutter, y: a.y }, { x: gutter, y: b.y }, b],
       };
     });
   });
-  return { ...base, moments, roots, edges };
+  return { ...placed, moments, roots, edges };
+}
+
+/** One edge's points replaced by its two ends and a point `by` beyond the further of them, between them. */
+function pushed(placed: LoomPlaced, slug: string, from: string, to: string, by: number): LoomPlaced {
+  let found = false;
+  const edges = placed.edges.map((e) => {
+    if (e.meta.slug !== slug || e.from !== from || e.to !== to) return e;
+    found = true;
+    const a = e.points[0];
+    const b = e.points[e.points.length - 1];
+    return { ...e, points: [a, { x: Math.max(a.x, b.x) + by, y: (a.y + b.y) / 2 }, b] };
+  });
+  assert.ok(found, `${slug} has no edge from ${from} to ${to}`);
+  return { ...placed, edges };
 }
 
 test("a clean placement has no findings", () => {
@@ -161,6 +225,88 @@ test("a person with fewer edges than moments on their thread is an engine findin
   assert.ok(/mica/.test(found[0].message), found[0].message);
 });
 
+test("a pass-through off the column by more than a pixel is a layout finding that names the moment it passes", () => {
+  const base = clean();
+  const passes = new Map(base.passes);
+  const box = passes.get("camp")!;
+  passes.set("camp", { ...box, x: box.x + 30 });
+  const found = inspectPlacement(story, { ...base, passes });
+  assert.equal(found.length, 1, JSON.stringify(found));
+  assert.equal(found[0].kind, "layout");
+  assert.equal(found[0].message, "the ribbon is 30.0px off its column where it passes camp");
+});
+
+test("the spread counts a pass-through as well as the moments on the ribbon", () => {
+  const base = clean();
+  assert.equal(ribbonSpread(story, base), 0);
+  const passes = new Map(base.passes);
+  const box = passes.get("camp")!;
+  passes.set("camp", { ...box, x: box.x - 12 });
+  assert.equal(ribbonSpread(story, { ...base, passes }), 12);
+});
+
+test("a gathering with people passing and no pass-through box is an engine finding", () => {
+  const base = clean();
+  const passes = new Map(base.passes);
+  passes.delete("camp");
+  const found = inspectPlacement(story, { ...base, passes });
+  assert.equal(found.length, 1, JSON.stringify(found));
+  assert.equal(found[0].kind, "engine");
+  assert.equal(found[0].message, "camp has people passing it and no pass-through");
+});
+
+test("a passing person with an edge missing is an engine finding", () => {
+  const base = clean();
+  const edges = base.edges.filter((e) => !(e.meta.slug === "david" && e.to === passId("camp")));
+  assert.equal(edges.length, base.edges.length - 1);
+  const found = inspectPlacement(story, { ...base, edges });
+  assert.equal(found.length, 1, JSON.stringify(found));
+  assert.equal(found[0].kind, "engine");
+  // seven moments David is through and the camp he passes
+  assert.equal(found[0].message, "david has 7 edges and their thread needs 8");
+});
+
+test("a ribbon hop with a point pushed more than a slot outside its two ends is a layout finding naming the person and both ends", () => {
+  const found = inspectPlacement(story, pushed(clean(), "david", "nug2", passId("camp"), 30));
+  assert.equal(found.length, 1, JSON.stringify(found));
+  assert.equal(found[0].kind, "layout");
+  assert.equal(found[0].message, "david's thread steps 30.0px out of the ribbon between nug2 and camp");
+  const out = inspectPlacement(story, pushed(clean(), "jared", passId("camp"), "nug3", 30));
+  assert.equal(out.length, 1, JSON.stringify(out));
+  assert.equal(out[0].message, "jared's thread steps 30.0px out of the ribbon between camp and nug3");
+  // within a slot is not stepping out
+  assert.deepEqual(inspectPlacement(story, pushed(clean(), "david", "nug2", passId("camp"), SLOT - 1)), []);
+});
+
+test("the same push on a hop that skips a moment on the ribbon, someone recorded away, is not a finding", async () => {
+  const s = buildStory(
+    [
+      at("founded", "2023-04", ["rob", "daniel"], true),
+      at("nug1", "2023-05", [], true, { away: ["rob"] }),
+      at("nug2", "2023-06", [], true),
+    ],
+    PEOPLE,
+  );
+  const base = clean(s, await placeLoom(s, "river", fakeLoomLayout));
+  assert.deepEqual(inspectPlacement(s, base), []);
+  // Rob goes around nug1, from the founding to nug2.
+  assert.deepEqual(inspectPlacement(s, pushed(base, "rob", "founded", "nug2", 30)), []);
+  // Daniel's hop past nothing, pushed the same, is a finding.
+  const found = inspectPlacement(s, pushed(base, "daniel", "founded", "nug1", 30));
+  assert.equal(found.length, 1, JSON.stringify(found));
+  assert.equal(found[0].message, "daniel's thread steps 30.0px out of the ribbon between founded and nug1");
+});
+
+test("a hop to or from a side moment is not measured", () => {
+  // Rob leaves nug2 for the camp and goes on from it to SCaLE; both hops go by the gutter.
+  const base = clean();
+  const away = base.edges.filter((e) => e.meta.slug === "rob" && (e.to === "camp" || e.from === "camp"));
+  assert.equal(away.length, 2);
+  for (const e of away) assert.ok(e.points.some((p) => p.x >= 2000));
+  assert.deepEqual(inspectPlacement(story, base), []);
+  assert.deepEqual(inspectPlacement(story, pushed(base, "rob", "nug2", "camp", 30)), []);
+});
+
 // --- the drawn picture ---------------------------------------------------------
 
 /**
@@ -187,10 +333,13 @@ function drawable(): LoomPlaced {
   const roots = new Map<string, Point>();
   story.threads.forEach((t, k) => roots.set(t.person.slug, { x: 25, y: 70 + 60 * k }));
   const edges = story.threads.flatMap((t, k) => {
+    const ids = [rootId(t.person.slug), ...t.path.map((g) => g.moment.id)];
     const things = [roots.get(t.person.slug)!, ...t.path.map((g) => moments.get(g.moment.id)!)];
     const gutter = 400 + 6 * k;
     return things.slice(1).map((to, i) => ({
       meta: { slug: t.person.slug, hue: 0, member: true },
+      from: ids[i],
+      to: ids[i + 1],
       points: [things[i], { x: gutter, y: things[i].y }, { x: gutter, y: to.y }, to],
     }));
   });

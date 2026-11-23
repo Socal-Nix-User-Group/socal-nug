@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { labelWidth, rootId } from "../src/elk.ts";
 import type { ElkGraph, ElkPoint } from "../src/elk.ts";
-import { loomGraphFor, portId } from "../src/loom-graph.ts";
+import { loomGraphFor, passId, portId } from "../src/loom-graph.ts";
 import {
   centreLoomIn,
   loomPlacedFrom,
@@ -87,7 +87,7 @@ test("an edge comes back as its points in order, with whose thread it is", async
   ]);
   // Every thread's edges and nothing else: the spine is not placed.
   const spine = built.graph.edges.filter((e) => e.id.startsWith("spine:"));
-  assert.equal(spine.length, 5);
+  assert.equal(spine.length, 6);
   assert.equal(mapped.edges.length, built.graph.edges.length - spine.length);
 });
 
@@ -229,6 +229,71 @@ test("centring moves boxes and slots with everything else", () => {
   placed.edges.forEach((edge, i) => {
     assert.deepEqual(wide.edges[i].points, edge.points.map(by100), edge.meta.slug);
   });
+});
+
+test("a pass-through comes back under passes, keyed by the side moment's id, and not as a moment, a box or a label", async () => {
+  const built = loomGraphFor(story, "river");
+  const mapped = loomPlacedFrom(
+    built,
+    await fakeLoomLayout(built.graph),
+    story,
+    "river",
+  );
+  const i = built.graph.children.findIndex((n) => n.id === passId("camp"));
+  // the camp is the sixth moment, so its layer is partition 6
+  assert.deepEqual(mapped.passes.get("camp"), { x: 100 + i * 20, y: 6 * 50, width: 44, height: 14 });
+  assert.deepEqual([...mapped.passes.keys()], ["camp"]);
+  for (const map of [mapped.moments, mapped.boxes, mapped.labels]) {
+    assert.ok(!map.has(passId("camp")));
+  }
+  const camp = built.graph.children.findIndex((n) => n.id === "camp");
+  assert.equal(mapped.boxes.get("camp")!.x, 100 + camp * 20);
+  assert.equal(mapped.moments.size, story.moments.length);
+  assert.equal(mapped.boxes.size, story.moments.length);
+  assert.equal(mapped.labels.size, story.moments.length);
+});
+
+test("a passing person's two edges meet at one point inside the pass-through, at their slot's offset", () => {
+  const box = placed.passes.get("camp")!;
+  const slot = placed.slots.get(slotKey(passId("camp"), "david"));
+  // David holds slot 2 of the five in the group: 8 + 2 * 7 across, the middle along.
+  assert.deepEqual(slot, { x: box.x + 22, y: box.y + 7 });
+  const david = placed.edges.filter((e) => e.meta.slug === "david");
+  const into = david.find((e) => e.to === passId("camp"))!;
+  const out = david.find((e) => e.from === passId("camp"))!;
+  assert.deepEqual(into.points.at(-1), slot);
+  assert.deepEqual(out.points[0], slot);
+  // The person at the camp has no place in its pass-through.
+  assert.equal(placed.slots.get(slotKey(passId("camp"), "rob")), undefined);
+});
+
+test("every edge says where it is from and where it goes to: a face, a moment or a pass-through", () => {
+  assert.deepEqual(
+    placed.edges.filter((e) => e.meta.slug === "david").map((e) => [e.from, e.to]),
+    [
+      [rootId("david"), "booth"],
+      ["booth", "founded"],
+      ["founded", "nug1"],
+      ["nug1", "nug2"],
+      ["nug2", passId("camp")],
+      [passId("camp"), "nug3"],
+      ["nug3", "scale"],
+      ["scale", "nug4"],
+    ],
+  );
+  assert.deepEqual(
+    placed.edges.filter((e) => e.meta.slug === "rob").map((e) => [e.from, e.to]).slice(-3),
+    [["nug2", "camp"], ["camp", "scale"], ["scale", "nug4"]],
+  );
+});
+
+test("centring moves a pass-through's box by the same amount as everything else", () => {
+  const wide = centreLoomIn(placed, placed.width + 200);
+  const box = placed.passes.get("camp")!;
+  assert.deepEqual(wide.passes.get("camp"), { ...box, x: box.x + 100 });
+  const key = slotKey(passId("camp"), "david");
+  const slot = placed.slots.get(key)!;
+  assert.deepEqual(wide.slots.get(key), { ...slot, x: slot.x + 100 });
 });
 
 test("centring later gives what centring during placement would have", async () => {

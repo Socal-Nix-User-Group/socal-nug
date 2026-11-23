@@ -27,6 +27,12 @@ export interface Gathering {
   readonly inGroup: number;
   /** Who is through it, in slot order. */
   readonly through: readonly Passage[];
+  /**
+   * The people in the group at this date who are not at this moment, each at
+   * their ribbon slot. They pass it by. Empty for a moment on the ribbon and
+   * before there is a group.
+   */
+  readonly passing: readonly { readonly slug: string; readonly slot: number }[];
 }
 
 export interface Thread {
@@ -114,6 +120,12 @@ export function buildStory(
         vouched: !moment.trunk || joinIndex.get(slug) === index || there.includes(slug),
         joined: moment.trunk && joinIndex.get(slug) === index,
       })),
+      passing: onRibbon
+        ? []
+        : group
+          .filter((slug) => !here.includes(slug))
+          .sort((a, b) => rank(a) - rank(b))
+          .map((slug) => ({ slug, slot: rank(slug) })),
     };
   });
 

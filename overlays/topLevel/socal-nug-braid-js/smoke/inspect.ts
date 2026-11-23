@@ -1,14 +1,15 @@
 import { AVATAR, LABEL_HEIGHT, LABEL_MAX, labelWidth } from "../src/elk.ts";
-import { slotOffset } from "../src/loom-graph.ts";
+import { passId, SLOT, slotOffset } from "../src/loom-graph.ts";
 import { slotKey } from "../src/loom-place.ts";
-import type { LoomPlaced } from "../src/loom-place.ts";
+import type { Box, LoomPlaced, Point } from "../src/loom-place.ts";
 import type { DocumentLike, ElementLike } from "../src/render.ts";
 import type { Story } from "../src/story.ts";
 
 /**
  * What a laid-out loom looks like, read off the placement: whether the layout
  * gave everything a place, whether any thread runs through something that is
- * not its own, and how far the ribbon strays from a single column.
+ * not its own, how far the ribbon strays from a single column, and whether a
+ * thread steps out of the ribbon between two of its stops.
  */
 
 export interface Finding {
@@ -16,23 +17,55 @@ export interface Finding {
   readonly message: string;
 }
 
-/** Where a moment's first slot is across the time axis, whether or not anyone is in it. */
-function slotZero(story: Story, placed: LoomPlaced, id: string): number {
-  const box = placed.boxes.get(id)!;
-  const slots = story.moments.find((g) => g.moment.id === id)!.slots;
-  return (placed.mode === "river" ? box.x : box.y) + slotOffset(slots, 0);
+/** A stop on the ribbon: a moment on it, or the pass-through beside a side moment. */
+interface RibbonStop {
+  /** The node's id: the moment's, or passId() of the moment it passes. */
+  readonly node: string;
+  /** The moment, which names a pass-through in a finding. */
+  readonly moment: string;
+  readonly pass: boolean;
+  /** Its place in date order. */
+  readonly index: number;
+  /** Where its first slot is across the time axis, whether or not anyone is in it. */
+  readonly slotZero: number;
 }
 
-/** The on-ribbon moment whose slot 0 sits furthest from the median of them, and how far. */
+/** Every stop on the ribbon that the placement gave a box, in date order. */
+function ribbonStops(story: Story, placed: LoomPlaced): RibbonStop[] {
+  const across = (box: Box) => (placed.mode === "river" ? box.x : box.y);
+  return story.moments.flatMap((g, index): RibbonStop[] => {
+    const id = g.moment.id;
+    if (g.onRibbon) {
+      const box = placed.boxes.get(id);
+      if (box === undefined) return [];
+      return [{
+        node: id,
+        moment: id,
+        pass: false,
+        index,
+        slotZero: across(box) + slotOffset(g.slots, 0),
+      }];
+    }
+    const box = placed.passes.get(id);
+    if (box === undefined) return [];
+    return [{
+      node: passId(id),
+      moment: id,
+      pass: true,
+      index,
+      slotZero: across(box) + slotOffset(g.inGroup, 0),
+    }];
+  });
+}
+
+/** The stop on the ribbon whose slot 0 sits furthest from the median of them, and how far. */
 function furthestOff(
   story: Story,
   placed: LoomPlaced,
-): { id: string; by: number } | null {
-  const ids = story.moments
-    .filter((g) => g.onRibbon && placed.boxes.has(g.moment.id))
-    .map((g) => g.moment.id);
-  if (ids.length === 0) return null;
-  const at = ids.map((id) => slotZero(story, placed, id));
+): { stop: RibbonStop; by: number } | null {
+  const stops = ribbonStops(story, placed);
+  if (stops.length === 0) return null;
+  const at = stops.map((s) => s.slotZero);
   const sorted = [...at].sort((a, b) => a - b);
   const mid = sorted.length >> 1;
   const median = sorted.length % 2 === 1
@@ -42,10 +75,13 @@ function furthestOff(
   at.forEach((x, i) => {
     if (Math.abs(x - median) > Math.abs(at[worst] - median)) worst = i;
   });
-  return { id: ids[worst], by: Math.abs(at[worst] - median) };
+  return { stop: stops[worst], by: Math.abs(at[worst] - median) };
 }
 
-/** How far any on-ribbon moment's slot 0 sits from the median of them, across the time axis. */
+/**
+ * How far any on-ribbon moment's or pass-through's slot 0 sits from the
+ * median of them, across the time axis.
+ */
 export function ribbonSpread(story: Story, placed: LoomPlaced): number {
   return furthestOff(story, placed)?.by ?? 0;
 }
@@ -55,9 +91,12 @@ export function inspectPlacement(story: Story, placed: LoomPlaced): Finding[] {
 
   const off = furthestOff(story, placed);
   if (off !== null && off.by > 1) {
+    const where = off.stop.pass
+      ? `where it passes ${off.stop.moment}`
+      : `at ${off.stop.moment}`;
     found.push({
       kind: "layout",
-      message: `the ribbon is ${off.by.toFixed(1)}px off its column at ${off.id}`,
+      message: `the ribbon is ${off.by.toFixed(1)}px off its column ${where}`,
     });
   }
 
@@ -65,18 +104,55 @@ export function inspectPlacement(story: Story, placed: LoomPlaced): Finding[] {
     if (!placed.moments.has(g.moment.id) || !placed.boxes.has(g.moment.id)) {
       found.push({ kind: "engine", message: `${g.moment.id} has no position` });
     }
-  }
-  for (const t of story.threads) {
-    if (!placed.roots.has(t.person.slug)) {
-      found.push({ kind: "engine", message: `${t.person.slug}'s face has no position` });
-    }
-    // One edge into each moment on the thread, the first from the face. An
-    // edge ELK returned without a section is left out of the placement.
-    const edges = placed.edges.filter((e) => e.meta.slug === t.person.slug).length;
-    if (edges < t.path.length) {
+    if (g.passing.length > 0 && !placed.passes.has(g.moment.id)) {
       found.push({
         kind: "engine",
-        message: `${t.person.slug} has ${edges} of the ${t.path.length} edges their thread needs`,
+        message: `${g.moment.id} has people passing it and no pass-through`,
+      });
+    }
+  }
+  for (const t of story.threads) {
+    const slug = t.person.slug;
+    if (!placed.roots.has(slug)) {
+      found.push({ kind: "engine", message: `${slug}'s face has no position` });
+    }
+    // One edge into each moment on the thread and each pass-through the
+    // person runs through, the first from the face. An edge ELK returned
+    // without a section is left out of the placement.
+    const needs = t.path.length +
+      story.moments.filter((g) => g.passing.some((p) => p.slug === slug)).length;
+    const edges = placed.edges.filter((e) => e.meta.slug === slug).length;
+    if (edges !== needs) {
+      found.push({
+        kind: "engine",
+        message: `${slug} has ${edges} edges and their thread needs ${needs}`,
+      });
+    }
+  }
+
+  // A hop from one stop on the ribbon to the next stays in the ribbon: no
+  // point of it is more than a slot outside its two ends, across the time
+  // axis. A hop that skips a moment on the ribbon is someone going around a
+  // meetup they are away from or not yet part of, and is meant to step out.
+  const stops = new Map(ribbonStops(story, placed).map((s) => [s.node, s]));
+  const meetups = story.moments.flatMap((g, i) => (g.onRibbon ? [i] : []));
+  const acrossOf = (p: Point) => (placed.mode === "river" ? p.x : p.y);
+  for (const edge of placed.edges) {
+    const from = stops.get(edge.from);
+    const to = stops.get(edge.to);
+    if (from === undefined || to === undefined) continue;
+    if (meetups.some((i) => i > from.index && i < to.index)) continue;
+    const a = acrossOf(edge.points[0]);
+    const b = acrossOf(edge.points[edge.points.length - 1]);
+    const low = Math.min(a, b);
+    const high = Math.max(a, b);
+    const out = Math.max(
+      ...edge.points.map((p) => Math.max(low - acrossOf(p), acrossOf(p) - high, 0)),
+    );
+    if (out > SLOT) {
+      found.push({
+        kind: "layout",
+        message: `${edge.meta.slug}'s thread steps ${out.toFixed(1)}px out of the ribbon between ${from.moment} and ${to.moment}`,
       });
     }
   }

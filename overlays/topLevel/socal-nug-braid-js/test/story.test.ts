@@ -70,6 +70,46 @@ test("two moments on one date are ordered by id, and a person through both passe
   assert.deepEqual(s.moments.map((m) => m.moment.id), ["founded", "a-talk", "b-nug"]);
   assert.deepEqual(s.threads[0].path.map((x) => x.moment.id), ["founded", "a-talk", "b-nug"]);
 });
+test("a moment off the ribbon lists the group's members who are not at it under passing, in slot order, each with their ribbon slot", () => {
+  // Rob and Daniel are at the camp; David, Jared and Mica are in the group and are not.
+  assert.deepEqual(g("camp").passing, [
+    { slug: "david", slot: 2 },
+    { slug: "jared", slot: 3 },
+    { slug: "mica", slot: 4 },
+  ]);
+  assert.deepEqual(
+    g("camp").passing.map((p) => p.slot),
+    g("nug2").through.filter((p) => ["david", "jared", "mica"].includes(p.slug)).map((p) => p.slot),
+  );
+});
+test("a moment on the ribbon has nobody passing, including a meetup someone is recorded away from", () => {
+  for (const m of story.moments.filter((x) => x.onRibbon)) {
+    assert.deepEqual(m.passing, [], m.moment.id);
+  }
+  assert.deepEqual(g("nug3").moment.away, ["rob"]);
+  assert.deepEqual(g("nug3").passing, []);
+});
+test("a moment before there is a group has nobody passing", () => {
+  assert.equal(g("rob-nix").inGroup, 0);
+  assert.deepEqual(g("rob-nix").passing, []);
+  assert.equal(g("booth").inGroup, 0);
+  assert.deepEqual(g("booth").passing, []);
+});
+test("someone who has not joined yet is never passing", () => {
+  // Connor joins at nug4, after the camp, and is not at the camp either.
+  for (const m of story.moments) {
+    assert.ok(!m.passing.some((p) => p.slug === "connor"), m.moment.id);
+  }
+  // Morgan never joins and is passing nothing, even with the group at a visit she is not at.
+  const s = buildStory([...MOMENTS, at("visit", "2024-04", ["rob"]), at("talk", "2024-05", ["morgan"])], PEOPLE);
+  for (const m of s.moments) {
+    assert.ok(!m.passing.some((p) => p.slug === "morgan"), m.moment.id);
+  }
+  assert.deepEqual(
+    s.moments.find((m) => m.moment.id === "visit")!.passing.map((p) => p.slug),
+    ["daniel", "david", "jared", "mica"],
+  );
+});
 test("a person whose first moment is the meetup they join at starts there, joined", () => {
   const jared = story.threads.find((t) => t.person.slug === "jared")!;
   assert.equal(jared.path[0].moment.id, "nug1");

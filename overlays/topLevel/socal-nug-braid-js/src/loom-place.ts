@@ -1,6 +1,6 @@
 import { rootSlug } from "./elk.ts";
 import type { ElkGraph, Mode } from "./elk.ts";
-import { loomGraphFor, slotOffset, THICK } from "./loom-graph.ts";
+import { loomGraphFor, passId, slotOffset, THICK } from "./loom-graph.ts";
 import type { LoomGraph, ThreadMeta } from "./loom-graph.ts";
 import type { Story } from "./story.ts";
 
@@ -9,7 +9,8 @@ import type { Story } from "./story.ts";
  *
  * ELK hands back boxes and edge sections in its own coordinates. This turns
  * them into each moment's box and centre, the slot each person has across it,
- * anchor points for labels, and a polyline per edge with whose thread it is.
+ * anchor points for labels, each pass-through's box, and a polyline per edge
+ * with whose thread it is and which nodes it runs between.
  * The layout itself is injected, so tests can fake it.
  */
 
@@ -40,12 +41,22 @@ export interface LoomPlaced {
   /** Centre of each moment's box. */
   readonly moments: ReadonlyMap<string, Point>;
   readonly boxes: ReadonlyMap<string, Box>;
-  /** Where each person's bead would go: keyed by slotKey(). */
+  /** Each pass-through's box, keyed by the side moment it passes. Never drawn. */
+  readonly passes: ReadonlyMap<string, Box>;
+  /**
+   * Where each person's bead would go: keyed by slotKey(). Also where each
+   * person passing a side moment runs through its pass-through, keyed by
+   * slotKey(passId(moment), slug).
+   */
   readonly slots: ReadonlyMap<string, Point>;
   readonly roots: ReadonlyMap<string, Point>;
   readonly labels: ReadonlyMap<string, PlacedLabel>;
   readonly edges: readonly {
     readonly meta: ThreadMeta;
+    /** The node the edge leaves: a face's rootId, a moment's id or a passId. */
+    readonly from: string;
+    /** The node the edge arrives at, named the same way. */
+    readonly to: string;
     readonly points: readonly Point[];
   }[];
 }
@@ -67,11 +78,16 @@ export function loomPlacedFrom(
 ): LoomPlaced {
   const river = mode === "river";
   const gatherings = new Map(story.moments.map((g) => [g.moment.id, g]));
+  const passed = new Map(story.moments.map((g) => [passId(g.moment.id), g]));
   const moments = new Map<string, Point>();
   const boxes = new Map<string, Box>();
+  const passes = new Map<string, Box>();
   const slots = new Map<string, Point>();
   const roots = new Map<string, Point>();
   const labels = new Map<string, PlacedLabel>();
+
+  const slotAcross = (x: number, y: number, offset: number): Point =>
+    river ? { x: x + offset, y: y + THICK / 2 } : { x: x + THICK / 2, y: y + offset };
 
   for (const node of laidOut.children) {
     const x = node.x ?? 0;
@@ -82,17 +98,27 @@ export function loomPlacedFrom(
       roots.set(slug, centre);
       continue;
     }
+    // A pass-through is not a moment. It keeps its box, and a place for each
+    // person passing, so their two edges join inside it.
+    const passing = passed.get(node.id);
+    if (passing !== undefined) {
+      passes.set(passing.moment.id, { x, y, width: node.width, height: node.height });
+      for (const p of passing.passing) {
+        slots.set(
+          slotKey(node.id, p.slug),
+          slotAcross(x, y, slotOffset(passing.inGroup, p.slot)),
+        );
+      }
+      continue;
+    }
     moments.set(node.id, centre);
     boxes.set(node.id, { x, y, width: node.width, height: node.height });
 
     const gathering = gatherings.get(node.id)!;
     for (const p of gathering.through) {
-      const offset = slotOffset(gathering.slots, p.slot);
       slots.set(
         slotKey(node.id, p.slug),
-        river
-          ? { x: x + offset, y: y + THICK / 2 }
-          : { x: x + THICK / 2, y: y + offset },
+        slotAcross(x, y, slotOffset(gathering.slots, p.slot)),
       );
     }
 
@@ -121,12 +147,14 @@ export function loomPlacedFrom(
 
   // ELK runs an edge from a port on one box's edge to a port on the next, so
   // a thread drawn from that alone stops at every oval. Each end on a port is
-  // carried on to the person's slot inside the oval; an end on a face is
-  // already where it belongs. A port id is `${moment}|${side}|${slug}`.
+  // carried on to the person's slot inside the oval or pass-through; an end on
+  // a face is already where it belongs. A port id is `${node}|${side}|${slug}`.
   const slotAt = (end: string): Point[] => {
-    const [moment, , slug] = end.split("|");
-    return slug === undefined ? [] : [slots.get(slotKey(moment, slug))!];
+    const [node, , slug] = end.split("|");
+    return slug === undefined ? [] : [slots.get(slotKey(node, slug))!];
   };
+  // The node an edge end is on: a port's node, or a face's own id.
+  const nodeOf = (end: string): string => end.split("|")[0];
 
   // An edge ELK routed nowhere is left out rather than drawn from nothing.
   const edges = laidOut.edges.flatMap((edge) => {
@@ -142,7 +170,12 @@ export function loomPlacedFrom(
       ].map((p) => ({ x: p.x, y: p.y })),
       ...slotAt(edge.targets[0]),
     ];
-    return [{ meta, points }];
+    return [{
+      meta,
+      from: nodeOf(edge.sources[0]),
+      to: nodeOf(edge.targets[0]),
+      points,
+    }];
   });
 
   return {
@@ -151,6 +184,7 @@ export function loomPlacedFrom(
     height: laidOut.height ?? 0,
     moments,
     boxes,
+    passes,
     slots,
     roots,
     labels,
@@ -183,6 +217,7 @@ export function centreLoomIn(
     width: available,
     moments: moved(placed.moments, move),
     boxes: moved(placed.boxes, (b) => ({ ...b, x: b.x + by })),
+    passes: moved(placed.passes, (b) => ({ ...b, x: b.x + by })),
     slots: moved(placed.slots, move),
     roots: moved(placed.roots, move),
     labels: moved(placed.labels, (l) => ({ ...l, x: l.x + by })),
