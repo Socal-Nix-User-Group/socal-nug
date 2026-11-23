@@ -47,7 +47,7 @@ interface PageElement extends ElementLike {
   };
   contains(node: PageElement | null): boolean;
   closest(selector: string): PageElement | null;
-  focus(): void;
+  focus(options?: { preventScroll?: boolean }): void;
   animate(frames: unknown[], options: unknown): void;
 }
 
@@ -55,12 +55,15 @@ interface DomEvent {
   readonly currentTarget: PageElement;
   readonly target: PageElement | null;
   readonly key?: string;
+  /** "mouse", "pen" or "touch", on pointer events. */
+  readonly pointerType?: string;
   preventDefault(): void;
 }
 
 declare const document: DocumentLike & {
   getElementById(id: string): (PageElement & { textContent: string }) | null;
   readonly readyState: string;
+  readonly activeElement: PageElement | null;
   addEventListener(type: string, listener: (event: DomEvent) => void): void;
 };
 
@@ -71,6 +74,7 @@ declare const window: {
   addEventListener(type: string, listener: () => void): void;
   setTimeout(body: () => void, ms: number): number;
   clearTimeout(handle: number): void;
+  matchMedia(query: string): { readonly matches: boolean };
 } | undefined;
 declare const console: { error(...args: unknown[]): void };
 
@@ -91,6 +95,19 @@ function storage(): StorageLike | null {
     return null;
   }
 }
+
+/** Whether the reader has asked their system for less motion. */
+function wantsStill(): boolean {
+  return window !== undefined &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/**
+ * Hover is a pointer that can hover. A finger enters a thing by tapping it
+ * and never leaves, so a tap used to light a moment's threads and leave them
+ * lit.
+ */
+const hovers = (event: DomEvent): boolean => event.pointerType !== "touch";
 
 function boot(): void {
   const script = document.getElementById("origins-data");
@@ -114,7 +131,10 @@ function boot(): void {
   const store = storage();
   let mode: Mode = readMode(store);
   let previous: ReadonlyMap<string, { x: number; y: number }> = new Map();
-  const elk = new ELK();
+  // Made on first use, inside the drawing, not here. The engine is a second
+  // script and can fail to arrive; reaching for it at boot threw before the
+  // roster was built, so a missing picture took the people with it.
+  let elk: InstanceType<typeof ELK> | undefined;
   let drawing = 0;
   /**
    * What ELK made of each mode, before it was centred in anything.
@@ -148,7 +168,11 @@ function boot(): void {
     document.getElementById("origins-layout")?.setAttribute("data-mode", next);
     let bare = laidOut.get(next);
     if (bare === undefined) {
-      bare = await placeBraid(braid, next, (graph) => elk.layout(graph));
+      bare = await placeBraid(
+        braid,
+        next,
+        (graph) => (elk ??= new ELK()).layout(graph),
+      );
       if (token !== drawing) return;
       laidOut.set(next, bare);
     }
@@ -158,7 +182,7 @@ function boot(): void {
     mount!.replaceChildren(drawPlaced(placed, braid, document), popup);
 
     const now = placed.moments;
-    if (animate) {
+    if (animate && !wantsStill()) {
       // The two layouts place the same dots, so a switch slides each from
       // where it was to where it is. Transforms animate reliably; `d` does not.
       for (const node of mount!.querySelectorAll("[data-moment]")) {
@@ -258,17 +282,21 @@ function boot(): void {
   }
 
   function closePopup(): void {
-    const wasOpen = !popup.hidden;
+    // Read before the card is emptied: afterwards focus is nowhere.
+    const hadFocus = popup.contains(document.activeElement);
     popup.hidden = true;
     popup.replaceChildren();
     markOpen(undefined);
-    // Back to whatever opened it. Without this, closing a card by keyboard
-    // drops focus onto the body and the next Tab starts from the top of the
-    // page, which loses the reader's place in the story.
-    if (wasOpen && openedBy !== null) {
-      openedBy.focus();
-      openedBy = null;
+    // Back to whatever opened it, when focus was in the card. Without this,
+    // closing a card by keyboard drops focus onto the body and the next Tab
+    // starts from the top of the page, which loses the reader's place in the
+    // story. Only then: a reader who clicked somewhere else to close the card
+    // has put focus where they want it, and taking it back to the dot also
+    // scrolled the page back to it.
+    if (hadFocus && openedBy !== null) {
+      openedBy.focus({ preventScroll: true });
     }
+    openedBy = null;
   }
 
   function showMoment(
@@ -366,10 +394,10 @@ function boot(): void {
 
   function wireHover(): void {
     for (const node of mount!.querySelectorAll("[data-person]")) {
-      node.addEventListener("mouseenter", (e) => {
-        highlight(e.currentTarget.dataset.person, true);
+      node.addEventListener("pointerenter", (e) => {
+        if (hovers(e)) highlight(e.currentTarget.dataset.person, true);
       });
-      node.addEventListener("mouseleave", (e) => {
+      node.addEventListener("pointerleave", (e) => {
         highlight(e.currentTarget.dataset.person, false);
       });
     }
@@ -382,10 +410,11 @@ function boot(): void {
       const placed = braid.moments.find((m) => m.moment.id === id);
       if (placed === undefined) continue;
       const who = placed.moment.people;
-      node.addEventListener("mouseenter", () => {
+      node.addEventListener("pointerenter", (e) => {
+        if (!hovers(e)) return;
         for (const slug of who) highlight(slug, true);
       });
-      node.addEventListener("mouseleave", () => {
+      node.addEventListener("pointerleave", () => {
         for (const slug of who) highlight(slug, false);
       });
       node.addEventListener("click", (e) => showMoment(id, e.currentTarget));
@@ -419,22 +448,19 @@ function boot(): void {
     for (const card of roster.querySelectorAll("[data-person]")) {
       for (
         const [type, on] of [
-          ["mouseenter", true],
+          ["pointerenter", true],
           ["focusin", true],
-          ["mouseleave", false],
+          ["pointerleave", false],
           ["focusout", false],
         ] as const
       ) {
         card.addEventListener(type, (event) => {
+          if (on && !hovers(event)) return;
           highlight(event.currentTarget.dataset.person, on);
         });
       }
     }
   }
-
-  draw(mode, false).catch((error: unknown) => {
-    console.error("origins: could not lay out the braid", error);
-  });
 
   // The canvas is sized to its box, so a resized window needs a redraw. It
   // needs no new layout though, only re-centring, which is why this can run
@@ -453,6 +479,17 @@ function boot(): void {
 
   const buttons = document.getElementById("origins-toggle");
   if (buttons !== null) {
+    // Which mode is on has to be visible as well as announced. The same two
+    // Bulma classes the theme switcher in the navbar uses, so the two
+    // controls read alike.
+    const showMode = (): void => {
+      for (const button of buttons.querySelectorAll("[data-origins-mode]")) {
+        const on = button.dataset.originsMode === mode;
+        button.classList.toggle("is-link", on);
+        button.classList.toggle("is-selected", on);
+        button.setAttribute("aria-pressed", String(on));
+      }
+    };
     for (const button of buttons.querySelectorAll("[data-origins-mode]")) {
       button.addEventListener("click", (event) => {
         const next = event.currentTarget.dataset.originsMode;
@@ -464,20 +501,26 @@ function boot(): void {
           // The picture already on screen stays; only the switch is lost.
           console.error("origins: could not switch mode", error);
         });
-        for (const other of buttons.querySelectorAll("[data-origins-mode]")) {
-          other.setAttribute(
-            "aria-pressed",
-            String(other.dataset.originsMode === mode),
-          );
-        }
+        showMode();
       });
-      button.setAttribute(
-        "aria-pressed",
-        String(button.dataset.originsMode === mode),
-      );
     }
-    buttons.classList.remove("is-hidden");
+    showMode();
   }
+
+  draw(mode, false).then(() => {
+    // Shown once there is a picture to switch, so a reader whose layout
+    // engine never arrived is not offered a control that does nothing.
+    buttons?.classList.remove("is-hidden");
+  }).catch((error: unknown) => {
+    console.error("origins: could not lay out the braid", error);
+    // Say so in the box. The roster beside it still lists everyone; an
+    // empty box with nothing in it reads as a page that has not finished.
+    const sorry = document.createElementNS(XHTML, "p");
+    sorry.setAttribute("class", "origins-failed");
+    sorry.textContent =
+      "The picture could not be drawn. Reloading the page may bring it back.";
+    mount.replaceChildren(sorry);
+  });
 }
 
 if (document.readyState === "loading") {

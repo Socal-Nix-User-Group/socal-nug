@@ -91,6 +91,10 @@
 // in-dark-theme expands to: an explicit data-theme on <html> wins, otherwise
 // the OS preference applies.
 @mixin origins-dark-palette {
+    // The map scrolls in its own box, and a browser draws that box's
+    // scrollbars light unless told the content is dark.
+    color-scheme: dark;
+
     --origins-trunk: #7b9ddf;
     --origins-muted: #9aa0ab;
     --origins-ink: #e8ecf4;
@@ -144,16 +148,26 @@ html[data-theme=dark] .origins-layout {
     position: relative;
 
     // The picture is taller than a screen. Scroll it here rather than letting
-    // the page grow to a couple of thousand pixels.
+    // the page grow to a couple of thousand pixels. Scrolling is left to
+    // chain to the page once the map reaches its end: containing it trapped
+    // the wheel at the bottom of River, made Subway (which does not scroll
+    // this way at all) a dead zone for it, and on a phone, where the map is
+    // most of the screen, left no way past it with a finger inside the box.
     max-height: 85vh;
     overflow-y: auto;
-    overscroll-behavior-y: contain;
+    // Keep room for the scrollbar whether or not it is showing. The script
+    // sizes the canvas to this box before the picture is in it; without this,
+    // the tall picture then brings a scrollbar that narrows the box, and the
+    // canvas it was just sized to no longer fits.
+    scrollbar-gutter: stable;
 
     // Both modes ask for the canvas they need rather than squeezing into this
     // container: Map because time runs across the page, River because its
     // lanes have to stay wider than the faces standing in them. Either way the
     // canvas can be wider than here, so let it keep its intrinsic width and
     // pan to it. On touch that is drag-to-pan for free, with native momentum.
+    // Sideways is contained where down is not: panning to the end of Subway
+    // should not tip over into the browser's swipe back a page.
     overflow-x: auto;
     overscroll-behavior-x: contain;
 
@@ -161,6 +175,14 @@ html[data-theme=dark] .origins-layout {
         width: auto;
         max-width: none;
     }
+}
+
+// What the box says when the layout could not run.
+.origins-failed {
+    margin: 0;
+    padding: 1rem;
+    font-size: 0.8rem;
+    opacity: 0.8;
 }
 
 .origins-svg {
@@ -221,6 +243,13 @@ html[data-theme=dark] .origins-layout {
     stroke-width: 14;
     paint-order: stroke;
 
+    // Before :hover and .is-open, which are no more specific than this. After
+    // them it won, and a side dot stayed grey under the pointer and while its
+    // card was open.
+    &.is-side {
+        fill: var(--origins-muted);
+    }
+
     &:hover {
         fill: var(--origins-ink);
     }
@@ -229,10 +258,6 @@ html[data-theme=dark] .origins-layout {
         fill: var(--origins-ink);
         stroke: var(--origins-ink);
         stroke-width: 3;
-    }
-
-    &.is-side {
-        fill: var(--origins-muted);
     }
 
 }
