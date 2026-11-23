@@ -212,10 +212,47 @@ export function snapTrunk(
   };
 }
 
+/**
+ * Widen the canvas to its box and centre the drawing in it.
+ *
+ * ELK sizes the canvas to the drawing, which in River is a good deal
+ * narrower than the box it sits in. Left alone the picture hugs the left
+ * edge, and the year lines, drawn from 0 to the canvas width, stop where the
+ * drawing stops rather than crossing the box.
+ *
+ * Widening rather than stretching the SVG: the drawing is in the canvas's
+ * own units, so stretching it to fit would scale the dots, the faces and the
+ * text up with it.
+ */
+export function centreIn(placed: Placed, available: number): Placed {
+  // clientWidth is 0 until the element has been laid out; a canvas already
+  // wider than its box is the Subway case and wants nothing done to it.
+  if (available <= placed.width) return placed;
+
+  const by = (available - placed.width) / 2;
+  const move = (p: Point): Point => ({ x: p.x + by, y: p.y });
+  const moved = <T>(from: ReadonlyMap<string, T>, at: (v: T) => T) =>
+    new Map([...from].map(([key, value]) => [key, at(value)]));
+
+  return {
+    ...placed,
+    width: available,
+    moments: moved(placed.moments, move),
+    roots: moved(placed.roots, move),
+    labels: moved(placed.labels, (l) => ({ ...l, x: l.x + by })),
+    edges: placed.edges.map((edge) => ({
+      ...edge,
+      points: edge.points.map(move),
+    })),
+  };
+}
+
 export async function placeBraid(
   braid: Braid,
   mode: Mode,
   layout: Layout,
+  /** The box the picture has to fill, from the container's clientWidth. */
+  available = 0,
 ): Promise<Placed> {
   const built = graphFor(braid, mode);
   const trunkIds = new Set(
@@ -226,5 +263,5 @@ export async function placeBraid(
     trunkIds,
     mode === "river" ? "x" : "y",
   );
-  return placedFrom(built, laidOut, mode);
+  return centreIn(placedFrom(built, laidOut, mode), available);
 }

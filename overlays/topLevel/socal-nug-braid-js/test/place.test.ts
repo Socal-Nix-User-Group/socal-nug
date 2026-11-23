@@ -2,7 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { graphFor, rootId } from "../src/graph.ts";
 import type { ElkGraph, ElkNode } from "../src/graph.ts";
-import { placeBraid, placedFrom, snapTrunk } from "../src/place.ts";
+import {
+  centreIn,
+  placeBraid,
+  placedFrom,
+  snapTrunk,
+} from "../src/place.ts";
 import { at, braid, fakeLayout, PEOPLE } from "./fake-elk.ts";
 import { buildBraid } from "../src/layout.ts";
 
@@ -222,4 +227,61 @@ test("a bend near a snapped end moves most of the way with it", () => {
   assert.ok(Math.abs(hop.endPoint.x - hop.bendPoints![0].x) < 2);
   // the unmoved end is untouched
   assert.deepEqual(hop.startPoint, { x: 200, y: 57 });
+});
+
+const base = {
+  mode: "river" as const,
+  width: 500,
+  height: 2000,
+  moments: new Map([["a", { x: 100, y: 50 }]]),
+  roots: new Map([["p", { x: 40, y: 20 }]]),
+  labels: new Map([["a", { x: 80, y: 54, anchor: "end" as const }]]),
+  edges: [{
+    meta: { kind: "trunk" as const, width: 3 },
+    points: [{ x: 10, y: 10 }, { x: 60, y: 90 }],
+  }],
+};
+
+// --- filling the box ---------------------------------------------------------
+// ELK sizes the canvas to the drawing, which in River is narrower than the
+// box it sits in. Left alone, the picture hugs the left edge and the year
+// lines stop where the canvas does rather than crossing the box. Widening
+// the canvas and centring the drawing in it fixes both; stretching the SVG
+// instead would scale the dots and the text up with it.
+
+test("a canvas narrower than its box is widened to fill it", () => {
+  const placed = centreIn(
+    { ...base, width: 500, height: 2000 },
+    900,
+  );
+  assert.equal(placed.width, 900);
+  assert.equal(placed.height, 2000, "the long axis is untouched");
+});
+
+test("the drawing is centred in the widened canvas", () => {
+  const placed = centreIn({ ...base, width: 500, height: 2000 }, 900);
+  // everything moves right by half the difference
+  assert.equal(placed.moments.get("a")!.x, 100 + 200);
+  assert.equal(placed.moments.get("a")!.y, 50, "nothing moves down");
+  assert.equal(placed.roots.get("p")!.x, 40 + 200);
+  assert.equal(placed.labels.get("a")!.x, 80 + 200);
+  assert.deepEqual(placed.edges[0].points, [
+    { x: 210, y: 10 },
+    { x: 260, y: 90 },
+  ]);
+});
+
+test("a canvas already wider than its box is left alone", () => {
+  const wide = { ...base, width: 6000, height: 400 };
+  const placed = centreIn(wide, 900);
+  assert.equal(placed.width, 6000);
+  assert.equal(placed.moments.get("a")!.x, 100);
+  assert.deepEqual(placed.edges[0].points, base.edges[0].points);
+});
+
+test("a box of nothing leaves the canvas as it is", () => {
+  // clientWidth is 0 before the element is laid out
+  const placed = centreIn({ ...base, width: 500, height: 2000 }, 0);
+  assert.equal(placed.width, 500);
+  assert.equal(placed.moments.get("a")!.x, 100);
 });

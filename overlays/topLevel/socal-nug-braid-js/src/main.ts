@@ -123,13 +123,22 @@ function boot(): void {
     // lays out, so a drawing that was overtaken is dropped rather than
     // landing on top of the newer one.
     const token = ++drawing;
-    const placed = await placeBraid(braid, next, (graph) => elk.layout(graph));
+
+    // Set the mode before measuring. River gives a column to the roster and
+    // Subway does not, so reading clientWidth first measures the layout we
+    // are leaving and centres the picture in a box it is not in.
+    mount!.setAttribute("data-mode", next);
+    document.getElementById("origins-layout")?.setAttribute("data-mode", next);
+    const available = mount!.clientWidth;
+
+    const placed = await placeBraid(
+      braid,
+      next,
+      (graph) => elk.layout(graph),
+      available,
+    );
     if (token !== drawing) return;
 
-    mount!.setAttribute("data-mode", next);
-    // The layout carries it too: the roster sits beside the picture in River
-    // and below it in Subway, where the picture is already full width.
-    document.getElementById("origins-layout")?.setAttribute("data-mode", next);
     mount!.replaceChildren(drawPlaced(placed, braid, document), popup);
 
     const now = placed.moments;
