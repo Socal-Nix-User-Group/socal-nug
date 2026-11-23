@@ -466,19 +466,30 @@ When self-hosting lands, the committed bundle and its check can both be deleted.
 `sass/css/components/`, imported from `style.scss` alongside the existing page styles. Colours are
 defined so that both themes work, following the dark mode work from #97.
 
-## Left to the builder
+## Settled since this was written
 
-- Lane spacing, curve control points, easing, and animation durations.
-- The specific label collision algorithm, and the width threshold below which labels drop to
-  avatar-only.
-- How Map mode signals that it pans on desktop, where there is no touch affordance.
-- Popover positioning and dismissal.
-- Breakpoint values, and whether the roster rail sits left or right of the braid.
-- Whether thread colours are assigned in the data or derived from a palette by lane index.
-- Settled: a freestanding moment may carry `links`, a list of `{ title, url }`, because one
-  moment can be two places at once (PlanetNix ran alongside SCaLE 22x) and the card names each.
-  Event-anchored moments take their permalink from the event and need nothing.
-- Exact attribute names within the conventions of the existing overlay.
+Most of what this section once left open was decided by moving to ELK, and the reasoning lives
+under "The layout engine" rather than here: lane spacing, label collision, and whether thread
+colour comes from the data (it does not; it is a palette slot by thread index). The roster sits
+to the right in River and below in Subway. A freestanding moment may carry `links`, a list of
+`{ title, url }`, because one moment can be two places at once; event-anchored moments take
+their permalink from the event and need nothing.
+
+## Still open
+
+- **The card.** The treatment was called out early as generic and never revisited beyond
+  squaring the corners. There is one card surface now, used in the popup and the roster, so it
+  is a single thing to design rather than two.
+- **Descriptions and quotes.** Connor Baker, Jared Baur, Kyle Risse and Morgan Jones have
+  neither. Mica has a quote, which rather shows up the gap. Rob Hernandez's "First contact" is
+  the one moment whose card has no description.
+- **Seven `CONFIRM` markers** in `data/moments.toml`: two dates given as approximations, two
+  meetups guessed at, and "I think everyone was there" on the three SCaLE moments.
+- **The README** says nothing about any of this: the braid, esbuild, the vendored ELK, or that
+  `zola serve` does not watch `data/`, which has twice made a change look like it had not
+  landed.
+- **How Subway signals it pans** on desktop, where there is no touch affordance.
+- **Integration.** The branch is more than fifty commits and has never been reviewed as a whole.
 
 ## Verification
 
