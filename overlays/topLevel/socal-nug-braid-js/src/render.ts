@@ -57,6 +57,9 @@ export function avatarFor(person: Person, doc: DocumentLike): ElementLike {
         height: AVATAR * 2,
         "clip-path": "circle()",
         class: "origins-avatar-image",
+        // the group around it carries the person's name; without this a
+        // screen reader reads the face a second time as an unnamed image
+        "aria-hidden": "true",
       }),
     );
   } else {

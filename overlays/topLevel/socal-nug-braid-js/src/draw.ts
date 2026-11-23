@@ -1,3 +1,4 @@
+import { labelFor } from "./focus.ts";
 import { SIDE_R, TRUNK_R } from "./graph.ts";
 import { hueFor } from "./palette.ts";
 import type { Placed } from "./place.ts";
@@ -38,13 +39,17 @@ export function drawPlaced(
 ): ElementLike {
   const { width, height } = placed;
   const along = placed.mode === "river" ? "y" : "x";
+  // A named group, not hidden decoration. Its dots and faces take focus, and
+  // something focusable that is hidden from assistive tech is something a
+  // screen reader user lands on and hears nothing about.
   const svg = make(doc, "svg", {
     viewBox: `0 0 ${round(width)} ${round(height)}`,
     width: round(width),
     height: round(height),
     class: `origins-svg is-${placed.mode}`,
-    "aria-hidden": "true",
-    role: "presentation",
+    role: "group",
+    "aria-label":
+      "How we met: use the arrow keys to move through it, Enter to open a card",
   });
 
   // --- year markers ---------------------------------------------------------
@@ -133,6 +138,10 @@ export function drawPlaced(
         cx: round(at.x),
         cy: round(at.y),
         r: moment.trunk ? TRUNK_R : SIDE_R,
+        role: "button",
+        "aria-label": labelFor({ id: moment.id, kind: "moment" }, braid),
+        // -1 for every one of them; the roving tabindex promotes one to 0
+        tabindex: "-1",
       }),
     );
   }
@@ -146,6 +155,9 @@ export function drawPlaced(
       "data-person": thread.person.slug,
       "data-hue": hueFor(index),
       transform: `translate(${round(at.x)} ${round(at.y)})`,
+      role: "button",
+      "aria-label": labelFor({ id: thread.person.slug, kind: "person" }, braid),
+      tabindex: "-1",
     });
     root.appendChild(avatarFor(thread.person, doc));
     svg.appendChild(root);

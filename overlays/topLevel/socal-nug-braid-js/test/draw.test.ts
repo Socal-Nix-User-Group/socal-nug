@@ -51,16 +51,68 @@ async function draw(mode: "river" | "subway" = "river") {
   return { placed, root, made };
 }
 
-test("the svg is the layout's size, hidden from assistive tech, and says its mode", async () => {
+test("the svg is the layout's size and says its mode", async () => {
   const { made } = await draw();
   const svg = made.find((n) => n.tag === "svg")!;
   assert.equal(svg.attrs.viewBox, "0 0 640 480");
   assert.equal(svg.attrs.width, "640");
   assert.equal(svg.attrs.height, "480");
-  assert.equal(svg.attrs["aria-hidden"], "true");
   assert.ok(svg.attrs.class.includes("is-river"));
   const subway = await draw("subway");
-  assert.ok(subway.made.find((n) => n.tag === "svg")!.attrs.class.includes("is-subway"));
+  assert.ok(
+    subway.made.find((n) => n.tag === "svg")!.attrs.class.includes("is-subway"),
+  );
+});
+
+// --- reachable by keyboard and by screen reader ------------------------------
+// The picture used to be aria-hidden decoration beside a visually hidden
+// list. Now that its dots and faces take focus it has to carry its own
+// meaning: a thing that is focusable and hidden from assistive tech is a
+// thing a screen reader user lands on and hears nothing about.
+
+test("the svg is a named group, not hidden decoration", async () => {
+  const { made } = await draw();
+  const svg = made.find((n) => n.tag === "svg")!;
+  assert.equal(svg.attrs["aria-hidden"], undefined);
+  assert.equal(svg.attrs.role, "group");
+  assert.ok((svg.attrs["aria-label"] ?? "").length > 0);
+});
+
+test("every dot and face is a button, named, and out of the tab order", async () => {
+  const { made } = await draw();
+  const targets = [
+    ...withClass(made, "origins-node"),
+    ...withClass(made, "origins-root"),
+  ];
+  assert.equal(targets.length, braid.moments.length + braid.threads.length);
+  for (const node of targets) {
+    assert.equal(node.attrs.role, "button");
+    assert.ok(
+      (node.attrs["aria-label"] ?? "").length > 0,
+      `${node.attrs["data-moment"] ?? node.attrs["data-person"]} has no label`,
+    );
+    // -1 for all of them: the roving tabindex promotes one to 0 at a time
+    assert.equal(node.attrs.tabindex, "-1");
+  }
+});
+
+test("a dot is named by its moment and a face by its person", async () => {
+  const { made } = await draw();
+  const camp = withClass(made, "origins-node").find((n) =>
+    n.attrs["data-moment"] === "camp"
+  )!;
+  assert.equal(camp.attrs["aria-label"], "camp, April 2023, 2 people");
+  const face = withClass(made, "origins-root").find((n) =>
+    n.attrs["data-person"] === "b"
+  )!;
+  assert.equal(face.attrs["aria-label"], "B, guest");
+});
+
+test("the avatar image inside a face is hidden, so the face reads once", async () => {
+  const { made } = await draw();
+  const image = made.find((n) => n.tag === "image");
+  assert.ok(image !== undefined, "the fixture has a face with a picture");
+  assert.equal(image.attrs["aria-hidden"], "true");
 });
 
 test("every trunk segment is a path at its own thickness", async () => {

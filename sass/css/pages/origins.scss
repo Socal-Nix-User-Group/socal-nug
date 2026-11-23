@@ -243,6 +243,23 @@ html[data-theme=dark] .origins-layout {
     cursor: pointer;
 }
 
+// The braid is one tab stop and the arrow keys move a cursor through it, so
+// where that cursor is has to be obvious. Two rings in opposite colours:
+// the dots and faces sit on top of lines of every hue, and a single ring
+// disappears against the one it happens to land on.
+.origins-node:focus-visible,
+.origins-root:focus-visible {
+    outline: 3px solid var(--origins-ink);
+    outline-offset: 3px;
+    // SVG elements take an outline but not a box-shadow in every engine;
+    // the second ring is drawn with the outline's own backdrop instead.
+    border-radius: 50%;
+}
+
+.origins-svg:focus-visible {
+    outline: none;
+}
+
 .origins-root.is-lit .origins-avatar-ring {
     stroke-width: 4;
 }

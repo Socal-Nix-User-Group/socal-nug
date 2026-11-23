@@ -1,5 +1,6 @@
 import { detailFor, personCardFor } from "./cards.ts";
 import { drawPlaced } from "./draw.ts";
+import { focusOrder, nextIndex } from "./focus.ts";
 import type { ElkGraph, Mode } from "./graph.ts";
 import { buildBraid } from "./layout.ts";
 import { parseData } from "./parse.ts";
@@ -45,6 +46,7 @@ interface PageElement extends ElementLike {
   };
   contains(node: PageElement | null): boolean;
   closest(selector: string): PageElement | null;
+  focus(): void;
   animate(frames: unknown[], options: unknown): void;
 }
 
@@ -52,6 +54,7 @@ interface DomEvent {
   readonly currentTarget: PageElement;
   readonly target: PageElement | null;
   readonly key?: string;
+  preventDefault(): void;
 }
 
 declare const document: DocumentLike & {
@@ -112,6 +115,8 @@ function boot(): void {
   const popup = document.createElementNS(XHTML, "div") as PageElement;
   popup.setAttribute("class", "origins-popup");
   popup.hidden = true;
+  /** What opened the card, so focus can go back to it when the card closes. */
+  let openedBy: PageElement | null = null;
 
   async function draw(next: Mode, animate: boolean): Promise<void> {
     // Layout is asynchronous and a reader can switch modes faster than ELK
@@ -150,6 +155,7 @@ function boot(): void {
     // point at.
     closePopup();
     wireHover();
+    wireKeyboard();
   }
 
   function highlight(slug: string | undefined, on: boolean): void {
@@ -173,7 +179,11 @@ function boot(): void {
    * reader has to scroll to find. Once open it is part of the map and pans
    * with it.
    */
-  function openPopup(anchor: PageElement, content: ElementLike): void {
+  function openPopup(
+    anchor: PageElement,
+    content: ElementLike,
+    byKeyboard = false,
+  ): void {
     popup.replaceChildren(content);
     popup.hidden = false;
     const map = mount!.getBoundingClientRect();
@@ -200,28 +210,122 @@ function boot(): void {
     for (const dismiss of popup.querySelectorAll("[data-origins-dismiss]")) {
       dismiss.addEventListener("click", () => closePopup());
     }
+
+    // Opened by keyboard: focus goes into the card, so what comes next is
+    // the card's own content rather than the rest of the picture. Opened by
+    // pointer, focus stays where the reader put it.
+    openedBy = anchor;
+    if (byKeyboard) {
+      const dismiss = popup.querySelectorAll("[data-origins-dismiss]")[0];
+      if (dismiss !== undefined) dismiss.focus();
+    }
   }
 
   function closePopup(): void {
+    const wasOpen = !popup.hidden;
     popup.hidden = true;
     popup.replaceChildren();
     markOpen(undefined);
+    // Back to whatever opened it. Without this, closing a card by keyboard
+    // drops focus onto the body and the next Tab starts from the top of the
+    // page, which loses the reader's place in the story.
+    if (wasOpen && openedBy !== null) {
+      openedBy.focus();
+      openedBy = null;
+    }
   }
 
-  function showMoment(id: string | undefined, anchor: PageElement): void {
+  function showMoment(
+    id: string | undefined,
+    anchor: PageElement,
+    byKeyboard = false,
+  ): void {
     if (id === undefined) return;
     const placed = braid.moments.find((m) => m.moment.id === id);
     if (placed === undefined) return;
-    openPopup(anchor, detailFor(placed, cast, document));
+    openPopup(anchor, detailFor(placed, cast, document), byKeyboard);
     markOpen(id);
   }
 
-  function showPerson(slug: string | undefined, anchor: PageElement): void {
+  function showPerson(
+    slug: string | undefined,
+    anchor: PageElement,
+    byKeyboard = false,
+  ): void {
     if (slug === undefined) return;
     const thread = braid.threads.find((t) => t.person.slug === slug);
     if (thread === undefined) return;
-    openPopup(anchor, personCardFor(thread, braid, document));
+    openPopup(anchor, personCardFor(thread, braid, document), byKeyboard);
     markOpen(undefined);
+  }
+
+  // --- the roving tabindex ---------------------------------------------------
+  // The picture is one tab stop. The arrow keys move the cursor through the
+  // story, and only the target under it is tabbable, so tabbing past the
+  // braid takes one press rather than forty-six.
+
+  const order = focusOrder(braid);
+  let cursor = 0;
+
+  const elementAt = (index: number): PageElement | null => {
+    const target = order[index];
+    if (target === undefined) return null;
+    const selector = target.kind === "moment"
+      ? `[data-moment="${target.id}"]`
+      : `.origins-root[data-person="${target.id}"]`;
+    return mount!.querySelectorAll(selector)[0] ?? null;
+  };
+
+  /** Promote one target into the tab order and demote the rest. */
+  function markCursor(index: number, focusIt: boolean): void {
+    cursor = Math.min(Math.max(index, 0), Math.max(0, order.length - 1));
+    for (const node of mount!.querySelectorAll("[role='button']")) {
+      node.setAttribute("tabindex", "-1");
+    }
+    const node = elementAt(cursor);
+    if (node === null) return;
+    node.setAttribute("tabindex", "0");
+    if (focusIt) node.focus();
+  }
+
+  function openAt(index: number, byKeyboard: boolean): void {
+    const target = order[index];
+    const node = elementAt(index);
+    if (target === undefined || node === null) return;
+    if (target.kind === "moment") showMoment(target.id, node, byKeyboard);
+    else showPerson(target.id, node, byKeyboard);
+  }
+
+  function wireKeyboard(): void {
+    for (const node of mount!.querySelectorAll("[role='button']")) {
+      // Clicking or focusing a target makes it the cursor, so the arrows
+      // carry on from wherever the reader actually is.
+      node.addEventListener("focus", (event) => {
+        const at = indexOfNode(event.currentTarget);
+        if (at >= 0) markCursor(at, false);
+      });
+      node.addEventListener("keydown", (event) => {
+        if (event.key === undefined) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openAt(cursor, true);
+          return;
+        }
+        const next = nextIndex(cursor, event.key, order.length);
+        if (next === null) return;
+        event.preventDefault();
+        markCursor(next, true);
+      });
+    }
+    markCursor(cursor, false);
+  }
+
+  function indexOfNode(node: PageElement): number {
+    const moment = node.dataset.moment;
+    const person = node.dataset.person;
+    return order.findIndex((t) =>
+      t.kind === "moment" ? t.id === moment : t.id === person
+    );
   }
 
   function wireHover(): void {
@@ -301,9 +405,14 @@ function boot(): void {
     buttons.classList.remove("is-hidden");
   }
 
+  // The list was the accessible version while the picture was aria-hidden
+  // decoration. The picture now names its own dots and faces and opens the
+  // same cards, and the cards carry the blurbs and links the list had, so
+  // keeping the list in the accessibility tree only reads the whole history
+  // out twice. Without JavaScript none of this runs and the list is the page.
   const fallback = document.getElementById("origins-fallback");
   if (fallback !== null) {
-    fallback.classList.add("is-visually-hidden");
+    fallback.hidden = true;
   }
 }
 
