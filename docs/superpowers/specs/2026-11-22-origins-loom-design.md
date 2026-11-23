@@ -281,12 +281,14 @@ in River and Subway), and it also held on 108 further layouts out to four years 
 
 Two things do not stand in for it. Giving the threads a straightness priority as well as the
 spine takes the spine's away and the ribbon jogs again, and with the spine's priority at 10
-instead of 1000 the ribbon was up to 150px off. `snapRibbon`, which runs after ELK and moves
-every on-ribbon moment to the median column with its ports, its label and its share of each
-edge, has moved nothing on any real layout once the spine is there, and only unit tests on a fake
-layout exercise it. Without the spine its moves ran to hundreds of pixels and put threads
-through ovals that were not theirs (131 findings over the twenty layouts), so it cannot be what
-holds the ribbon. The edge-to-node spacing is 20 and the edge-to-edge spacing 7.
+instead of 1000 the ribbon was up to 150px off. A snap after ELK, `snapRibbon`, was built: it
+moved every on-ribbon moment to the median column with its ports, its label and its share of each
+edge. Without the spine its moves ran to hundreds of pixels and put threads through ovals that
+were not theirs (131 findings over the twenty layouts), so it could not be what holds the ribbon.
+With the spine it moved nothing on any real layout. And because the smoke check measured the
+ribbon after the snap, the 1px assertion could not fail: the snap put every first slot on the
+median by construction. It was deleted for that reason, so the check now measures what ELK
+returned. The edge-to-node spacing is 20 and the edge-to-edge spacing 7.
 
 ### Placement
 

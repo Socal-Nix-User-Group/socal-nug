@@ -1,5 +1,5 @@
 import { rootSlug } from "./elk.ts";
-import type { ElkGraph, ElkPoint, Mode } from "./elk.ts";
+import type { ElkGraph, Mode } from "./elk.ts";
 import { loomGraphFor, slotOffset, THICK } from "./loom-graph.ts";
 import type { LoomGraph, ThreadMeta } from "./loom-graph.ts";
 import type { Story } from "./story.ts";
@@ -159,81 +159,6 @@ export function loomPlacedFrom(
 }
 
 /**
- * Hold the ribbon to one column.
- *
- * ELK is given a spine to keep straight, and that is what holds the ribbon.
- * This takes whatever it leaves. Every moment on the ribbon moves across the
- * time axis until its first slot, with someone in it or not, is on the median
- * of where ELK put them all. Its ports and its label are placed from its
- * corner and go with it. An edge moves at each end by as much as the moment
- * that end is on, and each bend by its share of the two, by how far along the
- * time axis it sits between them, so a move is spread along the line and not
- * dumped into its last few pixels.
- *
- * Nothing is routed again, so a move eats into the room ELK left between a
- * thread and what it passes. This is for a last few pixels and cannot stand
- * in for the spine: tried without it, the moves ran to hundreds of pixels and
- * put threads through ovals that were not theirs. The smoke check fails when
- * a thread runs through anything that is not its own.
- */
-export function snapRibbon(laidOut: ElkGraph, story: Story, mode: Mode): ElkGraph {
-  const axis = mode === "river" ? "x" : "y";
-  const along = mode === "river" ? "y" : "x";
-  const firstSlot = new Map(
-    story.moments
-      .filter((g) => g.onRibbon)
-      .map((g) => [g.moment.id, slotOffset(g.slots, 0)]),
-  );
-  const ribbon = laidOut.children.filter((n) => firstSlot.has(n.id));
-  if (ribbon.length === 0) return laidOut;
-
-  const at = ribbon
-    .map((n) => (n[axis] ?? 0) + firstSlot.get(n.id)!)
-    .sort((a, b) => a - b);
-  const mid = at.length >> 1;
-  const column = at.length % 2 === 1 ? at[mid] : (at[mid - 1] + at[mid]) / 2;
-  const move = new Map(
-    ribbon.map((n) => [n.id, column - firstSlot.get(n.id)! - (n[axis] ?? 0)]),
-  );
-
-  // An end is on a moment's port, whose id starts with the moment's, or on a
-  // face, which stays where it is.
-  const moveAt = (end: string) => move.get(end.split("|")[0]) ?? 0;
-  const shifted = (p: ElkPoint, by: number): ElkPoint =>
-    axis === "x" ? { x: p.x + by, y: p.y } : { x: p.x, y: p.y + by };
-
-  return {
-    ...laidOut,
-    children: laidOut.children.map((n) => {
-      const by = move.get(n.id);
-      return by === undefined ? n : { ...n, [axis]: (n[axis] ?? 0) + by };
-    }),
-    edges: laidOut.edges.map((e) => {
-      if (e.sections === undefined) return e;
-      const atStart = moveAt(e.sources[0]);
-      const atEnd = moveAt(e.targets[0]);
-      return {
-        ...e,
-        sections: e.sections.map((section) => {
-          const from = section.startPoint[along];
-          const to = section.endPoint[along];
-          const share = (p: ElkPoint) =>
-            to === from ? 1 : Math.min(1, Math.max(0, (p[along] - from) / (to - from)));
-          return {
-            ...section,
-            startPoint: shifted(section.startPoint, atStart),
-            bendPoints: (section.bendPoints ?? []).map((p) =>
-              shifted(p, atStart + (atEnd - atStart) * share(p))
-            ),
-            endPoint: shifted(section.endPoint, atEnd),
-          };
-        }),
-      };
-    }),
-  };
-}
-
-/**
  * Widen the canvas to its box and centre the drawing in it.
  *
  * Widening rather than stretching the SVG: the drawing is in the canvas's
@@ -276,6 +201,6 @@ export async function placeLoom(
   available = 0,
 ): Promise<LoomPlaced> {
   const built = loomGraphFor(story, mode);
-  const laidOut = snapRibbon(await layout(built.graph), story, mode);
+  const laidOut = await layout(built.graph);
   return centreLoomIn(loomPlacedFrom(built, laidOut, story, mode), available);
 }
