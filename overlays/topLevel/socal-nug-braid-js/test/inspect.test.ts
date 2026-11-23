@@ -305,6 +305,18 @@ test("a bead moved outside its oval is an engine finding", () => {
   assert.ok(found.some((f) => /outside the oval of nug1/.test(f.message)), JSON.stringify(found));
 });
 
+test("a bead drawn on its slot is an engine finding when the slot lies outside the oval", () => {
+  const base = drawable();
+  const box = base.boxes.get("nug1")!;
+  // The corner of the box: inside the box, outside the ellipse.
+  const slots = new Map(base.slots).set(slotKey("nug1", "jared"), { x: box.x + 1, y: box.y + 1 });
+  const placed = { ...base, slots };
+  const found = inspectDrawing(story, placed, drawn(placed));
+  assert.equal(found.length, 1, JSON.stringify(found));
+  assert.equal(found[0].kind, "engine");
+  assert.ok(/jared/.test(found[0].message) && /nug1/.test(found[0].message), found[0].message);
+});
+
 test("a missing bead is an engine finding", () => {
   const placed = drawable();
   const made = drawn(placed);

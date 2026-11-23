@@ -391,6 +391,11 @@ export function inspectDrawing(
         engine(`${p.slug} is vouched for at ${g.moment.id} and has no bead there`);
       } else {
         bead.matched = true;
+        if (ovalReach(ovalOf.get(g.moment.id)!, bead.x, bead.y) >= 1) {
+          engine(
+            `${p.slug}'s bead at ${bead.x.toFixed(0)},${bead.y.toFixed(0)} is outside the oval of ${g.moment.id}`,
+          );
+        }
       }
     }
   }
