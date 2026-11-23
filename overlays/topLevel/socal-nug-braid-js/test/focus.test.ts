@@ -1,8 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { focusOrder, labelFor, nextIndex } from "../src/focus.ts";
+import {
+  describeGathering,
+  describePerson,
+  focusOrder,
+  labelFor,
+  nextIndex,
+} from "../src/focus.ts";
 import { at, braid, PEOPLE } from "./fake-elk.ts";
 import { buildBraid } from "../src/layout.ts";
+import { person, story } from "./story-fixture.ts";
 
 // The braid is one tab stop. Inside it the arrow keys move through the story
 // in the order it happened, which is the same order in both modes: time runs
@@ -118,4 +125,20 @@ test("a face reads as its person, and whether they are a member", () => {
     labelFor(order.find((t) => t.kind === "person" && t.id === "b")!, braid),
     "B, guest",
   );
+});
+
+const g = (id: string) => story.moments.find((m) => m.moment.id === id)!;
+
+test("a meetup is described by how many are in the group", () =>
+  assert.equal(describeGathering(g("nug3")), "nug3, January 2024, 5 in the group"));
+
+test("another moment is described by how many were there", () =>
+  assert.equal(describeGathering(g("camp")), "camp, September 2023, 2 people"));
+
+test("one person is one person", () =>
+  assert.equal(describeGathering(g("rob-nix")), "rob-nix, July 2018, 1 person"));
+
+test("a member and a guest are described as what they are", () => {
+  assert.equal(describePerson(person("rob")), "ROB, member");
+  assert.equal(describePerson(person("rob", false)), "ROB, guest");
 });

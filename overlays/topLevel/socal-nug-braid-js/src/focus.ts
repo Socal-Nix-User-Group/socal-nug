@@ -1,5 +1,6 @@
 import { formatFuzzyDate } from "./dates.ts";
-import type { Braid } from "./types.ts";
+import type { Gathering } from "./story.ts";
+import type { Braid, Person } from "./types.ts";
 
 /**
  * Moving through the braid by keyboard.
@@ -96,4 +97,20 @@ export function labelFor(target: FocusTarget, braid: Braid): string {
     parts.push(`${moment.people.length} people`);
   }
   return parts.join(", ");
+}
+
+/** What a screen reader says for a gathering: a meetup says how many are in the group. */
+export function describeGathering(gathering: Gathering): string {
+  const { moment } = gathering;
+  const count = moment.trunk
+    ? `${gathering.inGroup} in the group`
+    : gathering.through.length === 1
+      ? "1 person"
+      : `${gathering.through.length} people`;
+  return `${moment.title}, ${formatFuzzyDate(moment.date)}, ${count}`;
+}
+
+/** What a screen reader says for a face. */
+export function describePerson(person: Person): string {
+  return `${person.name}, ${person.member ? "member" : "guest"}`;
 }
