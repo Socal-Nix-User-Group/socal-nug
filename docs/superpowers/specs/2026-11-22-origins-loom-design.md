@@ -507,7 +507,6 @@ kind: generated from a seed alone.
 - How many synthetic histories the smoke check runs and how they are generated, provided they
   depend on nothing but their seeds and include detours that the whole group attends, which is
   what made the ribbon jog.
-- Bringing `2026-11-21-origins-design.md` and the README up to date with what is built.
 
 ## Verification
 

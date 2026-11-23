@@ -10,7 +10,7 @@ import type { Story } from "./story.ts";
  * ELK hands back boxes and edge sections in its own coordinates. This turns
  * them into each moment's box and centre, the slot each person has across it,
  * anchor points for labels, and a polyline per edge with whose thread it is.
- * The layout itself is injected, as it is for the other engine.
+ * The layout itself is injected, so tests can fake it.
  */
 
 export interface Point {

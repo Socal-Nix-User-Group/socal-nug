@@ -12,7 +12,7 @@ export interface JoinLine {
 }
 
 /**
- * Where a person joined, taken from the moment their thread merges at. No
+ * Where a person joined, taken from the moment they joined at. No
  * meeting number: the event titles are not uniform enough to parse one out,
  * and a first trunk moment need not be a meetup at all.
  */
@@ -54,8 +54,8 @@ function el(
  *
  * Click rather than hover, because these carry a photo and a paragraph and a
  * link: things a reader wants to dwell on and click into, which a card that
- * vanishes on mouse-out cannot offer. Hover is spent on highlighting who was
- * there instead.
+ * vanishes on mouse-out cannot offer. Hover is spent on lighting the thread
+ * of everyone through the moment instead.
  */
 export function detailFor(
   gathering: Gathering,

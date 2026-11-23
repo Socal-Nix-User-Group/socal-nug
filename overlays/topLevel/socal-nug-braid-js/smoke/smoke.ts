@@ -11,7 +11,6 @@ import {
   inspectPlacement,
   recorder,
   ribbonSpread,
-  sample,
 } from "./inspect.ts";
 
 /**
@@ -53,7 +52,7 @@ if (block === null) {
 
 const elk = new ELK();
 
-// --- the loom, through the same engine -----------------------------------------
+// --- the loom, through the real layout engine ----------------------------------
 // The real page's data and made-up histories, laid out by the real ELK. A
 // finding fails the check, a ribbon off its column among them, but only after
 // every case has printed its line, so one run shows them all.

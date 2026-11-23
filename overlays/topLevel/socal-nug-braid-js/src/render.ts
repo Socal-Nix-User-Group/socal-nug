@@ -86,8 +86,8 @@ export function avatarFor(person: Person, doc: DocumentLike): ElementLike {
  *
  * Each hop is a cubic whose control points sit on the time axis, so a hop that
  * stays in one column is still a straight line while one that changes column
- * is an S-curve. That is what makes a thread look like it flows into the
- * spine rather than meeting it at an angle.
+ * is an S-curve. That is what makes a thread look like it flows from one slot
+ * to the next rather than stepping across at an angle.
  */
 export function flow(
   points: readonly (readonly [number, number])[],

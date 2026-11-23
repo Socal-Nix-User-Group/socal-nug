@@ -34,8 +34,10 @@ rewriting the story. That post stays as it is; this is a separate page with a di
 
 - Replacing the About page. Origins is a new page. About keeps its member grid.
 - Editing or replacing the "One Year of SNUG" post.
-- Meetup attendance records. A person joins the braid at the moment their data says they joined.
-  This is a story, not a roll call.
+- Meetup attendance records, at first. A person joins the braid at the moment their data says
+  they joined. This is a story, not a roll call. Meetups can now record who was there and who
+  was away, optionally; see "Attendance data" in the Loom design
+  (`2026-11-22-origins-loom-design.md`).
 - Self-hosting. Netlify keeps building until that separate project lands.
 - Formatting of templates, SCSS or TypeScript. treefmt covers Nix, shell and documentation
   Markdown only, and that is unchanged.
@@ -243,9 +245,9 @@ moment with both, a moment with neither, and an `event` that does not resolve to
   pre-convergence half of the braid would not render at all. The data has to carry personal root
   moments before the first trunk moment. That is the premise of the page, but the engine cannot
   enforce it, so `braid-data` warns when no moment predates the first trunk moment.
-- Every meetup is a spine bead automatically, whether or not a moment references it. An anchored
-  moment adds people to a bead; it does not create one. The trunk therefore gets roughly twenty
-  sample points for its thickness curve without the moments file listing a single meetup.
+- Every meetup is an oval on the ribbon automatically, whether or not a moment references it. An
+  anchored moment adds people to a meetup; it does not create one. The ribbon therefore gets
+  roughly twenty meetups without the moments file listing a single one.
 - A person named only in a `blurb` needs no profile. `braid-data` validates `people` entries, not
   prose. Ben was on the SCaLE 20x booth and gets no thread; he is named in the telling and that
   is all.
@@ -462,7 +464,7 @@ Added to `checks/default.nix`:
 **On demand, not a check:** `nix run .#socal-nug-braid-browser` loads the page in headless
 Chromium and behaves like a visitor: it wheels past the map, drags a finger through it on a
 phone-sized screen, clicks and tabs into cards, switches modes, blocks the layout engine, and
-asks for the dark theme. Twenty-three assertions, each named for what a visitor would notice. It
+asks for the dark theme. Twenty-five assertions, each named for what a visitor would notice. It
 lives in `socal-nug-braid-js/browser/` and is typechecked by `braid-types`, which is what stops it
 rotting between uses.
 
@@ -513,9 +515,10 @@ their permalink from the event and need nothing.
   the one moment whose card has no description.
 - **Seven `CONFIRM` markers** in `data/moments.toml`: two dates given as approximations, two
   meetups guessed at, and "I think everyone was there" on the three SCaLE moments.
-- **The README** says nothing about any of this: the braid, esbuild, the vendored ELK, or that
-  `zola serve` does not watch `data/`, which has twice made a change look like it had not
-  landed.
+- **The README** names the Origins checks and the browser tool, but still says nothing about
+  esbuild, the committed bundle at `static/js/braid.js` and how to rebuild it, the vendored ELK,
+  or that `zola serve` does not watch `data/`, which has twice made a change look like it had
+  not landed.
 - **How Subway signals it pans** on desktop, where there is no touch affordance.
 - **Integration.** The branch is more than fifty commits and has never been reviewed as a whole.
 

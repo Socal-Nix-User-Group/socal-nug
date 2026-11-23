@@ -215,6 +215,20 @@ test("centring moves boxes and slots with everything else", () => {
     placed.slots.get(slotKey("founded", "rob"))!.x + 100,
   );
   assert.equal(wide.width, placed.width + 200);
+  const by100 = (p: { x: number; y: number }) => ({ x: p.x + 100, y: p.y });
+  for (const [slug, root] of placed.roots) {
+    assert.deepEqual(wide.roots.get(slug), by100(root), slug);
+  }
+  for (const [id, centre] of placed.moments) {
+    assert.deepEqual(wide.moments.get(id), by100(centre), id);
+  }
+  for (const [id, label] of placed.labels) {
+    assert.deepEqual(wide.labels.get(id), { ...label, x: label.x + 100 }, id);
+  }
+  assert.equal(wide.edges.length, placed.edges.length);
+  placed.edges.forEach((edge, i) => {
+    assert.deepEqual(wide.edges[i].points, edge.points.map(by100), edge.meta.slug);
+  });
 });
 
 test("centring later gives what centring during placement would have", async () => {

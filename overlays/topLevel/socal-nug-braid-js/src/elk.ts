@@ -1,6 +1,7 @@
 /**
  * The shapes the Eclipse Layout Kernel takes and gives back, and the pieces of
- * a graph that both engines build the same way.
+ * the graph that are not about the loom's shape: the room a label claims and
+ * the root node a face sits on.
  */
 
 export type Mode = "river" | "subway";
@@ -71,7 +72,7 @@ const CHAR = 6.4;
 /**
  * A title as its label shows it: whole when it fits the room a label may
  * claim, cut and ended with an ellipsis when it does not. The card and the
- * screen reader's name for the dot carry the whole title either way.
+ * screen reader's name for the oval carry the whole title either way.
  */
 export function shown(title: string): string {
   const fits = Math.floor(LABEL_MAX / CHAR);

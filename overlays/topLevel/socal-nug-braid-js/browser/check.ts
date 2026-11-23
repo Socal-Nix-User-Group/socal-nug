@@ -165,6 +165,12 @@ async function run(): Promise<void> {
       "River: the picture is the right size on first load, not only after a resize",
       { first, afterResize: settled },
     );
+    check(
+      await tab.waitFor(
+        `!document.getElementById("origins-legend").classList.contains("is-hidden")`,
+      ),
+      "the legend is shown once the picture is drawn",
+    );
   }
 
   // --- the toggle shows which mode is on ---------------------------------------
@@ -281,7 +287,7 @@ async function run(): Promise<void> {
     await tab.move(dot.x, dot.y);
     check(
       await tab.waitFor(`${stroke} !== ${JSON.stringify(rest)}`),
-      "a side dot changes when the pointer is over it",
+      "a side moment's oval changes its outline when the pointer is over it",
       { rest, hover: await tab.evaluate(stroke) },
     );
     await tab.click(dot.x, dot.y);
@@ -289,7 +295,7 @@ async function run(): Promise<void> {
     await tab.move(5, 5);
     await sleep(300);
     const open = await tab.evaluate<string>(stroke);
-    check(open !== rest, "a side dot is filled in while its card is open", {
+    check(open !== rest, "a side moment's oval keeps a changed outline while its card is open", {
       rest,
       open,
     });
@@ -354,6 +360,12 @@ async function run(): Promise<void> {
         `document.getElementById("origins-toggle").classList.contains("is-hidden")`,
       ),
       "without the layout engine, the toggle that would do nothing stays hidden",
+    );
+    check(
+      await tab.evaluate<boolean>(
+        `document.getElementById("origins-legend").classList.contains("is-hidden")`,
+      ),
+      "without the layout engine, the legend for a picture that is not there stays hidden",
     );
     check(
       tab.errors.length === 0,

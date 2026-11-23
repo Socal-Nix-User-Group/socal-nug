@@ -7,6 +7,15 @@
 # A moment carries either `date` + `title`, or `event` (which resolves both
 # from the event page). Never both.
 #
+# A record anchored to a meetup with `event` may also carry `there` and
+# `away`, lists of people's slugs. Several records may anchor to one meetup.
+# `there` puts a bead on that person's thread inside the meetup's oval: the
+# record says they were there. `away` takes their thread around the oval
+# instead of through it: the record says they were not. With neither, a
+# member's thread runs through the oval with no bead, which says only that
+# they were in the group then. Nobody can be recorded at a meetup before the
+# one they joined at, or away from the one they joined at.
+#
 # `date` accepts YYYY, YYYY-MM or YYYY-MM-DD. Write the precision you actually
 # have; it is never padded, and the page displays what is written here.
 #
@@ -84,7 +93,7 @@ people = ["daniel-baker", "david-nuon", "rob-hernandez"]
 trunk = true
 blurb = "A group chat called 'Cool Guys from SCaLE'."
 
-# --- Joins and excursions --------------------------------------------------
+# --- Joins and moments outside the meetups ---------------------------------
 
 [[moment]]
 id = "jared-joins"
@@ -123,8 +132,9 @@ title = "Paths cross"
 people = ["daniel-baker", "morgan-jones"]
 blurb = "Daniel Baker and Morgan Jones met on Discord."
 
-# No `trunk` key on any of these: dated after the spine starts and naming
-# people already in it, so the engine reads them as excursions.
+# No `trunk` key on any of these: they are not meetups, so nobody joins at
+# them. Each is an oval that the threads of the people it names run through,
+# on the ribbon when everyone in the group then is named, beside it otherwise.
 
 [[moment]]
 id = "nix-camp-2023"

@@ -314,6 +314,10 @@ class SiteBuild(unittest.TestCase):
         for element in ('origins-legend', 'origins-legend-away'):
             tag = page.split(f'id="{element}"')[1].split('>')[0]
             self.assertIn('is-hidden', tag, element)
+        # the marks it explains are not exposed to assistive tech, so neither
+        # is the legend
+        legend = page.split('id="origins-legend"')[1].split('>')[0]
+        self.assertIn('aria-hidden="true"', legend)
 
     def test_origins_palette_follows_the_three_state_theme(self):
         self.assertIn(
