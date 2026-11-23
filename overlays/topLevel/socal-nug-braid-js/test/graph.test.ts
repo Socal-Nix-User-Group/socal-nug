@@ -92,12 +92,16 @@ test("a root is the size of a face", () => {
   assert.equal(node(rootId("daniel")).height, 36);
 });
 
-test("trunk edges are asked to stay straight", () => {
+test("trunk edges are asked to stay straight, hard enough to outweigh a busy layer", () => {
+  // Measured against ELK on a year and on two years of simulated growth:
+  // at 10 the spine wandered up to 91px and 106px off its column, at 1000
+  // it stayed within 12px. Today's data lays out the same at either, so
+  // nothing but this test notices the number being lowered.
   const trunk = graph.edges.filter((e) => meta.get(e.id)?.kind === "trunk");
   assert.equal(trunk.length, braid.trunk.length);
   for (const e of trunk) {
     assert.ok(
-      Number(e.layoutOptions!["elk.layered.priority.straightness"]) > 0,
+      Number(e.layoutOptions!["elk.layered.priority.straightness"]) >= 1000,
       e.id,
     );
   }

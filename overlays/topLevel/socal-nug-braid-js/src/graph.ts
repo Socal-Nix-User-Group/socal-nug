@@ -155,7 +155,11 @@ export function graphFor(braid: Braid, mode: Mode): BraidGraph {
       id,
       sources: [segment.from.moment.id],
       targets: [segment.to.moment.id],
-      layoutOptions: { "elk.layered.priority.straightness": "10" },
+      // High enough to outweigh a layer crowded with detours. At 10 the
+      // spine held its column on today's data and wandered a hundred pixels
+      // off it on a simulated year or two of growth; at 1000 it stayed
+      // within a dozen.
+      layoutOptions: { "elk.layered.priority.straightness": "1000" },
     });
     meta.set(id, {
       kind: "trunk",

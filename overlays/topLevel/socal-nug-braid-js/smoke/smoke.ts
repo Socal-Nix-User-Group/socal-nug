@@ -205,10 +205,41 @@ for (const mode of ["river", "subway"] as const) {
     }
   }
 
+  // Where each label's text is, at the layout's own measure. Not clamped to
+  // the room a label may claim: a clamp here measures what the layout hoped
+  // for, and hid two meetup names running off the left of the picture.
+  const labels = made
+    .filter((n) => n.tag === "text" && n.attrs.class === "origins-label")
+    .map((label) => {
+      const x = +label.attrs.x;
+      const y = +label.attrs.y;
+      const anchor = label.attrs["text-anchor"];
+      const w = label.text.length * 6.4;
+      const left = anchor === "end"
+        ? x - w
+        : anchor === "middle"
+        ? x - w / 2
+        : x;
+      return {
+        text: label.text,
+        width: w,
+        left,
+        right: left + w,
+        top: y - LABEL_HEIGHT,
+        bottom: y,
+      };
+    });
+
   // A line through someone's face reads as a connection that is not there.
   // A line through a dot its person was not at reads as their having been
-  // there. Trunk dots are the group itself and every detour leaves from one
-  // and returns to one, so they are not checked.
+  // there, and the trunk over a dot that is not a meetup reads as one. A
+  // line under a label leaves the label unreadable. Trunk dots are the
+  // group itself and every detour leaves from one and returns to one, so
+  // they are not checked.
+  //
+  // The trunk is measured at its drawn thickness. It used to be skipped
+  // here altogether, which mattered more than it sounds: it is the one line
+  // that is moved after ELK has routed it.
   const wasAt = new Map(
     braid.moments.map((m) => [m.moment.id, new Set(m.moment.people)]),
   );
@@ -217,27 +248,45 @@ for (const mode of ["river", "subway"] as const) {
   );
   const dots = circles.filter((c) => !trunkIds.has(c.id));
   for (const path of made) {
-    if (path.tag !== "path" || path.attrs["data-person"] === undefined) {
-      continue;
-    }
+    if (path.tag !== "path") continue;
     const slug = path.attrs["data-person"];
+    const isTrunk = path.attrs.class === "origins-trunk";
+    if (slug === undefined && !isTrunk) continue;
+    const half = isTrunk ? +path.attrs["stroke-width"] / 2 : 0;
+    const who = isTrunk ? "the trunk" : `${slug}'s thread`;
     for (const [x, y] of sample(path.attrs.d)) {
+      const near = `near ${x.toFixed(0)},${y.toFixed(0)}`;
       for (const face of faces) {
         if (face.slug === slug) continue;
-        if (Math.hypot(x - face.x, y - face.y) < AVATAR) {
-          fail(
-            `${mode}: ${slug}'s thread runs through ${face.slug}'s avatar ` +
-              `at ${x.toFixed(0)},${y.toFixed(0)}`,
-          );
+        if (Math.hypot(x - face.x, y - face.y) < AVATAR + half) {
+          fail(`${mode}: ${who} runs through ${face.slug}'s avatar ${near}`);
         }
       }
       for (const dot of dots) {
+        const apart = Math.hypot(x - dot.x, y - dot.y);
+        if (isTrunk) {
+          if (apart < dot.r + half + 2) {
+            fail(
+              `${mode}: the trunk runs over ${dot.id}, ` +
+                `which is not a meetup, ${near}`,
+            );
+          }
+          continue;
+        }
         if (wasAt.get(dot.id)?.has(slug)) continue;
-        if (Math.hypot(x - dot.x, y - dot.y) < dot.r + 6) {
+        if (apart < dot.r + 6) {
           fail(
-            `${mode}: ${slug}'s thread runs through ${dot.id}, ` +
-              `which they were not at, near ${x.toFixed(0)},${y.toFixed(0)}`,
+            `${mode}: ${who} runs through ${dot.id}, ` +
+              `which they were not at, ${near}`,
           );
+        }
+      }
+      for (const label of labels) {
+        if (
+          x + half > label.left && x - half < label.right &&
+          y + half > label.top && y - half < label.bottom
+        ) {
+          fail(`${mode}: ${who} runs under the label "${label.text}" ${near}`);
         }
       }
     }
@@ -245,33 +294,23 @@ for (const mode of ["river", "subway"] as const) {
 
   // A label across a face or a node hides the thing it is naming, and one
   // off the canvas is not there at all.
-  for (const label of made) {
-    if (label.tag !== "text" || label.attrs.class !== "origins-label") continue;
-    const x = +label.attrs.x;
-    const y = +label.attrs.y;
-    const anchor = label.attrs["text-anchor"];
-    // The text as drawn, at the layout's own measure. Not clamped to the
-    // room a label may claim: a clamp here measures what the layout hoped
-    // for, and hid two meetup names running off the left of the picture.
-    const w = label.text.length * 6.4;
-    if (w > LABEL_MAX) {
+  for (const box of labels) {
+    if (box.width > LABEL_MAX) {
       fail(
-        `${mode}: label "${label.text}" is drawn wider than the ` +
+        `${mode}: label "${box.text}" is drawn wider than the ` +
           `${LABEL_MAX}px the layout reserved for it`,
       );
     }
-    const left = anchor === "end" ? x - w : anchor === "middle" ? x - w / 2 : x;
-    const box = { left, right: left + w, top: y - LABEL_HEIGHT, bottom: y };
 
     if (box.left < 0 || box.right > placed.width || box.top < 0) {
-      fail(`${mode}: label "${label.text}" runs off the canvas`);
+      fail(`${mode}: label "${box.text}" runs off the canvas`);
     }
     for (const face of faces) {
       if (
         box.left < face.x + AVATAR && box.right > face.x - AVATAR &&
         box.top < face.y + AVATAR && box.bottom > face.y - AVATAR
       ) {
-        fail(`${mode}: label "${label.text}" sits on ${face.slug}'s avatar`);
+        fail(`${mode}: label "${box.text}" sits on ${face.slug}'s avatar`);
       }
     }
     for (const circle of circles) {
@@ -279,7 +318,7 @@ for (const mode of ["river", "subway"] as const) {
         box.left < circle.x + circle.r && box.right > circle.x - circle.r &&
         box.top < circle.y + circle.r && box.bottom > circle.y - circle.r
       ) {
-        fail(`${mode}: label "${label.text}" sits on node ${circle.id}`);
+        fail(`${mode}: label "${box.text}" sits on node ${circle.id}`);
       }
     }
   }
