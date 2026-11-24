@@ -313,6 +313,17 @@ class SiteBuild(unittest.TestCase):
         self.assertIn(
             '.origins-layout[data-mode=subway] .origins-roster{', self.css)
 
+    def test_origins_roster_beside_the_map_scrolls_at_the_maps_height(self):
+        # beside the map only: under it, in Subway and on a narrow screen,
+        # the roster is the whole list. The two ceilings are one value, so
+        # the boxes end on one line.
+        ceiling = self.css.split('.origins-braid{')[1].split('max-height:')[1].split(';')[0]
+        self.assertIn(
+            '@media screen and (min-width: 1024px){'
+            '.origins-layout:not([data-mode=subway]) .origins-roster-rail{'
+            f'max-height:{ceiling};overflow-y:auto}}}}',
+            self.css)
+
     def test_origins_toggle_is_hidden_until_the_script_reveals_it(self):
         page = (self.out / 'origins' / 'index.html').read_text()
         toggle = page.split('id="origins-toggle"')[1].split('>')[0]

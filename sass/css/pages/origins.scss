@@ -6,6 +6,10 @@
 // does the identifying instead, because forty distinguishable hues do not
 // exist.
 
+// How tall the map's box may grow. The roster beside it takes the same
+// ceiling, so the two end on one line.
+$origins-box-height: 85vh;
+
 // The legend sits above the map, outside .origins-layout, and draws with the
 // same palette, so the palette is a mixin both include.
 @mixin origins-light-palette {
@@ -80,6 +84,17 @@
 .origins-roster-item {
     display: grid;
     min-width: 0;
+}
+
+// Beside the map the roster is a box with the map's ceiling that scrolls on
+// its own, so the two end on one line however many people there are. Under
+// the map, in Subway and on a narrow screen, it is the whole list. Like the
+// map, it lets the wheel carry on to the page once it reaches its end.
+@media screen and (min-width: 1024px) {
+    .origins-layout:not([data-mode="subway"]) .origins-roster-rail {
+        max-height: $origins-box-height;
+        overflow-y: auto;
+    }
 }
 
 // In the roster a card is a tile among many, so it carries the hover
@@ -173,7 +188,7 @@ html[data-theme=dark] .origins-legend {
     // the wheel at the bottom of River, made Subway (which does not scroll
     // this way at all) a dead zone for it, and on a phone, where the map is
     // most of the screen, left no way past it with a finger inside the box.
-    max-height: 85vh;
+    max-height: $origins-box-height;
     overflow-y: auto;
     // Keep room for the scrollbar whether or not it is showing. The script
     // sizes the canvas to this box before the picture is in it; without this,

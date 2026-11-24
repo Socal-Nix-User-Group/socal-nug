@@ -572,6 +572,12 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   of mode and a resize, and is not remembered between visits.
 - River puts the roster in a column beside the map; Subway, and any viewport narrower than 1024px,
   puts it underneath as a grid.
+- Beside the map the roster is a box of its own with the map's ceiling, 85% of the viewport, and
+  scrolls inside it, so the two end on one line however many people there are. The ceiling is
+  one value in the stylesheet, used by both. Like the map, the roster lets the wheel carry on to
+  the page once it reaches its end. Under the map it is the whole list with nothing to scroll.
+  The roster keeps that ceiling when the map is zoomed out until it is shorter than its own: a
+  roster that shrank with the map would be no use at the small zooms.
 - Switching modes redraws the picture and nothing animates. The slide between modes went with
   the Loom: a moment that is wide in one mode and tall in the other has nowhere sensible to slide
   from.
@@ -753,7 +759,8 @@ In `checks/default.nix`:
   its meetup through the template's merge, the fallback list is absent, and the bundle, the
   vendored layout engine (before the bundle), the toggle, the zoom's four labelled buttons and
   the roster are in place. It reads the stylesheet for the rules behind the legend's tooltip,
-  the hand over the map, and the dimming of whoever is not lit. It also proves the About filter
+  the hand over the map, the dimming of whoever is not lit, and the roster taking the map's
+  ceiling beside it. It also proves the About filter
   with a guest probe.
 
 - `braid-smoke`: builds the story from the built site's own data block, which is the repository's
@@ -793,11 +800,11 @@ In `checks/default.nix`:
   is not, ships with the whole suite green.
 
 **On demand, not a check:** `nix run .#socal-nug-braid-browser` loads the page in headless
-Chromium and behaves like a visitor: it wheels past the map, drags a finger through it on a
-phone-sized screen, clicks and tabs into cards, hovers moments, switches modes, zooms with the
-buttons and with Ctrl and the wheel, takes hold of the map with a pressed mouse and drags it,
-blocks the layout engine, and asks for the dark theme. Thirty-nine checks, each named for what a
-visitor would
+Chromium and behaves like a visitor: it wheels past the map and past the roster beside it, drags
+a finger through the map on a phone-sized screen, clicks and tabs into cards, hovers moments,
+switches modes, zooms with the buttons and with Ctrl and the wheel, takes hold of the map with a
+pressed mouse and drags it, blocks the layout engine, and asks for the dark theme. Forty-three
+checks, each named for what a visitor would
 notice and none naming a moment or a person, so the data can change under it. It needs the
 network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
 and is typechecked by `braid-types`, which is what stops it rotting between uses.

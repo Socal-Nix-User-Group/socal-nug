@@ -57,6 +57,7 @@ interface Point {
 }
 
 const MAP = `document.getElementById("origins-braid")`;
+const ROSTER = `document.getElementById("origins-roster")`;
 const POPUP = `document.querySelector(".origins-popup")`;
 /** A dot off the spine: a personal moment, a conference, a camp. */
 const SIDE_DOT = ".origins-node.is-side";
@@ -103,13 +104,13 @@ const scrolled = (): Promise<{ page: number; map: number }> =>
     `({ page: Math.round(scrollY), map: Math.round(${MAP}.scrollTop) })`,
   );
 
-/** Where the page and the map are scrolled to, unrounded, as one string. */
-const scrollState = `(scrollY + "," + ${MAP}.scrollTop)`;
+/** Where the page, the map and the roster are scrolled to, unrounded, as one string. */
+const scrollState = `(scrollY + "," + ${MAP}.scrollTop + "," + ${ROSTER}.scrollTop)`;
 
 /**
- * Repeat a gesture inside the map, as a visitor would, until the page itself
- * has moved. After each gesture, wait for the map or the page to move and
- * then to come to rest. A gesture that moves neither is a stall.
+ * Repeat a gesture inside the map or the roster, as a visitor would, until
+ * the page itself has moved. After each gesture, wait for the box or the page
+ * to move and then to come to rest. A gesture that moves nothing is a stall.
  */
 async function untilThePageMoves(
   gesture: () => Promise<void>,
@@ -233,6 +234,59 @@ async function run(): Promise<void> {
       detail,
     );
   }
+
+  // --- the roster beside the map ---------------------------------------------------
+  // Beside the map it is a box of its own that ends where the map ends. How
+  // many people there are decides whether it has anything to scroll, so a
+  // roster that fits passes these without being asked to.
+
+  await load("river");
+  {
+    const sizes = await tab.evaluate<
+      { map: number; roster: number; content: number; box: number }
+    >(`({
+      map: ${MAP}.getBoundingClientRect().height,
+      roster: ${ROSTER}.getBoundingClientRect().height,
+      content: ${ROSTER}.scrollHeight,
+      box: ${ROSTER}.clientHeight,
+    })`);
+    const more = sizes.content > sizes.box;
+    check(
+      sizes.roster <= sizes.map + 1 && (!more || Math.abs(sizes.roster - sizes.map) <= 1),
+      "River: the roster beside the map is no taller than the map, and ends where the map ends when it has more to show",
+      sizes,
+    );
+
+    await tab.evaluate(`${ROSTER}.scrollIntoView({ block: "center" })`);
+    const at = await tab.evaluate<Point>(`(() => {
+      const b = ${ROSTER}.getBoundingClientRect();
+      return { x: b.left + b.width / 2, y: b.top + b.height / 2 };
+    })()`);
+    const { ok, detail } = more
+      ? await untilThePageMoves(() => tab.wheel(at.x, at.y, 300))
+      : { ok: true, detail: { nothingToScroll: true } };
+    const moved = await tab.evaluate<number>(`${ROSTER}.scrollTop`);
+    check(
+      ok && (!more || moved > 0),
+      "River: the wheel over the roster scrolls the roster, and carries on down the page at its end",
+      { ...detail, roster: moved },
+    );
+  }
+
+  const whole = `getComputedStyle(${ROSTER}).overflowY === "visible" && ${ROSTER}.scrollHeight <= ${ROSTER}.clientHeight`;
+  const rosterBox = `({ overflowY: getComputedStyle(${ROSTER}).overflowY, content: ${ROSTER}.scrollHeight, box: ${ROSTER}.clientHeight })`;
+  await load("subway");
+  check(
+    await tab.evaluate<boolean>(whole),
+    "Subway: the roster under the map is the whole list, with nothing to scroll inside it",
+    await tab.evaluate(rosterBox),
+  );
+  await load("river", 900, 900);
+  check(
+    await tab.evaluate<boolean>(whole),
+    "a narrow window: the roster under the map is the whole list in River too",
+    await tab.evaluate(rosterBox),
+  );
 
   // --- the first draw measured the box it ends up in ---------------------------
   // Sized to a box that then changes, the picture is wrong until the next
