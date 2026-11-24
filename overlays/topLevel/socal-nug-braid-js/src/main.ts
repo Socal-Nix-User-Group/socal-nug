@@ -480,13 +480,6 @@ function boot(): void {
     // legend goes with it: it explains marks that are not there without one.
     buttons?.classList.remove("is-hidden");
     document.getElementById("origins-legend")?.classList.remove("is-hidden");
-    // The mark for "the record says they were not there" only when the
-    // record says that of someone.
-    if (story.moments.some((g) => (g.moment.away ?? []).length > 0)) {
-      document.getElementById("origins-legend-away")?.classList.remove(
-        "is-hidden",
-      );
-    }
   }).catch((error: unknown) => {
     console.error("origins: could not lay out the braid", error);
     // Say so in the box. The roster beside it still lists everyone; an

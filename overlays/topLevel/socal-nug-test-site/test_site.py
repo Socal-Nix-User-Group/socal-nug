@@ -308,16 +308,23 @@ class SiteBuild(unittest.TestCase):
         self.assertIn('is-hidden', toggle)
 
     def test_origins_has_a_legend_hidden_until_the_script_runs(self):
-        # it explains marks a reader without the picture never sees, and
-        # the mark for an absence only once the record has one
+        # it explains marks a reader without the picture never sees
         page = (self.out / 'origins' / 'index.html').read_text()
-        for element in ('origins-legend', 'origins-legend-away'):
-            tag = page.split(f'id="{element}"')[1].split('>')[0]
-            self.assertIn('is-hidden', tag, element)
+        legend = page.split('id="origins-legend"')[1].split('>')[0]
+        self.assertIn('is-hidden', legend)
         # the marks it explains are not exposed to assistive tech, so neither
         # is the legend
-        legend = page.split('id="origins-legend"')[1].split('>')[0]
         self.assertIn('aria-hidden="true"', legend)
+
+    def test_origins_legend_always_carries_all_four_marks(self):
+        # the mark for an absence is there whether or not the record has one
+        page = (self.out / 'origins' / 'index.html').read_text()
+        body = page.split('id="origins-legend"')[1].split('</p>')[0]
+        items = body.split('<span')[1:]
+        self.assertEqual(len(items), 4)
+        for item in items:
+            self.assertNotIn('is-hidden', item.split('>')[0])
+        self.assertIn('the record says they were not there', body)
 
     def test_origins_palette_follows_the_three_state_theme(self):
         self.assertIn(
