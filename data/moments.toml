@@ -170,6 +170,7 @@ people = [
   "david-nuon",
   "rob-hernandez",
   "jared-baur",
+  "samuel-raumin",
   "tristan-ross",
   "kyle-risse",
   "connor-baker",
@@ -198,6 +199,7 @@ people = [
   "david-nuon",
   "rob-hernandez",
   "jared-baur",
+  "samuel-raumin",
   "tristan-ross",
   "kyle-risse",
   "connor-baker",
@@ -241,6 +243,7 @@ people = [
   "david-nuon",
   "rob-hernandez",
   "jared-baur",
+  "samuel-raumin",
   "tristan-ross",
   "kyle-risse",
   "connor-baker",
@@ -279,7 +282,13 @@ links = [{ title = "NixCon 2026", url = "https://2026.nixcon.org/" }]
 #
 # CONFIRM: "I believe David and I were at every single NUG event". That is
 # why Daniel Baker and David Nuon are on every one of these, the two Mini
-# NUGs included. Everyone else is named only where Daniel remembered them.
+# NUGs included.
+#
+# Seven meetups were checked against pictures Daniel found: NUG #1, #2, #3,
+# #4, #6, the Mini NUG of June 2025 and NUG #17. For those the record is
+# whole: everyone in the group at the time is `there` or `away`. For the
+# rest only Daniel and David are recorded, and nothing is said about anyone
+# else.
 
 [[moment]]
 id = "nug-1-attendance"
@@ -296,6 +305,7 @@ there = [
 id = "nug-2-attendance"
 event = "2023-07-08"
 there = ["daniel-baker", "david-nuon", "mica", "rob-hernandez"]
+away = ["jared-baur", "samuel-raumin"]
 
 [[moment]]
 id = "nug-3-attendance"
@@ -322,12 +332,17 @@ there = [
   "jared-baur",
   "tristan-ross",
 ]
+away = ["samuel-raumin", "kyle-risse"]
 
 [[moment]]
 id = "nug-5-attendance"
 event = "2024-04-13"
 there = ["daniel-baker", "david-nuon"]
 
+# Connor Baker and Morgan Jones are recorded as joining at this meetup, both
+# as guesses (see their join records), and neither is in the pictures of it.
+# Nobody can be away from the meetup they joined at, so they are on neither
+# list here until it is known when each first came.
 [[moment]]
 id = "nug-6-attendance"
 event = "2024-06-01"
@@ -339,6 +354,7 @@ there = [
   "mica",
   "kyle-risse",
 ]
+away = ["jared-baur", "samuel-raumin"]
 
 [[moment]]
 id = "nug-7-attendance"
@@ -374,6 +390,15 @@ there = ["daniel-baker", "david-nuon"]
 id = "mini-nug-2025-06-04-attendance"
 event = "2025-06-04"
 there = ["daniel-baker", "david-nuon", "tristan-ross"]
+away = [
+  "rob-hernandez",
+  "jared-baur",
+  "samuel-raumin",
+  "mica",
+  "kyle-risse",
+  "connor-baker",
+  "morgan-jones",
+]
 
 [[moment]]
 id = "nug-12-attendance"
@@ -404,3 +429,10 @@ there = ["daniel-baker", "david-nuon"]
 id = "nug-17-attendance"
 event = "2026-11-14"
 there = ["daniel-baker", "david-nuon", "tristan-ross", "morgan-jones", "mica"]
+away = [
+  "rob-hernandez",
+  "jared-baur",
+  "samuel-raumin",
+  "kyle-risse",
+  "connor-baker",
+]

@@ -344,9 +344,9 @@ not resolve to a file in `content/events/`.
   the group began and naming people already in it, is written like any other shared moment. It is
   drawn as its own moment with those people's threads through it: on the ribbon when it names
   everyone in the group at its date, beside the ribbon otherwise. Nix Camp in autumn 2023 is one
-  beside it. The three SCaLE moments after the founding named everyone in the group, and sat on
-  the ribbon, until Samuel Raumin was added to the group from NUG #1; the record does not say he
-  was at them, so they sit beside the ribbon until it does (see "Still open").
+  beside it; SCaLE 22x, which everyone was at, is on it. Adding someone to the group takes such
+  a moment off the ribbon until the record names them at it too, as happened when Samuel Raumin
+  was added.
 - `links` on a freestanding moment is a list of `{ title, url }`; `braid-data` rejects an entry
   without both.
 - Every shared moment is stated exactly once, in one place, chronologically readable.
@@ -831,13 +831,13 @@ a present concern.
 - **Eight `CONFIRM` markers** in `data/moments.toml`: two dates given as approximations, two
   meetups guessed at, "I think everyone was there" on the three SCaLE moments, and "I believe
   David and I were at every single NUG event" over the attendance records.
-- **Samuel Raumin and the SCaLE moments.** SCaLE 21x, 22x and 23x each name everyone who was in
-  the group except Samuel Raumin, who was added later with a join at NUG #1. Nobody has said
-  whether he was at them. Until someone does, each is drawn beside the ribbon with everyone but
-  him leaving for it, where before it sat on the ribbon.
-- **Who was at each meetup** is recorded for Daniel Baker and David Nuon at every meetup up to
-  NUG #17, and for others at seven of them, from Daniel's memory. Nobody is recorded away from
-  any meetup.
+- **Who was at each meetup** is recorded whole, everyone in the group either there or away, for
+  the seven meetups Daniel checked against pictures: NUG #1, #2, #3, #4, #6, the June 2025 Mini
+  NUG and NUG #17. For the other twelve up to NUG #17 only Daniel Baker and David Nuon are
+  recorded, and nothing is said about anyone else.
+- **Connor Baker and Morgan Jones at NUG #6.** Both are recorded as joining there, as guesses,
+  and neither is in the pictures of it. Nobody can be recorded away from the meetup they joined
+  at, so they are neither there nor away at NUG #6 until it is known when each first came.
 - **The README** names the Origins checks and the browser tool, but still says nothing about
   esbuild, the committed bundle at `static/js/braid.js` and how to rebuild it, the vendored ELK,
   or that `zola serve` does not watch `data/`, which has twice made a change look like it had
@@ -876,7 +876,7 @@ a present concern.
 - A meetup with no `there` entry has a ringed join bead for whoever joined there and no other
   bead; NUG #18 is one. A `there` entry for someone at a meetup puts a bead on their thread there
   and their name under "Confirmed there:" on its card. An `away` entry takes their thread around
-  that meetup; the data has none yet. The legend shows all four marks either way.
+  that meetup; NUG #2 is the first with any. The legend shows all four marks either way.
 - With JavaScript disabled the page shows no picture, by the trade recorded under Accessibility.
 - The picture is reachable and operable by keyboard alone: one Tab into it, arrows through the
   story, Enter to open a card, Escape to close, focus back where it started.

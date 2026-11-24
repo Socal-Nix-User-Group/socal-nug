@@ -228,11 +228,15 @@ class SiteBuild(unittest.TestCase):
         self.assertIn('tristan-ross', nug3['people'])
         self.assertIn('kyle-risse', nug3['people'])
         self.assertNotIn('nug-3-attendance', [m['id'] for m in data['moments']])
+        # and NUG #2 records who was away
+        nug2 = next(m for m in data['moments'] if m['id'] == '2023-07-08')
+        self.assertIn('jared-baur', nug2['away'])
+        self.assertIn('mica', nug2['people'])
 
     def test_a_second_attendance_record_adds_to_its_event_and_to_no_other(self):
-        # the data records nobody away yet, and no meetup with two attendance
-        # records, so both are written into the copy for a meetup that already
-        # has one, and taken out again
+        # the data has no meetup with two attendance records, so a second is
+        # written into the copy for a meetup that already has one, and taken
+        # out again
         _, real = self.origins_data()
         moments = ROOT / 'data' / 'moments.toml'
         original = moments.read_text()
