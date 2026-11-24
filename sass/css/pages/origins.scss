@@ -569,26 +569,88 @@ html[data-theme=dark] .origins-legend {
     margin-bottom: 0.75rem;
 }
 
-// One line under the toggle, wrapping on a phone.
+// One line under the toggle, wrapping on a phone. Softened a little through
+// its colour and on each mark, not with an opacity on the whole line: that
+// would make the line a stacking context and put its tooltips under the map.
 .origins-legend {
+    // what a tooltip hangs from on a narrow screen
+    position: relative;
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem 1rem;
     margin-bottom: 0.75rem;
     font-size: 0.72rem;
-    opacity: 0.85;
+    color: color-mix(in srgb, currentColor 85%, transparent);
 }
 
+// The labels are Nix words, so each item says what it means in plain words
+// when the pointer rests on it, and the cursor says there is something to
+// see. Styled here and not left to the browser's own tooltip, which waits
+// most of a second.
 .origins-legend-item {
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    // each carries its plain meaning as a tooltip; the cursor says so
     cursor: help;
+
+    &::after {
+        content: attr(data-tip);
+        // No box at all until it is wanted. One that is only invisible still
+        // takes room, and on a phone that widened the page past the screen.
+        display: none;
+        position: absolute;
+        top: calc(100% + 0.35rem);
+        left: 0;
+        // over the map and any card open in it
+        z-index: 3;
+        width: max-content;
+        max-width: 22rem;
+        padding: 0.3rem 0.5rem;
+        background: var(--origins-ink);
+        color: var(--bulma-scheme-main, #fff);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+        font-size: 0.75rem;
+        line-height: 1.3;
+        pointer-events: none;
+    }
+
+    &:hover::after {
+        display: block;
+        // A tenth of a second, then a short fade: quick, but a pointer
+        // passing over the legend on its way somewhere else does not flash
+        // four of them. It is gone at once when the pointer leaves.
+        animation: origins-tip 0.08s ease 0.1s both;
+    }
+}
+
+@keyframes origins-tip {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+// On a narrow screen a tooltip hung from its own item would run off the
+// side, so it hangs from the legend and takes the legend's width.
+@media (max-width: 768px) {
+    .origins-legend-item {
+        position: static;
+
+        &::after {
+            right: 0;
+            width: auto;
+            max-width: none;
+        }
+    }
 }
 
 .origins-legend-mark {
     flex: none;
+    opacity: 0.85;
 }
 
 .origins-legend-thread {

@@ -325,8 +325,12 @@ class SiteBuild(unittest.TestCase):
         for item in items:
             tag = item.split('>')[0]
             self.assertNotIn('is-hidden', tag)
-            # the labels are Nix words; the tooltip says what each means
-            self.assertRegex(tag, r'title="[^"]+"')
+            # the labels are Nix words; the tooltip says what each means.
+            # The page's own tooltip, so no title to bring up the browser's
+            # beside it.
+            self.assertRegex(tag, r'data-tip="[^"]+"')
+            self.assertNotIn('title=', tag)
+        self.assertIn('.origins-legend-item:hover::after{', self.css)
         for label in ('cache hit', 'first build', 'unevaluated', 'cache miss'):
             self.assertIn(f'</svg>{label}</span>', body)
 

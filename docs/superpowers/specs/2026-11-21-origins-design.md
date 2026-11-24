@@ -534,9 +534,14 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   through a moment is "unevaluated" (in the group then, attendance not recorded); and a thread
   stepping around a moment is "cache miss" (the record says they were not there). The labels
   favour the group's own humour over a newcomer reading them cold, so each mark carries its
-  plain meaning as a hover tooltip (a `title`), and the cursor over the legend says there is one.
-  The meanings are the ones under "What a thread through a meetup means". All four are always
-  shown, whether or not the data records an absence, also by Daniel's decision.
+  plain meaning as a hover tooltip, and the help cursor over the legend says there is one. The
+  tooltip is the page's own, drawn by the stylesheet from a `data-tip` attribute: it appears a
+  tenth of a second after the pointer rests on a mark and goes at once when it leaves, where the
+  browser's own would wait most of a second. It takes no room until it is shown, and on a screen
+  768px wide or narrower it hangs from the legend at the legend's width, so it never widens the
+  page. The meanings are the ones under "What a thread
+  through a meetup means". All four are always shown, whether or not the data records an
+  absence, also by Daniel's decision.
 - The map is a box of its own, at most 85% of the viewport tall, that scrolls both ways. Subway's
   canvas is wider than the page, and River's can be; on touch that is native momentum panning with
   no JavaScript. Scrolling down chains to the page at the map's end, and sideways does not tip over
