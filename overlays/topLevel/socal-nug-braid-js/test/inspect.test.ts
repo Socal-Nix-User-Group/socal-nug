@@ -467,13 +467,65 @@ test("a bead moved outside its oval is an engine finding", () => {
 test("a bead drawn on its slot is an engine finding when the slot lies outside the oval", () => {
   const base = drawable();
   const box = base.boxes.get("nug1")!;
-  // The corner of the box: inside the box, outside the ellipse.
+  // The corner of the box: inside the box, outside the pill's round end.
   const slots = new Map(base.slots).set(slotKey("nug1", "jared"), { x: box.x + 1, y: box.y + 1 });
   const placed = { ...base, slots };
   const found = inspectDrawing(story, placed, drawn(placed));
   assert.equal(found.length, 1, JSON.stringify(found));
   assert.equal(found[0].kind, "engine");
   assert.ok(/jared/.test(found[0].message) && /nug1/.test(found[0].message), found[0].message);
+});
+
+// A moment's box is at least 18 by 14, so the centre of its round end is 7 in
+// from the corner on both axes and the end's radius is 7. Its corner (1, 1) is
+// 8.5 from that centre; (4, 1) is 6.7 from it, inside the end, and outside the
+// ellipse the box would hold.
+
+test("a thread point inside an oval's box but outside its round end is no finding", () => {
+  const placed = drawable();
+  const camp = placed.boxes.get("camp")!;
+  const made = drawn(placed);
+  const thread = withClass(made, "origins-thread").find((p) => p.attrs["data-person"] === "mica")!;
+  thread.attrs.d = goesTo(camp.x + 1, camp.y + 1);
+  assert.deepEqual(inspectDrawing(story, placed, made), []);
+});
+
+test("a thread point inside an oval's round end is inside the oval", () => {
+  const placed = drawable();
+  const camp = placed.boxes.get("camp")!;
+  const made = drawn(placed);
+  const thread = withClass(made, "origins-thread").find((p) => p.attrs["data-person"] === "mica")!;
+  thread.attrs.d = goesTo(camp.x + 4, camp.y + 1);
+  const found = inspectDrawing(story, placed, made);
+  assert.equal(found.length, 1, JSON.stringify(found));
+  assert.equal(found[0].kind, "layout");
+  assert.ok(found[0].message.includes("mica") && found[0].message.includes("camp's oval"), found[0].message);
+});
+
+test("a bead whose slot is inside its oval's round end is no finding", () => {
+  const base = drawable();
+  const box = base.boxes.get("nug1")!;
+  const slots = new Map(base.slots).set(slotKey("nug1", "jared"), { x: box.x + 4, y: box.y + 1 });
+  const placed = { ...base, slots };
+  assert.deepEqual(inspectDrawing(story, placed, drawn(placed)), []);
+});
+
+test("a label is on an oval when it comes within the round end, and not when it only reaches the box's corner", () => {
+  const base = drawable();
+  const box = base.boxes.get("nug3")!;
+  const at = (x: number, y: number) => {
+    const labels = new Map(base.labels);
+    labels.set("nug3", { ...base.labels.get("nug3")!, x, y, anchor: "end" });
+    const placed = { ...base, labels };
+    return inspectDrawing(story, placed, drawn(placed));
+  };
+  // The label's bottom right corner at the box's (2, 2): 7.1 from the end's centre.
+  assert.deepEqual(at(box.x + 2, box.y + 2), []);
+  // At (4, 1): 6.7 from it.
+  const found = at(box.x + 4, box.y + 1);
+  assert.equal(found.length, 1, JSON.stringify(found));
+  assert.equal(found[0].kind, "layout");
+  assert.ok(/sits on nug3's oval/.test(found[0].message), found[0].message);
 });
 
 test("a missing bead is an engine finding", () => {

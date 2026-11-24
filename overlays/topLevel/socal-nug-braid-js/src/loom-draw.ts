@@ -135,8 +135,7 @@ export function drawLoom(
   for (const gathering of story.moments) {
     const moment = gathering.moment;
     const box = placed.boxes.get(moment.id)!;
-    const cx = round(box.x + box.width / 2);
-    const cy = round(box.y + box.height / 2);
+    const end = round(Math.min(box.width, box.height) / 2);
     const node = make(doc, "g", {
       class: `origins-node ${moment.trunk ? "is-trunk" : "is-side"}`,
       "data-moment": moment.id,
@@ -146,21 +145,25 @@ export function drawLoom(
       tabindex: "-1",
     });
     node.appendChild(
-      make(doc, "ellipse", {
+      make(doc, "rect", {
         class: "origins-oval",
-        cx,
-        cy,
-        rx: round(box.width / 2),
-        ry: round(box.height / 2),
+        x: round(box.x),
+        y: round(box.y),
+        width: round(box.width),
+        height: round(box.height),
+        rx: end,
+        ry: end,
       }),
     );
     node.appendChild(
-      make(doc, "ellipse", {
+      make(doc, "rect", {
         class: "origins-node-hit",
-        cx,
-        cy,
-        rx: round(box.width / 2 + HIT),
-        ry: round(box.height / 2 + HIT),
+        x: round(box.x - HIT),
+        y: round(box.y - HIT),
+        width: round(box.width + 2 * HIT),
+        height: round(box.height + 2 * HIT),
+        rx: round(Math.min(box.width, box.height) / 2 + HIT),
+        ry: round(Math.min(box.width, box.height) / 2 + HIT),
       }),
     );
     svg.appendChild(node);

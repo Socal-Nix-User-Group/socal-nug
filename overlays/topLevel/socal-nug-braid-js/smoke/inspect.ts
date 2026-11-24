@@ -268,20 +268,39 @@ export function sample(d: string): Array<readonly [number, number]> {
   return out;
 }
 
+/**
+ * A moment as drawn: a pill, every point within `r`, half its thickness, of
+ * the line between the centres of its two round ends. The line runs along
+ * the longer side, so it is upright in Subway.
+ */
 interface Oval {
   readonly id: string;
-  readonly cx: number;
-  readonly cy: number;
-  readonly rx: number;
-  readonly ry: number;
+  readonly r: number;
+  /** The line between the centres of its round ends. */
+  readonly x1: number;
+  readonly y1: number;
+  readonly x2: number;
+  readonly y2: number;
 }
 
 const hasClass = (n: Recorded, token: string) =>
   (n.attrs.class ?? "").split(" ").includes(token);
 
-/** Where a point sits against an ellipse: under 1 is inside. */
-const ovalReach = (o: Oval, x: number, y: number) =>
-  ((x - o.cx) / o.rx) ** 2 + ((y - o.cy) / o.ry) ** 2;
+/**
+ * How far a rectangle comes to a pill's line, as a multiple of the pill's
+ * half thickness: under 1 is inside. The line runs along an axis, so this is
+ * the gap between two boxes. A point is a rectangle with no size.
+ */
+const ovalReach = (
+  o: Oval,
+  box: { left: number; right: number; top: number; bottom: number },
+) =>
+  Math.hypot(
+    Math.max(o.x1 - box.right, box.left - o.x2, 0),
+    Math.max(o.y1 - box.bottom, box.top - o.y2, 0),
+  ) / o.r;
+
+const pointAt = (x: number, y: number) => ({ left: x, right: x, top: y, bottom: y });
 
 /** How far the nearest point of a rectangle is from a centre, as a multiple of the radii. */
 function rectReach(
@@ -315,12 +334,18 @@ export function inspectDrawing(
     .filter((n) => n.tag === "g" && hasClass(n, "origins-node"))
     .map((node) => {
       const e = node.children.find((c) => hasClass(c, "origins-oval"))!;
+      const left = +e.attrs.x;
+      const top = +e.attrs.y;
+      const right = left + +e.attrs.width;
+      const bottom = top + +e.attrs.height;
+      const r = Math.min(right - left, bottom - top) / 2;
       return {
         id: node.attrs["data-moment"],
-        cx: +e.attrs.cx,
-        cy: +e.attrs.cy,
-        rx: +e.attrs.rx,
-        ry: +e.attrs.ry,
+        r,
+        x1: left + r,
+        y1: top + r,
+        x2: right - r,
+        y2: bottom - r,
       };
     });
   const ovalOf = new Map(ovals.map((o) => [o.id, o]));
@@ -334,8 +359,8 @@ export function inspectDrawing(
 
   for (const o of ovals) {
     if (
-      o.cx - o.rx < 0 || o.cx + o.rx > placed.width ||
-      o.cy - o.ry < 0 || o.cy + o.ry > placed.height
+      o.x1 - o.r < 0 || o.x2 + o.r > placed.width ||
+      o.y1 - o.r < 0 || o.y2 + o.r > placed.height
     ) {
       layout(`${o.id}'s oval is off the canvas`);
     }
@@ -389,7 +414,7 @@ export function inspectDrawing(
       }
     }
     for (const o of ovals) {
-      if (rectReach(box, o.cx, o.cy, o.rx, o.ry) < 1) {
+      if (ovalReach(o, box) < 1) {
         layout(`the label "${box.text}" sits on ${o.id}'s oval`);
       }
     }
@@ -428,7 +453,7 @@ export function inspectDrawing(
     );
     for (const [x, y] of sample(path.attrs.d)) {
       for (const o of ovals) {
-        if (own.has(o.id) || ovalReach(o, x, y) >= 1) continue;
+        if (own.has(o.id) || ovalReach(o, pointAt(x, y)) >= 1) continue;
         if (awayFrom(o.id, slug)) {
           report(
             "engine",
@@ -477,7 +502,7 @@ export function inspectDrawing(
         engine(`${p.slug} is vouched for at ${g.moment.id} and has no bead there`);
       } else {
         bead.matched = true;
-        if (ovalReach(ovalOf.get(g.moment.id)!, bead.x, bead.y) >= 1) {
+        if (ovalReach(ovalOf.get(g.moment.id)!, pointAt(bead.x, bead.y)) >= 1) {
           engine(
             `${p.slug}'s bead at ${bead.x.toFixed(0)},${bead.y.toFixed(0)} is outside the oval of ${g.moment.id}`,
           );
@@ -495,7 +520,7 @@ export function inspectDrawing(
       )[0];
     if (nearest === undefined) {
       engine(`${b.slug} has a bead at ${where} and no record vouches for them anywhere`);
-    } else if (ovalReach(ovalOf.get(nearest.id)!, b.x, b.y) >= 1) {
+    } else if (ovalReach(ovalOf.get(nearest.id)!, pointAt(b.x, b.y)) >= 1) {
       engine(`${b.slug}'s bead at ${where} is outside the oval of ${nearest.id}`);
     } else {
       engine(`${b.slug} has a bead at ${where} where the record does not vouch for them`);

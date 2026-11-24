@@ -27,9 +27,6 @@
     --origins-hue-9: #2f9c8f;
     --origins-hue-10: #a85ba8;
     --origins-hue-11: #8a7a3c;
-
-    // Where someone joined. Gold in both themes, and no person's palette slot.
-    --origins-join: #e3a008;
 }
 
 .origins-layout {
@@ -268,8 +265,10 @@ html[data-theme=dark] .origins-legend {
     fill: var(--origins-thread, var(--origins-muted));
     pointer-events: none;
 
+    // Where someone joined: their own colour, ringed in the page's ink.
     &.is-join {
-        fill: var(--origins-join);
+        stroke: var(--origins-ink);
+        stroke-width: 1.2;
     }
 }
 

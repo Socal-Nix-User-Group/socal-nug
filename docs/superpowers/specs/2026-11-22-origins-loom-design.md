@@ -90,7 +90,7 @@ the record says they were not      ━━╮ ╭━━   around the oval
 - At a moment that is not a meetup (a conference, a camp, a personal moment), everyone named was
   there by definition, so every thread through it carries a bead.
 - At the meetup where someone joined, they were there by definition, so they carry a bead. It is
-  drawn differently (gold) because it also marks the join.
+  drawn differently (larger, in their own colour, with a ring) because it also marks the join.
 
 The page carries a short legend saying so, because a thread without a bead has to be read as "in
 the group then" and not as "attended".
@@ -360,14 +360,18 @@ per-mode cache in `main.ts` that makes a resize cheap work as `centreIn` and its
   pass-through, because two overlapping round-capped paths composite their anti-aliased edges
   twice. An edge the layout left out starts a new subpath. No dashed detour style: there are no
   detours.
-- **Moments.** An ellipse sized to the moment's box in place of the dot, styled as a meetup or as
-  another moment where the dot was styled trunk or side. It is the click, hover and focus target
-  and keeps `data-moment`, `role="button"`, its `aria-label` and its place in the roving
-  tabindex. Drawn over the threads with a partly opaque fill of the page's colour, so the
-  threads show through it.
+- **Moments.** A pill sized to the moment's box in place of the dot: a rectangle with ends as
+  round as half its shorter side, styled as a meetup or as another moment where the dot was
+  styled trunk or side. It is the click, hover and focus target and keeps `data-moment`,
+  `role="button"`, its `aria-label` and its place in the roving tabindex. Drawn over the threads
+  with a partly opaque fill of the page's colour, so the threads show through it.
 - **Beads.** A small filled circle at a person's slot inside the oval where the record vouches
-  for them; larger and gold where they joined there. Decoration for pointer and keyboard
-  purposes: no role, no tab stop.
+  for them; where they joined there, larger, in their own colour, with a ring in the page's ink
+  colour. Decoration for pointer and keyboard purposes: no role, no tab stop.
+- Both were first drawn otherwise. A moment was an ellipse, which narrows toward its tips, and
+  the newest joiner always has the last slot, so their bead sat at the tip and with 13 in the
+  group already poked through the outline; a pill is the same thickness at every slot. The join
+  bead was gold, which hid whose it was and sat close to two people's thread colours.
 - **No trunk path and no halo rings.** Both go.
 - **Faces, labels, year markers.** As today.
 - **The switch between modes** no longer slides anything. An oval that is wide in one mode and
@@ -377,10 +381,10 @@ per-mode cache in `main.ts` that makes a resize cheap work as `centreIn` and its
 ### The legend
 
 One line near the mode toggle, with the three marks drawn small: a thread with a bead ("the
-record says they were there"), a thread with a gold bead ("joined here"), a bare thread ("in the
-group then"). A fourth, a thread stepping around an oval ("the record says they were not
-there"), appears only when the data records at least one absence. Hidden until the script runs,
-like the toggle. Wording and styling are the builder's.
+record says they were there"), a thread with a larger ringed bead in its own colour ("joined
+here"), a bare thread ("in the group then"). A fourth, a thread stepping around an oval ("the
+record says they were not there"), appears only when the data records at least one absence.
+Hidden until the script runs, like the toggle. Wording and styling are the builder's.
 
 ### Cards, labels for screen readers, hover
 
@@ -558,10 +562,10 @@ kind: generated from a seed alone.
 - `nix flake check` passes.
 - `nix run .#socal-nug-braid-browser` passes.
 - In River and in Subway, in light and dark themes, at desktop and phone widths: every person
-  has one unbroken thread; no trunk is drawn; each moment is an oval as wide as the people
+  has one unbroken thread; no trunk is drawn; each moment is a pill as wide as the people
   through it; a meetup everyone attended sits on the ribbon.
-- With no `there` or `away` in the data, every meetup's oval has a gold bead for whoever joined
-  there and no other bead.
+- With no `there` or `away` in the data, every meetup's oval has a ringed join bead in their own
+  colour for whoever joined there and no other bead.
 - Adding `there` for someone at a meetup puts a bead on their thread there and their name under
   "Confirmed there:" on its card. Adding `away` takes their thread around that oval.
 - Each rejection listed under "Attendance data" is shown to fail the validator with the record

@@ -145,21 +145,41 @@ test("no path is a trunk and no ring is drawn", () => {
   assert.equal(withClass(made, "origins-node-halo").length, 0);
 });
 
-test("a moment is an oval the size of its box, inside a button that names it", () => {
+/** A rect's x, y, width, height, rx and ry, as numbers. */
+const rectOf = (n: Node) =>
+  ["x", "y", "width", "height", "rx", "ry"].map((name) => Number(n.attrs[name]));
+
+test("a moment is a rect the size of its box with ends as round as half its shorter side, inside a button that names it", () => {
   const node = withClass(made, "origins-node").find((n) => n.attrs["data-moment"] === "founded")!;
   assert.equal(node.tag, "g");
   assert.equal(node.attrs.role, "button");
   assert.equal(node.attrs.tabindex, "-1");
   assert.equal(node.attrs["aria-label"], "founded, April 2023, 3 in the group");
   const oval = node.children.find((c) => c.attrs.class === "origins-oval")!;
-  assert.deepEqual([Number(oval.attrs.rx), Number(oval.attrs.ry)], [15, 7]);
-  const hit = node.children.find((c) => c.attrs.class === "origins-node-hit")!;
-  assert.deepEqual([Number(hit.attrs.rx), Number(hit.attrs.ry)], [21, 13]);
+  assert.equal(oval.tag, "rect");
   const box = placed.boxes.get("founded")!;
-  const centre = [box.x + box.width / 2, box.y + box.height / 2];
-  for (const ellipse of [oval, hit]) {
-    assert.deepEqual([Number(ellipse.attrs.cx), Number(ellipse.attrs.cy)], centre);
-  }
+  assert.deepEqual([box.width, box.height], [30, 14]);
+  assert.deepEqual(rectOf(oval), [box.x, box.y, 30, 14, 7, 7]);
+});
+
+test("a moment's hit area is a rect larger by the hit margin on every side, with fully round ends", () => {
+  const node = withClass(made, "origins-node").find((n) => n.attrs["data-moment"] === "founded")!;
+  const hit = node.children.find((c) => c.attrs.class === "origins-node-hit")!;
+  assert.equal(hit.tag, "rect");
+  const box = placed.boxes.get("founded")!;
+  assert.deepEqual(rectOf(hit), [box.x - 6, box.y - 6, 42, 26, 13, 13]);
+});
+
+test("in subway a moment is the same pill with its shorter side across", async () => {
+  const subway = await draw("subway");
+  const node = withClass(subway.made, "origins-node").find((n) => n.attrs["data-moment"] === "founded")!;
+  const box = subway.placed.boxes.get("founded")!;
+  const oval = node.children.find((c) => c.attrs.class === "origins-oval")!;
+  assert.equal(oval.tag, "rect");
+  assert.deepEqual(rectOf(oval), [box.x, box.y, 14, 30, 7, 7]);
+  const hit = node.children.find((c) => c.attrs.class === "origins-node-hit")!;
+  assert.equal(hit.tag, "rect");
+  assert.deepEqual(rectOf(hit), [box.x - 6, box.y - 6, 26, 42, 13, 13]);
 });
 
 test("a meetup and another moment are told apart", () => {
@@ -193,24 +213,21 @@ test("a bead sits on its person's slot, in their colour", () => {
   });
 });
 
-test("the bead where someone joined is the larger, gold one", () => {
+test("the bead where someone joined is the larger one, with the join class", () => {
   const beads = withClass(made, "origins-bead");
   const joins = beads.filter((b) => b.attrs.class.split(" ").includes("is-join"));
   const joinedCount = story.moments.flatMap((g) => g.through.filter((p) => p.joined)).length;
   assert.equal(joins.length, joinedCount);
+  assert.ok(joins.every((b) => b.attrs.class === "origins-bead is-join"));
   assert.ok(joins.every((b) => b.attrs.r === "3.6"));
   assert.ok(beads.filter((b) => !joins.includes(b)).every((b) => b.attrs.r === "2.6"));
-});
-
-test("jared's bead at the meetup he joined is the gold one", () => {
+  // jared's at the meetup he joined is one of them
   const slot = placed.slots.get(slotKey("nug1", "jared"))!;
-  const bead = withClass(made, "origins-bead").find(
-    (b) =>
-      b.attrs["data-person"] === "jared" &&
-      Number(b.attrs.cx) === slot.x &&
-      Number(b.attrs.cy) === slot.y,
-  )!;
-  assert.ok(bead.attrs.class.split(" ").includes("is-join"));
+  assert.ok(joins.some((b) =>
+    b.attrs["data-person"] === "jared" &&
+    Number(b.attrs.cx) === slot.x &&
+    Number(b.attrs.cy) === slot.y
+  ));
 });
 
 test("a meetup nobody is recorded at is an oval with no beads", async () => {
@@ -299,7 +316,7 @@ test("subway draws the same things turned", async () => {
   const subway = await draw("subway");
   const node = withClass(subway.made, "origins-node").find((n) => n.attrs["data-moment"] === "founded")!;
   const oval = node.children.find((c) => c.attrs.class === "origins-oval")!;
-  assert.deepEqual([Number(oval.attrs.rx), Number(oval.attrs.ry)], [7, 15]);
+  assert.deepEqual([Number(oval.attrs.width), Number(oval.attrs.height)], [14, 30]);
   assert.equal(withClass(subway.made, "origins-thread").length, story.threads.length);
   assert.equal(
     withClass(subway.made, "origins-bead").length,
