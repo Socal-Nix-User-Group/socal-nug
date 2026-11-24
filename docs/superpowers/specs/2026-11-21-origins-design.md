@@ -234,9 +234,12 @@ the page reads people from. A thin guest page is the cheaper cost.
 
 Guests may fill in `image_url` and `description` or leave them empty. The page handles both.
 
-There is one guest in the data: Matthew Croughan, who organizes Nix Camp and is at every one, and
-was at SCaLE 20x and 21x. That is what the mechanism is for: the page is meant to show people
-who are part of the story without listing them as members of the group. `test_site.py` checks
+There is one guest in the data: Matthew Croughan, who organizes Nix Camp and is at every one, was
+at SCaLE 20x and 21x, and has been at every NixCon since 2024. NixCon 2024 is in the data for
+Matthew alone: nobody from the group is thought to have been there, so it is a moment that names
+only a guest, which the page draws like any other moment off the ribbon. That is what the
+mechanism is for: the page is meant to show people who are part of the story without listing
+them as members of the group. `test_site.py` checks
 that Matthew is on the Origins page and not in the About grid, and proves the About filter with
 a probe as well, so it does not rest on whoever happens to be a guest.
 
