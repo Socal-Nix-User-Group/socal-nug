@@ -983,12 +983,16 @@ be reasonable if layout moved to build time.
   no description, which rather shows up the gap.
   Rob Hernandez's and Jared Baur's "First contact" have no blurb, though Daniel Baker's has one,
   and several conference and camp moments have none.
-- **Eight `CONFIRM` markers** in `data/moments.toml`: two dates given as approximations, one
+- **Seven `CONFIRM` markers** in `data/moments.toml`: two dates given as approximations, one
   meetup guessed at (Connor Baker's first, below), "I think everyone was there" on the three
-  SCaLE moments, "I believe David and I were at every single NUG event" over the attendance
-  records, and whether Joshua Campbell was at the Nix booth at SCaLE 20x. Joshua has been at
-  SCaLE the last four years, which would take it in, but Daniel is not sure about the booth, so
-  Joshua is left off that moment.
+  SCaLE moments, and "I believe David and I were at every single NUG event" over the attendance
+  records.
+- **Who met whom at SCaLE 20x.** The moment was "Nix booth at SCaLE 20x" and is now "SCaLE 20x",
+  the whole conference, by Daniel's decision, so that everyone who was at SCaLE that year is
+  through it whether or not they were at the booth. Joshua Campbell is on it for that reason;
+  Daniel does not recall whether Joshua visited the booth. Its blurb still says only who was at
+  the booth and that Daniel Baker and David Nuon met Rob Hernandez there. Daniel means to
+  expand it with who met whom.
 - **Who was at each meetup** is recorded whole, everyone in the group either there or away, for
   the seven meetups Daniel checked against pictures: NUG #1, #2, #3, #4, #6, the June 2025 Mini
   NUG and NUG #17. For the other twelve up to NUG #17 Daniel Baker and David Nuon are recorded,
@@ -996,10 +1000,9 @@ be reasonable if layout moved to build time.
   from NUG #5, where Chris joined, to NUG #17: there at NUG #6 and NUG #17, which Daniel knew
   of, and at NUG #7, #8, #10, #11, #12, #13 and the June 2025 Mini NUG, which Chris added,
   saying there were no others; so away from NUG #9, the April 2025 Mini NUG and NUG #14, #15
-  and #16. One gap in the seven: Joshua Campbell was added after they were recorded, and Daniel
-  placed Joshua at each from NUG #2, where Joshua joined (there at NUG #4; away from NUG #3,
-  NUG #6 and the June 2025 Mini NUG), except NUG #17, about which nothing was said, so Joshua
-  is neither there nor away at it.
+  and #16. Joshua Campbell was added after the seven were recorded, and Daniel then placed
+  Joshua at each from NUG #2, where Joshua joined: there at NUG #4, and away from NUG #3,
+  NUG #6, the June 2025 Mini NUG and NUG #17.
 - **Connor Baker's first meetup** is recorded as NUG #7, as a guess. NUG #6 was first thought
   to be where Connor joined, but Connor is not in the pictures of it; Daniel thinks NUG #7 may
   have been the first.

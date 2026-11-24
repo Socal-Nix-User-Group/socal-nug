@@ -92,18 +92,18 @@ links = [{ title = "NixCon 2022", url = "https://2022.nixcon.org/" }]
 [[moment]]
 id = "scale-20x"
 date = "2023-03-09" # SCaLE 20x ran 9 to 12 March
-title = "Nix booth at SCaLE 20x"
-# CONFIRM: Joshua Campbell has "been at scale the last 4 years", which would
-# take in this one, but "not sure if they were at the nix booth at 20x".
-# Left off.
+title = "SCaLE 20x"
+# The whole conference, not only the Nix booth, so that everyone who was at
+# SCaLE that year is through it. Who met whom there belongs in the blurb.
 people = [
   "daniel-baker",
   "rob-hernandez",
   "david-nuon",
   "mica",
   "matthew-croughan",
+  "joshua-campbell",
 ]
-blurb = "Daniel Baker, Daniel Fullmer and Ben Futoriansky were at the booth. Daniel Baker and David Nuon met Rob Hernandez there."
+blurb = "Daniel Baker, Daniel Fullmer and Ben Futoriansky were at the Nix booth. Daniel Baker and David Nuon met Rob Hernandez there."
 
 [[moment]]
 id = "snug-founded"
@@ -340,9 +340,8 @@ links = [{ title = "NixCon 2026", url = "https://2026.nixcon.org/" }]
 # #11, #12, #13 and the Mini NUG of June 2025, and said there were no
 # others, so Chris is `away` at the rest.
 #
-# Joshua Campbell was added after the seven were recorded. Daniel placed
-# Joshua at each of them from NUG #2, the first, except NUG #17, about which
-# nothing was said, so Joshua is on neither list there.
+# Joshua Campbell was added after the seven were recorded, and Daniel then
+# placed Joshua at each of them from NUG #2, the first.
 
 [[moment]]
 id = "nug-1-attendance"
@@ -502,4 +501,5 @@ away = [
   "samuel-raumin",
   "kyle-risse",
   "connor-baker",
+  "joshua-campbell",
 ]
