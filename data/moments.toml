@@ -300,8 +300,8 @@ links = [{ title = "NixCon 2026", url = "https://2026.nixcon.org/" }]
 # Seven meetups were checked against pictures Daniel found: NUG #1, #2, #3,
 # #4, #6, the Mini NUG of June 2025 and NUG #17. For those the record is
 # whole: everyone in the group at the time is `there` or `away`. For the
-# rest only Daniel and David are recorded, and nothing is said about anyone
-# else.
+# rest Daniel and David are recorded, with Chris Tewfik at NUG #12, and
+# nothing is said about anyone else.
 
 [[moment]]
 id = "nug-1-attendance"
@@ -415,7 +415,7 @@ away = [
 [[moment]]
 id = "nug-12-attendance"
 event = "2025-08-01"
-there = ["daniel-baker", "david-nuon"]
+there = ["daniel-baker", "david-nuon", "chris-tewfik"]
 
 [[moment]]
 id = "nug-13-attendance"

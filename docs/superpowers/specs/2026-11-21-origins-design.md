@@ -884,10 +884,11 @@ be reasonable if layout moved to build time.
   records.
 - **Who was at each meetup** is recorded whole, everyone in the group either there or away, for
   the seven meetups Daniel checked against pictures: NUG #1, #2, #3, #4, #6, the June 2025 Mini
-  NUG and NUG #17. For the other twelve up to NUG #17 only Daniel Baker and David Nuon are
-  recorded, and nothing is said about anyone else. Chris Tewfik was added after the seven were
-  recorded and Daniel then placed Chris at each of them from NUG #5 on: there at NUG #6 and
-  NUG #17, away from the June 2025 Mini NUG. NUG #5, where Chris joined, is one of the twelve.
+  NUG and NUG #17. For the other twelve up to NUG #17 Daniel Baker and David Nuon are recorded,
+  with Chris Tewfik at NUG #12, and nothing is said about anyone else. Chris Tewfik was added
+  after the seven were recorded and Daniel then placed Chris at each of them from NUG #5 on:
+  there at NUG #6 and NUG #17, away from the June 2025 Mini NUG. NUG #5, where Chris joined, is
+  one of the twelve.
 - **Connor Baker's first meetup** is recorded as NUG #7, as a guess. NUG #6 was first thought
   to be where Connor joined, but Connor is not in the pictures of it; Daniel thinks NUG #7 may
   have been the first.
