@@ -338,7 +338,8 @@ not resolve to a file in `content/events/`.
   next to the moment it caused, and the picture never claims he was in the room. A `caused_by`
   link between moments was rejected for the same reason the `met` pair list was: it is a
   hand-maintained edge list wearing a data file as a disguise.
-- A moment with one person is a root or a solo beat. A moment with several gathers those threads.
+- A moment with one person is where their thread starts or a solo beat. A moment with several
+  gathers those threads.
 - A gathering away from the group needs no new syntax. A moment that is not a meetup, dated after
   the group began and naming people already in it, is written like any other shared moment. It is
   drawn as its own moment with those people's threads through it: on the ribbon when it names
@@ -407,11 +408,12 @@ nothing positional in it beyond a person's slot across a moment:
    who never join go last), then by their first moment, then by slug. Because it is ordered by
    joining, the people in the group at any date are the first so many in it, and two threads keep
    the same side of each other wherever they run together.
-1. A moment is on the ribbon when it is a meetup, or when everyone in the group at its date is
-   through it. On the ribbon a member's slot is their place in the slot order, so their thread
-   stays in one slot from each such moment to the next, and a member recorded away leaves their
-   slot empty: a gap, not a closing of ranks. Anyone through it who has not joined yet takes the
-   slots after the members'. Off the ribbon the people through it are packed, in slot order.
+1. A moment is on the ribbon when it is a meetup, or when there is a group at its date and
+   everyone in it is through it. Nothing before the group exists is on the ribbon. On the ribbon
+   a member's slot is their place in the slot order, so their thread stays in one slot from each
+   such moment to the next, and a member recorded away leaves their slot empty: a gap, not a
+   closing of ranks. Anyone through it who has not joined yet takes the slots after the members'.
+   Off the ribbon the people through it are packed, in slot order.
 1. A passage through a moment is vouched for where the record says so: at any moment that is not
    a meetup, at the meetup a person joined at, and where a meetup's record lists them under
    `there`. Attendance is never inferred.
@@ -469,8 +471,8 @@ thread is unbroken. An edge ELK routed nowhere is left out. The canvas is then w
 it is shown in and the drawing centred, rather than stretched.
 
 The layout is injected into `loom-place.ts`: the page gives the real ELK, the smoke check gives
-the same vendored copy, and the unit tests give a fake shaped like a layout. None of them runs ELK
-to test the engine around it.
+the same vendored copy, and the unit tests give a fake shaped like a layout. The unit tests never
+run ELK; the smoke check is the one place the engine is tested through it.
 
 **The drawing** (`src/loom-draw.ts`) draws, in order, so each sits on what came before:
 
@@ -554,7 +556,10 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   the map once open. A moment keeps a changed outline while its card is open.
 - The popup closes on its X, on Escape, and on any click that is not inside it. A click on
   another face or moment swaps the card rather than closing it first.
-- The roster lists everyone as the same person cards, in thread order, without the X. It sits
+- The roster lists everyone as the same person cards, without the X, in thread order: the order
+  of the profiles in the About section (sorted by `weight`), as the template writes them into the
+  data block, leaving out anyone with no moment. Thread order is also the palette's order. It is
+  not the slot order the engine uses across a moment (see "The layout engine"). The roster sits
   beside River and under Subway (see "Toggle and responsive behaviour").
 - Hovering a face lights that person: their thread is drawn thicker, their face's ring too, and
   their roster card is tinted. Hovering or focusing a roster card does the same. Hovering a moment
@@ -672,16 +677,29 @@ In `checks/default.nix`:
   upstream release, fetched by hash. The only way a vendored file stays honest about where it
   came from.
 
-- `braid-data`: validates `data/moments.toml` with `verify_moments.py`, then runs it over a
-  fixture for each way a moment can be malformed and checks each is rejected with the expected
-  words. It checks the shape of each moment (date or event, a title on a dated moment), that
-  every date parses and exists, that every `id` is unique, that every `people`, `there` and
-  `away` entry resolves to a profile slug in `content/about/`, that every `event` resolves to a
-  file in `content/events/`, that `links` are well formed, the attendance rules under "Moments",
-  and that at least one moment has `trunk = true`. It warns when nothing predates the first
-  `trunk` moment. Problems are reported a class at a time, every instance of the first class that
-  has any. An unresolved slug is the likely failure when someone adds themselves, so it fails the
-  build with the offending slug in the message.
+- `braid-data`: validates `data/moments.toml` with `verify_moments.py`. The validator checks the
+  shape of each moment (date or event, a title on a dated moment), that every date has the right
+  format and exists, that every moment has an `id` and no two share one, that every `people`,
+  `there` and `away` entry resolves to a profile slug in `content/about/`, that every `event`
+  resolves to a file in `content/events/`, that `links` is a list of entries each with a title
+  and a url, the attendance rules under "Moments", and that at least one moment has
+  `trunk = true`. It warns when nothing predates the first `trunk` moment. Problems are reported
+  a class at a time, every instance of the first class that has any. An unresolved slug is the
+  likely failure when someone adds themselves, so it fails the build with the offending slug in
+  the message.
+
+  The check then runs the validator over fixtures in `socal-nug-braid-data/tests/` and checks
+  each is rejected, warned about or accepted as expected. There is a fixture rejected for each
+  of: an unknown slug in `people`; both a date and an event; neither; a badly formatted date
+  (`2023-4-1`); a duplicate id; an unknown event; no `trunk` moment; a `links` entry without a
+  url; and, for `there` and `away`, an unknown slug, either list on a dated moment, one person in
+  both, a person before the meetup they joined at, a person with no join record, and a person
+  away from the meetup they joined at. One fixture must only warn (nothing predates the
+  first `trunk` moment), and two must pass cleanly. A rejection is matched on a word or phrase
+  from its message, such as the bad slug, the bad date or "both there and away", not on the
+  record's id. The validator also rejects four things that no fixture exercises: a dated moment
+  with no title, a date in the right format that does not exist (such as a month 13), a moment
+  with no `id`, and `links` that is not a list.
 
 - `frontmatter` extends to the required `member` field through `profiles.json`.
 
@@ -735,10 +753,12 @@ notice and none naming a moment or a person, so the data can change under it. It
 network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
 and is typechecked by `braid-types`, which is what stops it rotting between uses.
 
-It is kept out of `nix flake check` on purpose. Everything it looks at is decided by `main.ts`,
-`origins.scss` and `origins.html`; no event, moment or profile can break any of it, so a
-content change would pay for a 1.7 GiB Chromium and get nothing back but the chance of a false
-failure. It is run by whoever changes those three files, when they change them. Run against
+It is kept out of `nix flake check` on purpose. Everything it looks at is decided by the page's
+script (anything under `overlays/topLevel/socal-nug-braid-js/src/`), its stylesheet
+(`sass/css/pages/origins.scss`) and its template (`templates/origins.html`); no event, moment or
+profile can break any of it, so a content change would pay for a 1.7 GiB Chromium and get nothing
+back but the chance of a false failure. It is run by whoever changes any of those, when they
+change them. Run against
 the page as it stood before the defects it was written from were fixed, it failed 17 of the 25
 it had then.
 
@@ -806,6 +826,9 @@ a present concern.
 - **An id rule in the validator.** Nothing stops a `|` in a moment id, or a person slugged
   `spine`, and either would break placement: port ids are split on `|`, and the spine's edges
   are named `spine:<n>`, as a person's edges are named `<slug>:<n>`.
+- **Validator rejections with no fixture.** `braid-data` has no fixture for a dated moment with no
+  title, a well-formed date that does not exist, a moment with no `id`, or `links` that is not a
+  list, so nothing shows those rejections still work.
 - **Safari** has not been tried. The page has been checked in Firefox and Chromium.
 - **A failed mode switch** leaves the old picture on screen under the new mode's name, and the
   new mode remembered. Left alone on purpose, by Daniel's decision.
@@ -816,11 +839,14 @@ a present concern.
 - `nix flake check` passes, including the Origins checks: `braid-engine`, `braid-types`,
   `braid-bundle-fresh`, `elk-vendored`, `braid-data`, `braid-smoke`, and the Origins parts of
   `frontmatter` and `test-site`.
-- `nix run .#socal-nug-braid-browser` passes, after any change to `main.ts`, `origins.scss` or
-  `origins.html`.
 - Deliberately breaking a `people` slug in `data/moments.toml` fails `braid-data` with that slug
-  in the message, and each rejection listed under "Moments" fails it with the record named (the
-  check's fixtures do this every run).
+  in the message. The check's fixtures show, every run, that each rejection listed under
+  "braid-data" as having a fixture is made, by a word from its message. The four rejections no
+  fixture exercises (a dated moment with no title, a well-formed date that does not exist, a
+  moment with no `id`, `links` that is not a list) are verified only by reading
+  `verify_moments.py`.
+- `nix run .#socal-nug-braid-browser` passes, after any change to the page's script (anything
+  under `overlays/topLevel/socal-nug-braid-js/src/`), its stylesheet or its template.
 - Deliberately editing `static/js/braid.js` fails `braid-bundle-fresh`.
 - `nix build .#socal-nug-site` produces `js/braid.js` and an `/origins/` page, and the page
   built this way matches the one from `netlify.toml`'s command on the same source.
