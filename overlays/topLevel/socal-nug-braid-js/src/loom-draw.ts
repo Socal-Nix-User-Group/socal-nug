@@ -18,7 +18,7 @@ const SVG = "http://www.w3.org/2000/svg";
 /** Where the opening year sits, in from the corner. */
 const YEAR_GUTTER = 34;
 /** How far a moment's hit area reaches past its oval. */
-const HIT = 6;
+export const HIT = 6;
 const BEAD_R = 2.6;
 const JOIN_R = 3.6;
 

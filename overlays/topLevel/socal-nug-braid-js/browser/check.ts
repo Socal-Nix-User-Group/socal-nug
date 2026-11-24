@@ -424,14 +424,65 @@ async function run(): Promise<void> {
 
   await load("river");
   {
-    await watchForMorph();
+    const viewBox = `${PICTURE}.getAttribute("viewBox")`;
+    const river = await tab.evaluate<string>(viewBox);
     await pressMode("subway");
     const moving = await tab.waitFor(MORPHING, 15_000);
-    const stopped = moving && (await tab.waitFor(`!${MORPHING}`, 3000));
+    // Part way through, the picture is neither the one it left nor the one
+    // it is going to.
+    await sleep(500);
+    const between = await tab.evaluate<{ box: string; moving: boolean }>(
+      `({ box: ${viewBox}, moving: ${MORPHING} })`,
+    );
+    const stopped = moving && (await tab.waitFor(`!${MORPHING}`, 2500));
+    const subway = await tab.evaluate<string>(viewBox);
     check(
-      moving && stopped,
-      "switching modes: the map moves from one layout to the other, and stops within three seconds",
-      { moving, stopped },
+      moving && between.moving && stopped && between.box !== river &&
+        between.box !== subway,
+      "switching modes: the map moves through pictures that are neither mode's, and stops within three seconds",
+      { moving, stopped, river, between, subway },
+    );
+  }
+
+  // A switch that fails part way ends in the ordinary picture for the mode
+  // the page says it is in. Nothing in the page fails on its own, so the
+  // check makes one setAttribute throw: on a picture already on screen, the
+  // first frame of the journey; on one not yet in the page, the drawing of
+  // the picture it is going to.
+  for (const [when, onScreen] of [["while it moves", true], ["before it moves", false]] as const) {
+    await load("river");
+    await tab.evaluate(`(() => {
+      const original = Element.prototype.setAttribute;
+      window.__originsThrew = false;
+      Element.prototype.setAttribute = function (name, value) {
+        if (name === "viewBox" && this.isConnected === ${onScreen}) {
+          Element.prototype.setAttribute = original;
+          window.__originsThrew = true;
+          throw new Error("a switch made to fail by the browser check");
+        }
+        return original.call(this, name, value);
+      };
+      return true;
+    })()`);
+    await pressMode("subway");
+    const landed = await landedIn("subway");
+    const threw = await tab.evaluate<boolean>(`window.__originsThrew === true`);
+    const says = await tab.evaluate<string>(
+      `document.getElementById("origins-layout").getAttribute("data-mode") + "," + ${MAP}.getAttribute("data-mode")`,
+    );
+    const left = await leftBehind();
+    const after = await shape();
+    const uncaught = [...tab.errors];
+    await watchForMorph();
+    await pressMode("river");
+    const again = (await landedIn("river")) && (await morphed());
+    await load("subway");
+    const fresh = await shape();
+    check(
+      landed && threw && says === "subway,subway" && left.length === 0 && after === fresh &&
+        again && uncaught.length === 0,
+      `switching modes: a switch that fails ${when} ends in the ordinary Subway picture, and the next switch works`,
+      { landed, threw, says, left, same: after === fresh, again, uncaught },
     );
   }
 
@@ -578,21 +629,32 @@ async function run(): Promise<void> {
 
   await load("river");
   {
+    // Fit pressed on the way. The landing sets the zoom it worked out before
+    // the press, so the zoom alone would not show a press that got through;
+    // the switch after it would, arriving fitted.
     await pressMode("subway");
     const moving = await tab.waitFor(MORPHING, 15_000);
-    const plus = await zoomButton("in");
-    await tab.click(plus.x, plus.y);
     const fit = await zoomButton("fit");
     await tab.click(fit.x, fit.y);
     const landed = await landedIn("subway");
     const says = `document.querySelector('[data-origins-zoom="reset"]').getAttribute("aria-disabled")`;
-    const at100 = await tab.evaluate<boolean>(
-      `Math.abs(${pictureWidth} - ${drawnWidth}) < 0.5 && ${says} === "true"`,
-    );
+    const at100 = `Math.abs(${pictureWidth} - ${drawnWidth}) < 0.5 && ${says} === "true"`;
+    const there = await tab.evaluate<boolean>(at100);
+    await pressMode("river");
+    const back = await landedIn("river");
+    const stillAt100 = await tab.evaluate<boolean>(at100);
     check(
-      moving && landed && at100,
+      moving && landed && there && back && stillAt100,
       "switching modes: the zoom buttons do nothing while the map moves",
-      { moving, landed, width: await tab.evaluate(pictureWidth), drawn: await tab.evaluate(drawnWidth) },
+      {
+        moving,
+        landed,
+        there,
+        back,
+        stillAt100,
+        width: await tab.evaluate(pictureWidth),
+        drawn: await tab.evaluate(drawnWidth),
+      },
     );
   }
 

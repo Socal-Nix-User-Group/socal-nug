@@ -1,7 +1,7 @@
 import { detailFor, personCardFor, rosterFor } from "./cards.ts";
 import type { ElkGraph, Mode } from "./elk.ts";
 import { focusOrder, nextIndex } from "./focus.ts";
-import { drawLoom } from "./loom-draw.ts";
+import { drawLoom, HIT } from "./loom-draw.ts";
 import { centreLoomIn, placeLoom } from "./loom-place.ts";
 import type { LoomPlaced } from "./loom-place.ts";
 import { ease, frameAt, MORPH_MS, morphBetween, scrollFor, sharesOf } from "./morph.ts";
@@ -126,9 +126,6 @@ const GRAB_SLOP = 4;
 
 /** How long after the first picture the other mode is laid out. */
 const OTHER_MODE_AFTER_MS = 1500;
-
-/** How far a moment's hit area reaches past its oval, as in loom-draw. */
-const HIT = 6;
 
 function storage(): StorageLike | null {
   try {
@@ -265,15 +262,29 @@ function boot(): void {
       return draw(next);
     }
     morphing = true;
+    const layout = document.getElementById("origins-layout");
+    const list = roster?.querySelectorAll(".origins-roster")[0];
+    const items = roster === null
+      ? []
+      : [...roster.querySelectorAll(".origins-roster-item")];
+    /** Take off everything the journey set outside the picture. */
+    const tidy = (): void => {
+      mount!.classList.remove("is-morphing");
+      mount!.removeAttribute("style");
+      layout?.removeAttribute("style");
+      list?.removeAttribute("style");
+      for (const item of items) item.removeAttribute("style");
+    };
+    // Once the page says it is in the other mode, it has to end showing the
+    // ordinary picture for that mode, however the journey ends.
+    let flipped = false;
+    let landed = false;
     try {
       const bare = await layoutOf(next);
       closePopup();
+      // A grab under way would fight the journey for the scroll position.
+      letGo();
 
-      const layout = document.getElementById("origins-layout");
-      const list = roster?.querySelectorAll(".origins-roster")[0];
-      const items = roster === null
-        ? []
-        : [...roster.querySelectorAll(".origins-roster-item")];
       const rect = (e: PageElement) => {
         const b = e.getBoundingClientRect();
         return { x: b.left, y: b.top, w: b.width, h: b.height };
@@ -301,6 +312,7 @@ function boot(): void {
 
       // Where everything will be: the page in the other mode, with the other
       // picture in the box at the zoom it will arrive at.
+      flipped = true;
       mount!.setAttribute("data-mode", next);
       layout?.setAttribute("data-mode", next);
       const width1 = mount!.clientWidth;
@@ -340,12 +352,9 @@ function boot(): void {
         labelled.map((id, i) => [id, texts[i].getComputedTextLength()]),
       );
       const journey = morphBetween(story, from, to, widths);
-      if (journey === null) {
-        // The page is in the other mode already, with this picture back in
-        // the box; the plain redraw replaces it.
-        await draw(next);
-        return;
-      }
+      // The page is in the other mode already, with this picture back in the
+      // box; the plain redraw below replaces it.
+      if (journey === null) return;
 
       // A card the roster's own box hides in River fades in on the way to
       // Subway and out on the way back, since under the map every card shows.
@@ -455,25 +464,27 @@ function boot(): void {
         mount!.scrollTop = lerp(scroll0.y, scroll1.y, t);
       };
 
-      await new Promise<void>((done) => {
+      // A frame runs outside this function, so what it throws is handed back
+      // here rather than lost with the journey half done.
+      await new Promise<void>((done, fail) => {
         let began: number | undefined;
         const step = (now: number): void => {
-          began ??= now;
-          const t = Math.min(1, (now - began) / MORPH_MS);
-          paint(ease(t));
-          if (t < 1) window.requestAnimationFrame(step);
-          else done();
+          try {
+            began ??= now;
+            const t = Math.min(1, (now - began) / MORPH_MS);
+            paint(ease(t));
+            if (t < 1) window.requestAnimationFrame(step);
+            else done();
+          } catch (error) {
+            fail(error);
+          }
         };
         window.requestAnimationFrame(step);
       });
 
       // Arrived: the ordinary picture for this mode takes over from the one
       // that was bent into its shape, and nothing the journey set stays.
-      mount!.classList.remove("is-morphing");
-      mount!.removeAttribute("style");
-      layout?.removeAttribute("style");
-      list?.removeAttribute("style");
-      for (const item of items) item.removeAttribute("style");
+      tidy();
       mount!.replaceChildren(target, popup);
       shown = to;
       shownAt = width1;
@@ -486,11 +497,24 @@ function boot(): void {
       closePopup();
       wireHover();
       wireKeyboard();
-      // The window may have changed size on the way, which the resize
-      // handler let pass while the morph ran.
-      if (mount!.clientWidth !== shownAt) await draw(next);
+      landed = true;
+    } catch (error) {
+      // Before the page changed mode nothing has moved, and the caller says
+      // the switch was lost.
+      if (!flipped) throw error;
+      console.error("origins: could not move between modes", error);
     } finally {
       morphing = false;
+      if (flipped && !landed) {
+        // The journey failed, or the two layouts do not pair up: the plain
+        // redraw for the mode the page now says it is in.
+        tidy();
+        await draw(next);
+      } else if (landed && mount!.clientWidth !== shownAt) {
+        // The window changed size on the way, which the resize handler let
+        // pass while the morph ran.
+        await draw(next);
+      }
     }
   }
 
@@ -656,7 +680,9 @@ function boot(): void {
         if (event.key === undefined) return;
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          openAt(cursor, true);
+          // A card opened while a morph runs would open beside a picture
+          // that is about to be replaced.
+          if (!morphing) openAt(cursor, true);
           return;
         }
         const next = nextIndex(cursor, event.key, order.length);
