@@ -638,6 +638,11 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
 - A reader whose system asks for reduced motion gets the instant switch. So does anyone whose
   two layouts do not pair up, an edge or a face in only one of them, which a layout that passed
   the smoke check cannot be.
+- If anything fails once the page has been put in the new mode, whether before the first frame
+  or in the middle of one, the switch ends in the ordinary picture for that mode with nothing of
+  the morph left on the page, and the next switch works. It keeps whatever scroll position the
+  box had when it failed. Before that fix a failure in a frame left the map answering nothing
+  until the page was reloaded.
 - The arithmetic is in `src/morph.ts` and touches no page: given two layouts it says where
   everything is at any point between them, and it carries a scroll position across as shares.
   The page script measures the box and the cards before and after the layout flips, applies one
@@ -884,12 +889,14 @@ Chromium and behaves like a visitor: it wheels past the map and past the roster 
 a finger through the map on a phone-sized screen, clicks and tabs into cards, hovers moments,
 switches modes and watches the picture travel, zooms with the buttons and with Ctrl and the
 wheel, takes hold of the map with a pressed mouse and drags it, blocks the layout engine, and
-asks for the dark theme and for reduced motion. Eleven of its checks are about the morph: that
-it takes time and stops; that it lands on the picture a fresh visit draws, both ways and after
-the window is narrowed part way; that nothing is left set on the box, the layout or the cards;
-that the view lands the same share of the way along and a round trip returns; that a fitted view
-arrives fitted; that the mode and zoom buttons do nothing while it moves; and that reduced
-motion makes it instant. Fifty-four checks, each named for what a visitor would
+asks for the dark theme and for reduced motion. Thirteen of its checks are about the morph: that
+it takes time, passes through pictures that are neither mode's, and stops; that it lands on the
+picture a fresh visit draws, both ways and after the window is narrowed part way; that nothing
+is left set on the box, the layout or the cards; that the view lands the same share of the way
+along and a round trip returns; that a fitted view arrives fitted; that the mode and zoom
+buttons do nothing while it moves; that reduced motion makes it instant; and that a switch made
+to fail, in a frame and before the first one, still ends in the ordinary picture with the next
+switch working. Fifty-six checks, each named for what a visitor would
 notice and none naming a moment or a person, so the data can change under it. It needs the
 network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
 and is typechecked by `braid-types`, which is what stops it rotting between uses.
@@ -1014,8 +1021,9 @@ be reasonable if layout moved to build time.
   two layouts that do not pair up has never run in a browser, because the real layouts always
   pair up. Three things have been read in the code and not tried: Ctrl and the wheel over the
   map while it morphs should go to the browser, which zooms the page, since the map answers no
-  pointer then; pressing Enter on a focused moment while it morphs should open a card that the
-  landing closes; and a mouse already holding the map when a keyboard press switches modes.
+  pointer then; pressing Enter on a focused moment while it morphs is meant to open nothing;
+  and a mouse already holding the map when a keyboard press switches modes is meant to be let
+  go.
 - **An id rule in the validator.** Nothing stops a `|` in a moment id, or a person slugged
   `spine`, and either would break placement: port ids are split on `|`, and the spine's edges
   are named `spine:<n>`, as a person's edges are named `<slug>:<n>`.
