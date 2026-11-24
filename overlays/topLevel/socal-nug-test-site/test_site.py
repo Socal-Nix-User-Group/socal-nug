@@ -324,7 +324,8 @@ class SiteBuild(unittest.TestCase):
         self.assertEqual(len(items), 4)
         for item in items:
             self.assertNotIn('is-hidden', item.split('>')[0])
-        self.assertIn('the record says they were not there', body)
+        for label in ('cache hit', 'first build', 'unevaluated', 'cache miss'):
+            self.assertIn(f'</svg>{label}</span>', body)
 
     def test_origins_palette_follows_the_three_state_theme(self):
         self.assertIn(

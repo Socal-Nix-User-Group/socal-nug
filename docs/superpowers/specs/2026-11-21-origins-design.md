@@ -528,11 +528,14 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
 - The toggle and the legend are hidden until the first picture is drawn, so a reader whose layout
   engine never arrived is not offered a control that does nothing or a key to marks that are not
   there. Once shown, the toggle stays visible at all widths.
-- The legend is one line under the toggle with four marks drawn small: a thread with a bead
-  ("the record says they were there"), a thread with the ringed join bead ("joined here"), a bare
-  thread ("in the group then"), and a thread stepping around a moment ("the record says they were
-  not there"). All four are always shown, whether or not the data records an absence, by Daniel's
-  decision.
+- The legend is one line under the toggle with four marks drawn small, each labelled with a Nix
+  word, by Daniel's choice: a thread with a bead is "cache hit" (the record says they were
+  there); a thread with the ringed join bead is "first build" (they joined here); a bare thread
+  through a moment is "unevaluated" (in the group then, attendance not recorded); and a thread
+  stepping around a moment is "cache miss" (the record says they were not there). The labels
+  favour the group's own humour over a newcomer reading them cold; the meanings are the ones
+  under "What a thread through a meetup means". All four are always shown, whether or not the
+  data records an absence, also by Daniel's decision.
 - The map is a box of its own, at most 85% of the viewport tall, that scrolls both ways. Subway's
   canvas is wider than the page, and River's can be; on touch that is native momentum panning with
   no JavaScript. Scrolling down chains to the page at the map's end, and sideways does not tip over
