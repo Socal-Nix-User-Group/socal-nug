@@ -323,7 +323,10 @@ class SiteBuild(unittest.TestCase):
         items = body.split('<span')[1:]
         self.assertEqual(len(items), 4)
         for item in items:
-            self.assertNotIn('is-hidden', item.split('>')[0])
+            tag = item.split('>')[0]
+            self.assertNotIn('is-hidden', tag)
+            # the labels are Nix words; the tooltip says what each means
+            self.assertRegex(tag, r'title="[^"]+"')
         for label in ('cache hit', 'first build', 'unevaluated', 'cache miss'):
             self.assertIn(f'</svg>{label}</span>', body)
 

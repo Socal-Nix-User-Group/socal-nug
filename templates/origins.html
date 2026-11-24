@@ -30,14 +30,15 @@
     "in the group then" and not "was there". The labels are Nix words, by
     Daniel's choice: cache hit (the record says they were there), first
     build (joined here), unevaluated (in the group then, attendance not
-    recorded), cache miss (the record says they were not there). All four
-    are always shown. Hidden until the script draws the picture it
-    explains. -#}
+    recorded), cache miss (the record says they were not there). Each
+    carries its plain meaning as a hover tooltip, for a reader the joke
+    misses. All four are always shown. Hidden until the script draws the
+    picture it explains. -#}
 <p id="origins-legend" class="origins-legend is-hidden" aria-hidden="true">
-  <span class="origins-legend-item"><svg class="origins-legend-mark" data-hue="0" viewBox="0 0 36 16" width="36" height="16" aria-hidden="true" focusable="false"><path class="origins-legend-thread" d="M2,8 H34"/><rect class="origins-legend-oval" x="11" y="3.5" width="14" height="9" rx="4.5" ry="4.5"/><circle class="origins-bead" cx="18" cy="8" r="2.6"/></svg>cache hit</span>
-  <span class="origins-legend-item"><svg class="origins-legend-mark" data-hue="0" viewBox="0 0 36 16" width="36" height="16" aria-hidden="true" focusable="false"><path class="origins-legend-thread" d="M2,8 H34"/><rect class="origins-legend-oval" x="11" y="3.5" width="14" height="9" rx="4.5" ry="4.5"/><circle class="origins-bead is-join" cx="18" cy="8" r="3.6"/></svg>first build</span>
-  <span class="origins-legend-item"><svg class="origins-legend-mark" data-hue="0" viewBox="0 0 36 16" width="36" height="16" aria-hidden="true" focusable="false"><path class="origins-legend-thread" d="M2,8 H34"/><rect class="origins-legend-oval" x="11" y="3.5" width="14" height="9" rx="4.5" ry="4.5"/></svg>unevaluated</span>
-  <span class="origins-legend-item"><svg class="origins-legend-mark" data-hue="0" viewBox="0 0 36 16" width="36" height="16" aria-hidden="true" focusable="false"><path class="origins-legend-thread" d="M2,10 H7 C10,10 10,2 13,2 H23 C26,2 26,10 29,10 H34"/><rect class="origins-legend-oval" x="11" y="5.5" width="14" height="9" rx="4.5" ry="4.5"/></svg>cache miss</span>
+  <span class="origins-legend-item" title="The record says they were there"><svg class="origins-legend-mark" data-hue="0" viewBox="0 0 36 16" width="36" height="16" aria-hidden="true" focusable="false"><path class="origins-legend-thread" d="M2,8 H34"/><rect class="origins-legend-oval" x="11" y="3.5" width="14" height="9" rx="4.5" ry="4.5"/><circle class="origins-bead" cx="18" cy="8" r="2.6"/></svg>cache hit</span>
+  <span class="origins-legend-item" title="They joined the group here"><svg class="origins-legend-mark" data-hue="0" viewBox="0 0 36 16" width="36" height="16" aria-hidden="true" focusable="false"><path class="origins-legend-thread" d="M2,8 H34"/><rect class="origins-legend-oval" x="11" y="3.5" width="14" height="9" rx="4.5" ry="4.5"/><circle class="origins-bead is-join" cx="18" cy="8" r="3.6"/></svg>first build</span>
+  <span class="origins-legend-item" title="In the group then; whether they came was not recorded"><svg class="origins-legend-mark" data-hue="0" viewBox="0 0 36 16" width="36" height="16" aria-hidden="true" focusable="false"><path class="origins-legend-thread" d="M2,8 H34"/><rect class="origins-legend-oval" x="11" y="3.5" width="14" height="9" rx="4.5" ry="4.5"/></svg>unevaluated</span>
+  <span class="origins-legend-item" title="The record says they were not there"><svg class="origins-legend-mark" data-hue="0" viewBox="0 0 36 16" width="36" height="16" aria-hidden="true" focusable="false"><path class="origins-legend-thread" d="M2,10 H7 C10,10 10,2 13,2 H23 C26,2 26,10 29,10 H34"/><rect class="origins-legend-oval" x="11" y="5.5" width="14" height="9" rx="4.5" ry="4.5"/></svg>cache miss</span>
 </p>
 
 {#- The wrapper carries the palette; the map fills it. Cards for people and

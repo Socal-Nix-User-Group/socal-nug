@@ -583,6 +583,8 @@ html[data-theme=dark] .origins-legend {
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
+    // each carries its plain meaning as a tooltip; the cursor says so
+    cursor: help;
 }
 
 .origins-legend-mark {
