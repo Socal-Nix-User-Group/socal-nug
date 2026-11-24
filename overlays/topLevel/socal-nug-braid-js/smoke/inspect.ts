@@ -1,7 +1,9 @@
 import { AVATAR, LABEL_HEIGHT, LABEL_MAX, labelWidth } from "../src/elk.ts";
+import { drawLoom } from "../src/loom-draw.ts";
 import { passId, SLOT, slotOffset } from "../src/loom-graph.ts";
 import { slotKey } from "../src/loom-place.ts";
 import type { Box, LoomPlaced, Point } from "../src/loom-place.ts";
+import { frameAt, morphBetween } from "../src/morph.ts";
 import type { DocumentLike, ElementLike } from "../src/render.ts";
 import type { Story } from "../src/story.ts";
 
@@ -267,6 +269,106 @@ export function sample(d: string): Array<readonly [number, number]> {
     }
   }
   return out;
+}
+
+/** One cubic of a path's line as close-set points, and the box its control points span. */
+interface Piece {
+  readonly points: ReadonlyArray<readonly [number, number]>;
+  readonly left: number;
+  readonly right: number;
+  readonly top: number;
+  readonly bottom: number;
+}
+
+/**
+ * A path's line, cubic by cubic, each as points no more than about a unit
+ * apart along it. A curve lies inside the box of its control points, so a
+ * piece whose box is further from a point than something already found can
+ * be passed over.
+ */
+function pieces(d: string): Piece[] {
+  const out: Piece[] = [];
+  let cur: readonly [number, number] = [0, 0];
+  for (const part of d.match(/[MC][^MC]*/g) ?? []) {
+    const v = part.slice(1).trim().split(/[\s,]+/).map(Number);
+    if (part[0] === "M") {
+      cur = [v[0], v[1]];
+      continue;
+    }
+    for (let seg = 0; seg + 6 <= v.length; seg += 6) {
+      const [x1, y1, x2, y2, x3, y3] = v.slice(seg, seg + 6);
+      const xs = [cur[0], x1, x2, x3];
+      const ys = [cur[1], y1, y2, y3];
+      const length = Math.hypot(x1 - cur[0], y1 - cur[1]) + Math.hypot(x2 - x1, y2 - y1) +
+        Math.hypot(x3 - x2, y3 - y2);
+      const steps = Math.max(24, Math.ceil(length));
+      const points: Array<readonly [number, number]> = [cur];
+      for (let i = 1; i <= steps; i += 1) {
+        const k = i / steps;
+        const u = 1 - k;
+        points.push([
+          u * u * u * cur[0] + 3 * u * u * k * x1 + 3 * u * k * k * x2 + k * k * k * x3,
+          u * u * u * cur[1] + 3 * u * u * k * y1 + 3 * u * k * k * y2 + k * k * k * y3,
+        ]);
+      }
+      out.push({
+        points,
+        left: Math.min(...xs),
+        right: Math.max(...xs),
+        top: Math.min(...ys),
+        bottom: Math.max(...ys),
+      });
+      cur = [x3, y3];
+    }
+  }
+  return out;
+}
+
+/** How far a point is from the segment between two others. */
+function toSegment(
+  [x, y]: readonly [number, number],
+  [ax, ay]: readonly [number, number],
+  [bx, by]: readonly [number, number],
+): number {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const length = dx * dx + dy * dy;
+  const k = length === 0 ? 0 : Math.min(1, Math.max(0, ((x - ax) * dx + (y - ay) * dy) / length));
+  return Math.hypot(x - (ax + k * dx), y - (ay + k * dy));
+}
+
+/**
+ * The furthest any sampled point of either path is from the other's line.
+ * The line is only where a path draws: never across the gap between two of
+ * its stretches.
+ */
+export function apart(a: string, b: string): number {
+  const off = (from: string, to: string) => {
+    const line = pieces(to);
+    let worst = 0;
+    for (const p of sample(from)) {
+      let best = Infinity;
+      // nearest box first, so the rest can mostly be passed over
+      const near = line
+        .map((piece) => ({
+          piece,
+          reach: Math.hypot(
+            Math.max(piece.left - p[0], p[0] - piece.right, 0),
+            Math.max(piece.top - p[1], p[1] - piece.bottom, 0),
+          ),
+        }))
+        .sort((a, b) => a.reach - b.reach);
+      for (const { piece, reach } of near) {
+        if (reach >= best) break;
+        for (let i = 1; i < piece.points.length; i += 1) {
+          best = Math.min(best, toSegment(p, piece.points[i - 1], piece.points[i]));
+        }
+      }
+      worst = Math.max(worst, best);
+    }
+    return worst;
+  };
+  return Math.max(off(a, b), off(b, a));
 }
 
 /**
@@ -569,7 +671,152 @@ export function inspectDrawing(
   return found;
 }
 
-const LAYOUT_ENDING = "This is a fault in how the picture was laid out for the " +
+// --- the morph between the two modes -------------------------------------------
+
+/** Whether two lists of numbers are as long as each other and agree to within a hundredth. */
+const agree = (a: readonly number[][], b: readonly number[][]) =>
+  a.length === b.length &&
+  a.every((p, i) => p.length === b[i].length && p.every((n, k) => Math.abs(n - b[i][k]) <= 0.01));
+
+const MODE_NAME = { river: "River", subway: "Subway" } as const;
+
+/**
+ * Whether the morph between the two layouts starts on the drawing of the one
+ * being left and ends on the drawing of the one arrived at, both ways: the
+ * layouts pair up, each thread traces the drawn one and is broken where it
+ * is, and the beads, labels and year marks are where they are drawn.
+ */
+export function inspectMorph(
+  story: Story,
+  river: LoomPlaced,
+  subway: LoomPlaced,
+): Finding[] {
+  const found: Finding[] = [];
+  const engine = (message: string) => found.push({ kind: "engine", message });
+  // No text can be measured outside a browser, so each label is as wide as
+  // the room the layout reserved for it.
+  const widths = new Map(
+    story.moments.flatMap((g) => {
+      const label = river.labels.get(g.moment.id) ?? subway.labels.get(g.moment.id);
+      return label === undefined ? [] : [[g.moment.id, labelWidth(label.text)] as const];
+    }),
+  );
+  const draw = (placed: LoomPlaced) => {
+    const { doc, made } = recorder();
+    drawLoom(placed, story, doc);
+    return made;
+  };
+  const moves = (d: string) => d.match(/M/g)?.length ?? 0;
+  const threadsOf = (made: Recorded[]) =>
+    new Map(
+      made
+        .filter((n) => n.tag === "path" && hasClass(n, "origins-thread"))
+        .map((n) => [n.attrs["data-person"], n.attrs.d]),
+    );
+  const beadsOf = (made: Recorded[]) =>
+    made
+      .filter((n) => n.tag === "circle" && hasClass(n, "origins-bead"))
+      .map((n) => [+n.attrs.cx, +n.attrs.cy]);
+  const ticksOf = (made: Recorded[]) =>
+    made
+      .filter((n) => hasClass(n, "origins-year-tick"))
+      .map((n) => n.attrs.d.slice(1).split(/[\sL,]+/).map(Number));
+  const yearsOf = (made: Recorded[]) =>
+    made
+      .filter((n) => n.tag === "text" && hasClass(n, "origins-year"))
+      .map((n) => [+n.attrs.x, +n.attrs.y]);
+  // Where each drawn label's text starts, by moment: drawLoom draws them in
+  // the story's order, one for each moment the layout gave a label.
+  const labelsOf = (placed: LoomPlaced, made: Recorded[]) => {
+    const ids = story.moments.flatMap((g) => (placed.labels.has(g.moment.id) ? [g.moment.id] : []));
+    const texts = made.filter((n) => n.tag === "text" && hasClass(n, "origins-label"));
+    return new Map(texts.map((n, i) => {
+      const x = +n.attrs.x;
+      const width = labelWidth(n.text);
+      const start = n.attrs["text-anchor"] === "end" ? x - width : x - width / 2;
+      return [ids[i], [start, +n.attrs.y]];
+    }));
+  };
+
+  for (const [from, to] of [[river, subway], [subway, river]] as const) {
+    const way = `the morph from ${MODE_NAME[from.mode]} to ${MODE_NAME[to.mode]}`;
+    const morph = morphBetween(story, from, to, widths);
+    if (morph === null) {
+      engine(`${way} could not pair the two layouts up`);
+      continue;
+    }
+    const left = draw(from);
+    const arrived = draw(to);
+    const leftThreads = threadsOf(left);
+    const arrivedThreads = threadsOf(arrived);
+    const start = frameAt(morph, 0);
+    const middle = frameAt(morph, 0.5);
+    const end = frameAt(morph, 1);
+
+    for (const [slug, drawnLeft] of leftThreads) {
+      const drawnArrived = arrivedThreads.get(slug) ?? "";
+      const at0 = start.threads.get(slug);
+      const at1 = end.threads.get(slug);
+      const atHalf = middle.threads.get(slug);
+      if (at0 === undefined || at1 === undefined || atHalf === undefined) {
+        engine(`${slug}'s thread is not in ${way}`);
+        continue;
+      }
+      const off0 = apart(at0, drawnLeft);
+      if (off0 > 0.05) {
+        engine(`${slug}'s thread at the start of ${way} is ${off0.toFixed(2)}px off its drawing`);
+      }
+      const off1 = apart(at1, drawnArrived);
+      if (off1 > 0.05) {
+        engine(`${slug}'s thread at the end of ${way} is ${off1.toFixed(2)}px off its drawing`);
+      }
+      const drawnMoves = [moves(drawnLeft), moves(drawnArrived)];
+      for (const [when, d, expected] of [
+        ["the start", at0, [drawnMoves[0]]],
+        ["half way", atHalf, drawnMoves],
+        ["the end", at1, [drawnMoves[1]]],
+      ] as const) {
+        if (expected.some((n) => n !== moves(d))) {
+          engine(
+            `${slug}'s thread is in ${moves(d)} stretches at ${when} of ${way} and drawn in ${
+              expected.join(" and ")
+            }`,
+          );
+        }
+      }
+    }
+
+    const leftLabels = labelsOf(from, left);
+    const arrivedLabels = labelsOf(to, arrived);
+    const labelIds = story.moments.flatMap((g) => (from.labels.has(g.moment.id) ? [g.moment.id] : []));
+    const pairs = (points: readonly Point[]) => points.map((p) => [p.x, p.y]);
+    for (
+      const [when, frame, made, labels] of [
+        ["the start", start, left, labelIds.map((id) => leftLabels.get(id) ?? [])],
+        [
+          "the end",
+          end,
+          arrived,
+          // a label with no twin in the layout arrived at stays where it was
+          labelIds.map((id, i) => arrivedLabels.get(id) ?? [start.labels[i].x, start.labels[i].y]),
+        ],
+      ] as const
+    ) {
+      const checks: Array<[string, number[][], number[][]]> = [
+        ["beads", pairs(frame.beads), beadsOf(made)],
+        ["labels", pairs(frame.labels), labels],
+        ["year lines", frame.ticks.map((t) => [t.x1, t.y1, t.x2, t.y2]), ticksOf(made)],
+        ["years", pairs(frame.years), yearsOf(made)],
+      ];
+      for (const [what, morphed, drawn] of checks) {
+        if (!agree(morphed, drawn)) engine(`the ${what} at ${when} of ${way} are not where they are drawn`);
+      }
+    }
+  }
+  return found;
+}
+
+const LAYOUT_ENDING ="This is a fault in how the picture was laid out for the " +
   "data as it now stands. Nothing in your change is mistaken. It needs a " +
   "maintainer who knows the layout engine in overlays/topLevel/socal-nug-braid-js.";
 const MADE_UP_ENDING = "This history is made up from a fixed seed, so only a change to the layout engine in overlays/topLevel/socal-nug-braid-js can have caused it.";

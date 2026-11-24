@@ -22,7 +22,7 @@ export { hueFor, PALETTE_SIZE } from "./palette.ts";
 const SVG = "http://www.w3.org/2000/svg";
 const AVATAR = 18;
 /** How far a hop's control points sit along the time axis. 0 is a corner. */
-const EASE = 0.5;
+export const EASE = 0.5;
 
 const round = (n: number) => Math.round(n * 100) / 100;
 

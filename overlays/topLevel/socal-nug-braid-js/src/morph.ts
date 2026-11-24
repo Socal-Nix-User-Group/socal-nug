@@ -2,6 +2,7 @@ import type { Mode } from "./elk.ts";
 import { yearMarks } from "./loom-draw.ts";
 import { slotKey } from "./loom-place.ts";
 import type { Box, LoomPlaced, PlacedLabel, Point } from "./loom-place.ts";
+import { EASE } from "./render.ts";
 import type { Story } from "./story.ts";
 
 /**
@@ -27,9 +28,6 @@ export function ease(t: number): number {
 /** One cubic: where it starts, its two control points, where it ends. */
 type Curve = readonly [Point, Point, Point, Point];
 
-/** How far along the time axis a hop's control points sit, as in flow(). */
-const EASE = 0.5;
-
 /** Part of the way from `a` to `b`, exactly `a` at 0 and exactly `b` at 1. */
 const lerp = (a: number, b: number, t: number): number => a * (1 - t) + b * t;
 const lerpPoint = (a: Point, b: Point, t: number): Point => ({
@@ -44,11 +42,11 @@ function curves(points: readonly Point[], river: boolean): Curve[] {
     const a = points[i - 1];
     const b = points[i];
     if (river) {
-      const ease = (b.y - a.y) * EASE;
-      out.push([a, { x: a.x, y: a.y + ease }, { x: b.x, y: b.y - ease }, b]);
+      const reach = (b.y - a.y) * EASE;
+      out.push([a, { x: a.x, y: a.y + reach }, { x: b.x, y: b.y - reach }, b]);
     } else {
-      const ease = (b.x - a.x) * EASE;
-      out.push([a, { x: a.x + ease, y: a.y }, { x: b.x - ease, y: b.y }, b]);
+      const reach = (b.x - a.x) * EASE;
+      out.push([a, { x: a.x + reach, y: a.y }, { x: b.x - reach, y: b.y }, b]);
     }
   }
   return out;
@@ -95,19 +93,44 @@ interface ThreadMorph {
 
 const same = (a: Point, b: Point): boolean => a.x === b.x && a.y === b.y;
 
-/** For each person, their thread in both modes, curve for curve. */
-function threadMorphs(from: LoomPlaced, to: LoomPlaced): Map<string, ThreadMorph> {
+/**
+ * Every key the two maps share, with its value in each, or null when either
+ * has a key the other does not.
+ */
+function paired<T>(
+  a: ReadonlyMap<string, T>,
+  b: ReadonlyMap<string, T>,
+): Array<readonly [string, T, T]> | null {
+  if (a.size !== b.size) return null;
+  const out: Array<readonly [string, T, T]> = [];
+  for (const [key, value] of a) {
+    const twin = b.get(key);
+    if (twin === undefined) return null;
+    out.push([key, value, twin]);
+  }
+  return out;
+}
+
+/**
+ * For each person, their thread in both modes, curve for curve, or null when
+ * an edge is in only one of them, or is no curve at all in either.
+ */
+function threadMorphs(from: LoomPlaced, to: LoomPlaced): Map<string, ThreadMorph> | null {
   const key = (e: LoomPlaced["edges"][number]) => `${e.meta.slug}|${e.from}|${e.to}`;
-  const there = new Map(to.edges.map((e) => [key(e), e]));
+  const edges = paired(
+    new Map(from.edges.map((e) => [key(e), e])),
+    new Map(to.edges.map((e) => [key(e), e])),
+  );
+  if (edges === null || edges.length !== from.edges.length || edges.length !== to.edges.length) {
+    return null;
+  }
   const out = new Map<string, { from: Curve[]; to: Curve[]; starts: boolean[] }>();
   const ends = new Map<string, { from: Point; to: Point }>();
 
-  for (const edge of from.edges) {
-    const twin = there.get(key(edge));
-    if (twin === undefined) continue;
+  for (const [, edge, twin] of edges) {
     let a = curves(edge.points, from.mode === "river");
     let b = curves(twin.points, to.mode === "river");
-    if (a.length === 0 || b.length === 0) continue;
+    if (a.length === 0 || b.length === 0) return null;
     const count = Math.max(a.length, b.length);
     a = cutTo(a, count);
     b = cutTo(b, count);
@@ -148,9 +171,10 @@ function threadPath(morph: ThreadMorph, t: number): string {
 type Tick = { x1: number; y1: number; x2: number; y2: number };
 
 export interface Morph {
-  readonly from: LoomPlaced;
-  readonly to: LoomPlaced;
+  readonly size: readonly [Point, Point];
   readonly threads: ReadonlyMap<string, ThreadMorph>;
+  readonly faces: readonly (readonly [string, Point, Point])[];
+  readonly boxes: readonly (readonly [string, Box, Box])[];
   readonly beads: readonly (readonly [Point, Point])[];
   readonly labels: readonly (readonly [Point, Point])[];
   readonly ticks: readonly (readonly [Tick, Tick])[];
@@ -161,43 +185,64 @@ export interface Morph {
  * `labelWidths` is how wide each moment's label text is drawn, by moment id. A label hangs
  * from its end in River and its middle in Subway; with the width both become where the text
  * starts.
+ *
+ * Null when the two layouts do not pair up: an edge, a face, a moment's box or a bead's slot
+ * in only one of them, a different number of year marks, or a label with no width. A label
+ * in `from` with none in `to` is not one of these: it stays where it is.
  */
 export function morphBetween(
   story: Story,
   from: LoomPlaced,
   to: LoomPlaced,
   labelWidths: ReadonlyMap<string, number>,
-): Morph {
-  const beads = story.moments.flatMap((g) =>
-    g.through
-      .filter((p) => p.vouched || p.away)
-      .map((p) => {
-        const key = slotKey(g.moment.id, p.slug);
-        return [from.slots.get(key)!, to.slots.get(key)!] as const;
-      })
-  );
+): Morph | null {
+  const threads = threadMorphs(from, to);
+  const faces = paired(from.roots, to.roots);
+  const boxes = paired(from.boxes, to.boxes);
+  if (threads === null || faces === null || boxes === null) return null;
+
+  const beads: Array<readonly [Point, Point]> = [];
+  for (const g of story.moments) {
+    for (const p of g.through) {
+      if (!p.vouched && !p.away) continue;
+      const key = slotKey(g.moment.id, p.slug);
+      const a = from.slots.get(key);
+      const b = to.slots.get(key);
+      if (a === undefined || b === undefined) return null;
+      beads.push([a, b]);
+    }
+  }
 
   const start = (label: PlacedLabel, width: number): Point => ({
     x: label.anchor === "end" ? label.x - width : label.x - width / 2,
     y: label.y,
   });
-  const labels = story.moments.flatMap((g) => {
+  const labels: Array<readonly [Point, Point]> = [];
+  for (const g of story.moments) {
     const id = g.moment.id;
     const here = from.labels.get(id);
-    if (here === undefined) return [];
-    const width = labelWidths.get(id)!;
+    if (here === undefined) continue;
+    const width = labelWidths.get(id);
+    if (width === undefined) return null;
     const twin = to.labels.get(id);
     const a = start(here, width);
-    return [[a, twin === undefined ? a : start(twin, width)] as const];
-  });
+    labels.push([a, twin === undefined ? a : start(twin, width)]);
+  }
 
   const marksFrom = yearMarks(from, story);
   const marksTo = yearMarks(to, story);
+  if (
+    marksFrom.ticks.length !== marksTo.ticks.length ||
+    marksFrom.labels.length !== marksTo.labels.length
+  ) {
+    return null;
+  }
 
   return {
-    from,
-    to,
-    threads: threadMorphs(from, to),
+    size: [{ x: from.width, y: from.height }, { x: to.width, y: to.height }],
+    threads,
+    faces,
+    boxes,
     beads,
     labels,
     ticks: marksFrom.ticks.map((tick, i) => [tick, marksTo.ticks[i]] as const),
@@ -224,25 +269,20 @@ export interface MorphFrame {
 
 /** `t` is 0 at `from` and 1 at `to`, already eased by the caller. */
 export function frameAt(morph: Morph, t: number): MorphFrame {
-  const { from, to } = morph;
   const between = ([a, b]: readonly [Point, Point]) => lerpPoint(a, b, t);
+  const size = between(morph.size);
   return {
-    width: lerp(from.width, to.width, t),
-    height: lerp(from.height, to.height, t),
+    width: size.x,
+    height: size.y,
     threads: new Map([...morph.threads].map(([slug, thread]) => [slug, threadPath(thread, t)])),
-    faces: new Map(
-      [...from.roots].map(([slug, at]) => [slug, lerpPoint(at, to.roots.get(slug)!, t)]),
-    ),
+    faces: new Map(morph.faces.map(([slug, a, b]) => [slug, lerpPoint(a, b, t)])),
     boxes: new Map(
-      [...from.boxes].map(([id, a]) => {
-        const b = to.boxes.get(id)!;
-        return [id, {
-          x: lerp(a.x, b.x, t),
-          y: lerp(a.y, b.y, t),
-          width: lerp(a.width, b.width, t),
-          height: lerp(a.height, b.height, t),
-        }];
-      }),
+      morph.boxes.map(([id, a, b]) => [id, {
+        x: lerp(a.x, b.x, t),
+        y: lerp(a.y, b.y, t),
+        width: lerp(a.width, b.width, t),
+        height: lerp(a.height, b.height, t),
+      }]),
     ),
     beads: morph.beads.map(between),
     labels: morph.labels.map(between),

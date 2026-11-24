@@ -1,13 +1,17 @@
 import { readFileSync } from "node:fs";
 import ELK from "./elk.bundled.js";
 import { parseData } from "../src/parse.ts";
+import type { Mode } from "../src/elk.ts";
 import { drawLoom } from "../src/loom-draw.ts";
 import { placeLoom } from "../src/loom-place.ts";
+import type { LoomPlaced } from "../src/loom-place.ts";
 import { buildStory } from "../src/story.ts";
+import type { Story } from "../src/story.ts";
 import { history } from "./histories.ts";
 import {
   explain,
   inspectDrawing,
+  inspectMorph,
   inspectPlacement,
   recorder,
   ribbonSpread,
@@ -72,6 +76,7 @@ for (const seed of [1, 2, 3]) {
 
 const loomFailures: string[] = [];
 for (const [name, raw, madeUp] of loomCases) {
+  const laidOut = new Map<Mode, { story: Story; placed: LoomPlaced }>();
   for (const mode of ["river", "subway"] as const) {
     // A throw is the engine's, and is reported as one so the rest still run.
     try {
@@ -96,12 +101,25 @@ for (const [name, raw, madeUp] of loomCases) {
       for (const finding of findings) {
         loomFailures.push(`loom ${name} ${mode}: ${explain(finding, madeUp)}`);
       }
+      laidOut.set(mode, { story, placed });
     } catch (error) {
       const message = `it threw: ${error instanceof Error ? error.message : String(error)}`;
       loomFailures.push(
         `loom ${name} ${mode}: ${explain({ kind: "engine", message }, madeUp)}`,
       );
     }
+  }
+  // The morph between the two layouts, both ways, when both were made.
+  const river = laidOut.get("river");
+  const subway = laidOut.get("subway");
+  if (river === undefined || subway === undefined) continue;
+  try {
+    for (const finding of inspectMorph(river.story, river.placed, subway.placed)) {
+      loomFailures.push(`loom ${name} morph: ${explain(finding, madeUp)}`);
+    }
+  } catch (error) {
+    const message = `it threw: ${error instanceof Error ? error.message : String(error)}`;
+    loomFailures.push(`loom ${name} morph: ${explain({ kind: "engine", message }, madeUp)}`);
   }
 }
 if (loomFailures.length > 0) {

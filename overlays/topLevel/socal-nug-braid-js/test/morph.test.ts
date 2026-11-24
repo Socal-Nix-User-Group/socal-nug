@@ -2,11 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { labelWidth } from "../src/elk.ts";
 import { drawLoom, yearMarks } from "../src/loom-draw.ts";
-import { placeLoom } from "../src/loom-place.ts";
+import { placeLoom, slotKey } from "../src/loom-place.ts";
 import type { LoomPlaced, Point } from "../src/loom-place.ts";
 import { ease, frameAt, morphBetween, scrollFor, sharesOf } from "../src/morph.ts";
+import type { Morph } from "../src/morph.ts";
 import { flow } from "../src/render.ts";
-import { recorder, sample } from "../smoke/inspect.ts";
+import { apart, recorder } from "../smoke/inspect.ts";
 import type { Recorded } from "../smoke/inspect.ts";
 import { fakeLoomLayout } from "./fake-loom-elk.ts";
 import { story } from "./story-fixture.ts";
@@ -19,8 +20,15 @@ const widths = new Map(
   story.moments.map((g) => [g.moment.id, labelWidth(river.labels.get(g.moment.id)?.text ?? "")]),
 );
 
-const there = morphBetween(story, river, subway, widths);
-const back = morphBetween(story, subway, river, widths);
+/** The morph, which the layouts given must pair up for. */
+function between(from: LoomPlaced, to: LoomPlaced, labelWidths = widths): Morph {
+  const morph = morphBetween(story, from, to, labelWidths);
+  assert.ok(morph !== null);
+  return morph;
+}
+
+const there = between(river, subway);
+const back = between(subway, river);
 
 function drawn(placed: LoomPlaced): Recorded[] {
   const { doc, made } = recorder();
@@ -32,65 +40,6 @@ const hasClass = (n: Recorded, token: string) =>
   (n.attrs.class ?? "").split(" ").includes(token);
 
 const pt = (x: number, y: number): Point => ({ x, y });
-
-/** Every point of a path's line, closely spaced, one list for each stretch. */
-function line(d: string): Array<Array<readonly [number, number]>> {
-  const stretches: Array<Array<readonly [number, number]>> = [];
-  let out: Array<readonly [number, number]> = [];
-  let cur: readonly [number, number] = [0, 0];
-  for (const part of d.match(/[MC][^MC]*/g) ?? []) {
-    const v = part.slice(1).trim().split(/[\s,]+/).map(Number);
-    if (part[0] === "M") {
-      cur = [v[0], v[1]];
-      out = [cur];
-      stretches.push(out);
-      continue;
-    }
-    for (let seg = 0; seg + 6 <= v.length; seg += 6) {
-      const [x1, y1, x2, y2, x3, y3] = v.slice(seg, seg + 6);
-      for (let i = 1; i <= 200; i += 1) {
-        const k = i / 200;
-        const u = 1 - k;
-        out.push([
-          u * u * u * cur[0] + 3 * u * u * k * x1 + 3 * u * k * k * x2 + k * k * k * x3,
-          u * u * u * cur[1] + 3 * u * u * k * y1 + 3 * u * k * k * y2 + k * k * k * y3,
-        ]);
-      }
-      cur = [x3, y3];
-    }
-  }
-  return stretches;
-}
-
-/** How far a point is from the segment between two others. */
-function toSegment(
-  [x, y]: readonly [number, number],
-  [ax, ay]: readonly [number, number],
-  [bx, by]: readonly [number, number],
-): number {
-  const dx = bx - ax;
-  const dy = by - ay;
-  const length = dx * dx + dy * dy;
-  const k = length === 0 ? 0 : Math.min(1, Math.max(0, ((x - ax) * dx + (y - ay) * dy) / length));
-  return Math.hypot(x - (ax + k * dx), y - (ay + k * dy));
-}
-
-/** The furthest any sampled point of one path is from the other's line, both ways. */
-function apart(a: string, b: string): number {
-  const off = (from: string, to: string) => {
-    const stretches = line(to);
-    return Math.max(
-      ...sample(from).map((p) => {
-        let best = Infinity;
-        for (const dense of stretches) {
-          for (let i = 1; i < dense.length; i += 1) best = Math.min(best, toSegment(p, dense[i - 1], dense[i]));
-        }
-        return best;
-      }),
-    );
-  };
-  return Math.max(off(a, b), off(b, a));
-}
 
 const moves = (d: string) => d.match(/M/g)?.length ?? 0;
 const cubics = (d: string) => (d.match(/[MC][^MC]*/g) ?? [])
@@ -176,7 +125,7 @@ test("an edge with two points in one mode and four in the other has as many curv
   const four = twin.points.slice(0, 4);
   const from: LoomPlaced = { ...river, edges: [{ ...edge, points: two }] };
   const to: LoomPlaced = { ...subway, edges: [{ ...twin, points: four }] };
-  const morph = morphBetween(story, from, to, widths);
+  const morph = between(from, to);
   const start = frameAt(morph, 0).threads.get("daniel")!;
   const end = frameAt(morph, 1).threads.get("daniel")!;
   assert.equal(cubics(start), 3);
@@ -255,4 +204,97 @@ test("year marks are the lines and labels drawLoom draws, in both modes", () => 
       marks.ticks.map((t) => `M${t.x1},${t.y1} L${t.x2},${t.y2}`),
     );
   }
+});
+
+const half = (a: number, b: number) => (a + b) / 2;
+const halfPoint = (a: Point, b: Point) => pt(half(a.x, b.x), half(a.y, b.y));
+const labelled = story.moments.flatMap((g) => (river.labels.has(g.moment.id) ? [g.moment.id] : []));
+
+test("at 1 each label's text starts where the layout arrived at puts it", () => {
+  for (const [morph, to] of [[there, subway], [back, river]] as const) {
+    assert.deepEqual(
+      frameAt(morph, 1).labels,
+      labelled.map((id) => {
+        const label = to.labels.get(id)!;
+        const width = widths.get(id)!;
+        return pt(label.anchor === "end" ? label.x - width : label.x - width / 2, label.y);
+      }),
+      to.mode,
+    );
+  }
+  // and a label that moves at all, so the ends being right is not an accident
+  const end = frameAt(there, 1).labels;
+  assert.ok(frameAt(there, 0).labels.every((p, i) => p.x !== end[i].x));
+});
+
+test("half way, everything is exactly half way between the two layouts", () => {
+  const start = frameAt(there, 0);
+  const end = frameAt(there, 1);
+  const middle = frameAt(there, 0.5);
+  assert.equal(middle.width, half(river.width, subway.width));
+  assert.equal(middle.height, half(river.height, subway.height));
+  assert.deepEqual(
+    [...middle.faces],
+    [...river.roots].map(([slug, a]) => [slug, halfPoint(a, subway.roots.get(slug)!)]),
+  );
+  assert.deepEqual(
+    [...middle.boxes],
+    [...river.boxes].map(([id, a]) => {
+      const b = subway.boxes.get(id)!;
+      return [id, {
+        x: half(a.x, b.x),
+        y: half(a.y, b.y),
+        width: half(a.width, b.width),
+        height: half(a.height, b.height),
+      }];
+    }),
+  );
+  // the boxes change shape on the way, from wide to tall
+  assert.notEqual(river.boxes.get("founded")!.width, subway.boxes.get("founded")!.width);
+  assert.deepEqual(middle.beads, start.beads.map((a, i) => halfPoint(a, end.beads[i])));
+  assert.deepEqual(middle.labels, start.labels.map((a, i) => halfPoint(a, end.labels[i])));
+  assert.deepEqual(middle.years, start.years.map((a, i) => halfPoint(a, end.years[i])));
+  assert.deepEqual(
+    middle.ticks,
+    start.ticks.map((a, i) => {
+      const b = end.ticks[i];
+      return { x1: half(a.x1, b.x1), y1: half(a.y1, b.y1), x2: half(a.x2, b.x2), y2: half(a.y2, b.y2) };
+    }),
+  );
+});
+
+test("a label with no twin in the layout arrived at stays where it is, and the rest still move", () => {
+  const unlabelled: LoomPlaced = {
+    ...subway,
+    labels: new Map([...subway.labels].filter(([id]) => id !== "founded")),
+  };
+  const morph = between(river, unlabelled);
+  const i = labelled.indexOf("founded");
+  assert.ok(i >= 0);
+  const kept = frameAt(there, 0).labels[i];
+  for (const t of [0, 0.5, 1]) assert.deepEqual(frameAt(morph, t).labels[i], kept, `at ${t}`);
+  assert.deepEqual(
+    frameAt(morph, 1).labels.filter((_, k) => k !== i),
+    frameAt(there, 1).labels.filter((_, k) => k !== i),
+  );
+});
+
+test("layouts that do not pair up are not morphed", () => {
+  const without = <T>(map: ReadonlyMap<string, T>, key: string) =>
+    new Map([...map].filter(([k]) => k !== key));
+  const noEdge: LoomPlaced = { ...river, edges: river.edges.filter((e) => !(e.meta.slug === "rob" && e.from === "nug1")) };
+  assert.equal(noEdge.edges.length, river.edges.length - 1);
+  const noFace: LoomPlaced = { ...subway, roots: without(subway.roots, "rob") };
+  const noBox: LoomPlaced = { ...subway, boxes: without(subway.boxes, "camp") };
+  const noSlot: LoomPlaced = { ...subway, slots: without(subway.slots, slotKey("founded", "rob")) };
+  for (const [what, one, other] of [
+    ["an edge", noEdge, subway],
+    ["a face", noFace, river],
+    ["a box", noBox, river],
+    ["a bead's slot", noSlot, river],
+  ] as const) {
+    assert.equal(morphBetween(story, one, other, widths), null, `${what} missing from the layout left`);
+    assert.equal(morphBetween(story, other, one, widths), null, `${what} missing from the layout arrived at`);
+  }
+  assert.equal(morphBetween(story, river, subway, without(widths, "founded")), null, "a label with no width");
 });

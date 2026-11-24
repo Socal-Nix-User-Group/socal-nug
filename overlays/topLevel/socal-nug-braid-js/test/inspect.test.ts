@@ -7,7 +7,15 @@ import { placeLoom, slotKey } from "../src/loom-place.ts";
 import type { Box, LoomPlaced, PlacedLabel, Point } from "../src/loom-place.ts";
 import { buildStory } from "../src/story.ts";
 import type { Story } from "../src/story.ts";
-import { explain, inspectDrawing, inspectPlacement, recorder, ribbonSpread } from "../smoke/inspect.ts";
+import {
+  apart,
+  explain,
+  inspectDrawing,
+  inspectMorph,
+  inspectPlacement,
+  recorder,
+  ribbonSpread,
+} from "../smoke/inspect.ts";
 import type { Recorded } from "../smoke/inspect.ts";
 import { fakeLoomLayout } from "./fake-loom-elk.ts";
 import { at, PEOPLE, story } from "./story-fixture.ts";
@@ -648,6 +656,56 @@ test("explain ends a layout finding with the words for an author and an engine f
   );
   const engine = explain({ kind: "engine", message: "mica has no bead" });
   assert.ok(engine.endsWith("This is a bug in the engine, not in the data."));
+});
+
+// --- the morph ---------------------------------------------------------------
+
+const subwayFake = await placeLoom(story, "subway", fakeLoomLayout);
+
+test("apart is how far one path strays from the other's line, and a path's line does not cross its gaps", () => {
+  const one = "M0,0 C0,50 100,50 100,100";
+  // the same curve cut at its middle
+  const two = "M0,0 C0,25 25,37.5 50,50 C75,62.5 100,75 100,100";
+  assert.ok(apart(one, two) < 0.05);
+  assert.ok(Math.abs(apart(one, "M1,0 C1,50 101,50 101,100") - 1) < 0.05);
+  // the same two ends with nothing drawn between them is not the same line
+  const gapped = "M0,0 C0,0 0,0 0,0 M100,100 C100,100 100,100 100,100";
+  assert.ok(apart(gapped, one) > 10);
+});
+
+test("a morph between two clean layouts of the fixture has no findings, whole or centred in a wider box", async () => {
+  assert.deepEqual(inspectMorph(story, fake, subwayFake), []);
+  const centred = await placeLoom(story, "river", fakeLoomLayout, 777.333);
+  assert.deepEqual(inspectMorph(story, centred, subwayFake), []);
+});
+
+test("layouts that do not pair up are an engine finding each way", () => {
+  const cut = { ...fake, edges: fake.edges.filter((e) => !(e.meta.slug === "rob" && e.from === "nug1")) };
+  const found = inspectMorph(story, cut, subwayFake);
+  assert.equal(found.length, 2, JSON.stringify(found));
+  assert.ok(found.every((f) => f.kind === "engine" && f.message.includes("could not pair")));
+  assert.ok(found[0].message.includes("from River to Subway"));
+  assert.ok(found[1].message.includes("from Subway to River"));
+});
+
+test("a thread broken in one layout and whole in the other is an engine finding about its stretches", () => {
+  // Rob's edge out of nug1 starts half a unit off where his edge into it ends,
+  // in River only, so River draws a break there and Subway does not.
+  const moved = {
+    ...fake,
+    edges: fake.edges.map((e) =>
+      e.meta.slug === "rob" && e.from === "nug1"
+        ? { ...e, points: [{ x: e.points[0].x + 0.5, y: e.points[0].y }, ...e.points.slice(1)] }
+        : e
+    ),
+  };
+  const found = inspectMorph(story, moved, subwayFake);
+  assert.ok(found.length > 0);
+  assert.ok(found.every((f) => f.kind === "engine"), JSON.stringify(found));
+  assert.ok(found.some((f) => f.message.startsWith("rob's thread is in 3 stretches")), JSON.stringify(found));
+  assert.ok(
+    explain(found[0], true).endsWith("This is a bug in the engine, not in the data."),
+  );
 });
 
 test("explain says a layout finding on a made-up history can only come from a change to the engine", () => {
