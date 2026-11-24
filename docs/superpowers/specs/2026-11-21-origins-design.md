@@ -628,7 +628,7 @@ page is a wall to anyone tabbing past, which is the reason for the roving patter
 focusable moments.
 
 A meetup's label gives its title, its date and how many are in the group by then, for example
-"NUG #6, 1 June 2024, 10 in the group". Another moment's says how many people it names. Labels say
+"NUG #6, 1 June 2024, 9 in the group". Another moment's says how many people it names. Labels say
 how many, not who: eight names read out on every arrow press is a wall of its own, and the card
 names them for anyone who opens it. A face's label is the person's name and "member" or "guest".
 Beads have no role and are not tab stops.
@@ -828,16 +828,17 @@ a present concern.
   neither. Jared Baur and Mica have a quote and no description, which rather shows up the gap.
   Rob Hernandez's and Jared Baur's "First contact" have no blurb, though Daniel Baker's has one,
   and several conference and camp moments have none.
-- **Eight `CONFIRM` markers** in `data/moments.toml`: two dates given as approximations, two
-  meetups guessed at, "I think everyone was there" on the three SCaLE moments, and "I believe
-  David and I were at every single NUG event" over the attendance records.
+- **Seven `CONFIRM` markers** in `data/moments.toml`: two dates given as approximations, one
+  meetup guessed at (Connor Baker's first, below), "I think everyone was there" on the three
+  SCaLE moments, and "I believe David and I were at every single NUG event" over the attendance
+  records.
 - **Who was at each meetup** is recorded whole, everyone in the group either there or away, for
   the seven meetups Daniel checked against pictures: NUG #1, #2, #3, #4, #6, the June 2025 Mini
   NUG and NUG #17. For the other twelve up to NUG #17 only Daniel Baker and David Nuon are
   recorded, and nothing is said about anyone else.
-- **Connor Baker and Morgan Jones at NUG #6.** Both are recorded as joining there, as guesses,
-  and neither is in the pictures of it. Nobody can be recorded away from the meetup they joined
-  at, so they are neither there nor away at NUG #6 until it is known when each first came.
+- **Connor Baker's first meetup** is recorded as NUG #7, as a guess. He was first thought to
+  have joined at NUG #6 and is not in the pictures of it; Daniel thinks he may have come to
+  NUG #7 first.
 - **The README** names the Origins checks and the browser tool, but still says nothing about
   esbuild, the committed bundle at `static/js/braid.js` and how to rebuild it, the vendored ELK,
   or that `zola serve` does not watch `data/`, which has twice made a change look like it had

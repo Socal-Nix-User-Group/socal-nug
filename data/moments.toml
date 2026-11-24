@@ -129,14 +129,17 @@ id = "kyle-joins"
 event = "2023-09-19"
 people = ["kyle-risse"]
 
+# Connor is not in the pictures of NUG #6, where he was first thought to
+# have joined.
 [[moment]]
 id = "connor-joins"
-event = "2024-06-01" # CONFIRM: "I think it was NUG #6"
+event = "2024-08-01" # CONFIRM: "may have been at NUG #7 first"
 people = ["connor-baker"]
 
+# Daniel is sure Morgan was at NUG #6, the first meetup after the two met.
 [[moment]]
 id = "morgan-joins"
-event = "2024-06-01" # CONFIRM: "probably NUG #6"
+event = "2024-06-01"
 people = ["morgan-jones"]
 
 [[moment]]
@@ -339,10 +342,6 @@ id = "nug-5-attendance"
 event = "2024-04-13"
 there = ["daniel-baker", "david-nuon"]
 
-# Connor Baker and Morgan Jones are recorded as joining at this meetup, both
-# as guesses (see their join records), and neither is in the pictures of it.
-# Nobody can be away from the meetup they joined at, so they are on neither
-# list here until it is known when each first came.
 [[moment]]
 id = "nug-6-attendance"
 event = "2024-06-01"
@@ -353,6 +352,7 @@ there = [
   "rob-hernandez",
   "mica",
   "kyle-risse",
+  "morgan-jones",
 ]
 away = ["jared-baur", "samuel-raumin"]
 
