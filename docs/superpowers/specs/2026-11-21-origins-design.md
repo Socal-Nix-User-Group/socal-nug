@@ -856,6 +856,19 @@ Also decided by Daniel: a recorded absence is shown only by the thread going aro
 and is listed nowhere; the legend is hidden from assistive technology; a phone-sized screen is not
 a present concern.
 
+Seating among people who joined at the same meetup stays with the rule, first moment and then
+slug, also by Daniel's decision. It is the one free choice in slot order: the rest follows from
+who joined when. On 2026-11-23 there were three such ties (Rob Hernandez, Daniel Baker and David
+Nuon; Jared Baur and Samuel Raumin; Kyle Risse and Tristan Ross), so twenty-four seatings, and
+all were laid out through the real engine and their thread crossings counted: 140 as it stands,
+126 at best, 143 at worst, the same in both modes. Putting David left of Daniel alone gives 133.
+The effects do not add up, because ELK chooses again which side each side moment and each detour
+goes, and most crossings come from people going around meetups they were away from, which no
+seating removes. Setting the seating by hand in the data was turned down: the best one changes
+with every person and every attendance record added, so it would not stay the best. Choosing it
+automatically means a layout for each candidate, which is too slow at page load and would only
+be reasonable if layout moved to build time.
+
 ## Still open
 
 - **The card.** The treatment was called out early as generic and never revisited beyond
@@ -880,17 +893,6 @@ a present concern.
   esbuild, the committed bundle at `static/js/braid.js` and how to rebuild it, the vendored ELK,
   or that `zola serve` does not watch `data/`, which has twice made a change look like it had
   not landed.
-- **Seating among people who joined at the same meetup.** Slot order breaks that tie by first
-  moment and then by slug, which nobody chose for how it looks. It is the one free choice in the
-  order: the rest follows from who joined when. There are three such ties today (Rob Hernandez,
-  Daniel Baker and David Nuon; Jared Baur and Samuel Raumin; Kyle Risse and Tristan Ross), so
-  twenty-four possible seatings, and they were all laid out through the real engine and their
-  thread crossings counted: 140 as it stands, between 126 and 143 across the twenty-four, the
-  same in both modes. Daniel's suggestion, David left of Daniel, gives 133. The fewest, 126,
-  leaves the founders as they are and swaps the other two pairs. The effects do not add up,
-  because ELK chooses again which side each side moment and each detour goes; and most crossings
-  come from people going around meetups they were away from, which no seating removes. Whether
-  to make the tie something the data decides, and which seating to pick, is undecided.
 - **Zoom and grab beyond what was tried.** The browser check drives them in headless Chromium.
   They were also driven once in headless Firefox 159 through geckodriver, by a script that is
   not in the repository: a drag from empty map, from a face and from a moment, a card kept open
