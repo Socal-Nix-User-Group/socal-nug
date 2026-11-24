@@ -16,14 +16,29 @@
   {{ page.content | safe }}
 </div>
 
-{#- Hidden until the script reveals it, like the theme switcher, so a reader
-    with no JavaScript is not shown a control that does nothing. -#}
-<div id="origins-toggle" class="origins-toggle buttons has-addons is-hidden"
-     role="group" aria-label="Braid layout">
-  <button class="button is-small" type="button" data-origins-mode="river"
-          aria-pressed="true">River</button>
-  <button class="button is-small" type="button" data-origins-mode="subway"
-          aria-pressed="false">Subway</button>
+{#- Hidden until the script reveals them, like the theme switcher, so a reader
+    with no JavaScript is not shown controls that do nothing. The zoom is
+    also on Ctrl and the wheel, and a pinch; these buttons are the way to it
+    for a keyboard, a finger, and anyone who has not found that. -#}
+<div class="origins-controls">
+  <div id="origins-toggle" class="origins-toggle buttons has-addons is-hidden"
+       role="group" aria-label="Braid layout">
+    <button class="button is-small" type="button" data-origins-mode="river"
+            aria-pressed="true">River</button>
+    <button class="button is-small" type="button" data-origins-mode="subway"
+            aria-pressed="false">Subway</button>
+  </div>
+  <div id="origins-zoom" class="origins-zoom buttons has-addons is-hidden"
+       role="group" aria-label="Map zoom">
+    <button class="button is-small" type="button" data-origins-zoom="out"
+            aria-label="Zoom out">&minus;</button>
+    <button class="button is-small" type="button" data-origins-zoom="in"
+            aria-label="Zoom in">+</button>
+    <button class="button is-small" type="button" data-origins-zoom="fit"
+            aria-label="Fit the whole map">Fit</button>
+    <button class="button is-small" type="button" data-origins-zoom="reset"
+            aria-label="Zoom to 100%">100%</button>
+  </div>
 </div>
 
 {#- What a thread through a meetup says, since a thread with no bead reads

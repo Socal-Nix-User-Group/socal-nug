@@ -527,9 +527,10 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   existing theme switcher pattern in `partials/base.navigation.html`. The selected button is
   marked with the same Bulma classes the theme switcher uses, and with `aria-pressed`.
 - River is the default at every width.
-- The toggle and the legend are hidden until the first picture is drawn, so a reader whose layout
-  engine never arrived is not offered a control that does nothing or a key to marks that are not
-  there. Once shown, the toggle stays visible at all widths.
+- The toggle, the zoom and the legend are hidden until the first picture is drawn, so a reader
+  whose layout engine never arrived is not offered a control that does nothing or a key to marks
+  that are not there. Once shown, the toggle and the zoom stay visible at all widths, on one line
+  that wraps on a narrow screen.
 - The legend is one line under the toggle with four marks drawn small, each labelled with a Nix
   word, by Daniel's choice: a thread with a bead is "cache hit" (the record says they were
   there); a thread with the ringed join bead is "first build" (they joined here); a bare thread
@@ -547,7 +548,28 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
 - The map is a box of its own, at most 85% of the viewport tall, that scrolls both ways. Subway's
   canvas is wider than the page, and River's can be; on touch that is native momentum panning with
   no JavaScript. Scrolling down chains to the page at the map's end, and sideways does not tip over
-  into the browser's back gesture. How Subway signals that it pans on desktop is still open.
+  into the browser's back gesture.
+- A mouse can take hold of the map and move it: press anywhere on it but an open card, drag, and
+  the box scrolls with the pointer. The cursor is an open hand over the map and a closed one while
+  it is held, which is also what tells a desktop reader that Subway pans. A press that moves less
+  than 4px is still a click; one that moves further is a drag, and the click it ends with opens
+  nothing and closes nothing, so a drag may start on a moment or a face and an open card rides
+  along with the map. Nothing in the map can be selected, so a drag does not paint a selection
+  across its labels; a card's text still can be. A finger is left to the box's native panning.
+- The map zooms from a tenth of the size it was drawn at to three times it. Four buttons beside
+  the toggle: out and in, a quarter at a time; Fit, which shows the whole map with nothing left to
+  scroll to (never larger than drawn); and 100%. Holding Ctrl and turning the wheel zooms too,
+  which is also how a pinch on a trackpad arrives; the plain wheel still scrolls the map and then
+  the page, which is why it was not given the zoom. The buttons hold the middle of the box still
+  and the wheel holds whatever is under the pointer. A button that would do nothing at the
+  present zoom is dimmed and marked `aria-disabled`, not disabled, so it keeps the focus a
+  keyboard put on it.
+- Zooming resizes the picture inside its scrolling box and leaves the layout alone: nothing is
+  laid out or drawn again, the wheel, a finger and the scrollbars go on working at any zoom, and
+  text stays sharp because the picture is an SVG. Narrower than the box, the picture sits in the
+  middle of it. A box whose picture is shorter than its ceiling is as short as the picture, so
+  zooming out can shrink the box and bring up what is under it. The zoom is kept across a change
+  of mode and a resize, and is not remembered between visits.
 - River puts the roster in a column beside the map; Subway, and any viewport narrower than 1024px,
   puts it underneath as a grid.
 - Switching modes redraws the picture and nothing animates. The slide between modes went with
@@ -567,7 +589,8 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   the map on screen so it never opens somewhere the reader has to scroll to find, and it pans with
   the map once open. A moment keeps a changed outline while its card is open.
 - The popup closes on its X, on Escape, and on any click that is not inside it. A click on
-  another face or moment swaps the card rather than closing it first.
+  another face or moment swaps the card rather than closing it first. Zooming closes it, because
+  what it was placed beside has moved; dragging the map does not.
 - The roster lists everyone as the same person cards, without the X, in thread order: the order
   of the profiles in the About section (sorted by `weight`), as the template writes them into the
   data block, leaving out anyone with no moment. Thread order is also the palette's order. It is
@@ -576,6 +599,11 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
 - Hovering a face lights that person: their thread is drawn thicker, their face's ring too, and
   their roster card is tinted. Hovering or focusing a roster card does the same. Hovering a moment
   lights everyone through it. A touch does not light anything; a tap opens the card.
+- While anyone is lit, everyone who is not steps back: their thread, their beads and their face
+  are drawn at a quarter strength, in the picture only. Moments and labels are not dimmed, since
+  a moment belongs to everyone through it, and neither is the roster, which is a list being read
+  and whose tinted card already says who. Hovering a meetup therefore dims only the people
+  recorded away from it and those who had not joined yet.
 - A person's card carries avatar, name, alias (linking to their profile), quote, description,
   membership badge and where they joined, as "Joined at" with that meetup's title and date.
 - A moment's card carries title, date, photo, blurb, and the event page or outside links. Any
@@ -633,6 +661,10 @@ how many, not who: eight names read out on every arrow press is a wall of its ow
 names them for anyone who opens it. A face's label is the person's name and "member" or "guest".
 Beads have no role and are not tab stops.
 
+The zoom is four real buttons in a named group, each with a label saying what it does, so it
+needs no pointer. Taking hold of the map is a mouse's convenience and has no keyboard form: the
+arrow keys already bring each moment into view as the cursor reaches it.
+
 The legend is hidden from assistive technology (`aria-hidden`), by Daniel's decision. A recorded
 absence is not in any card or label; it is shown only by the thread going around the meetup, also
 by Daniel's decision.
@@ -675,8 +707,9 @@ In `checks/default.nix`:
   half (order, joins, who is through each moment, slots, who is passing, what the record vouches
   for), the graph handed to ELK (sizes, ports at slots, edges port to port, no edge into a meetup
   someone is away from, pass-throughs, the spine), the mapping of its output into positions, the
-  drawing from those, cards, keyboard order, the toggle, popup placement, the made-up histories
-  and the smoke check's own measures. None of it runs ELK; the placement tests use a fake shaped
+  drawing from those, cards, keyboard order, the toggle, the zoom's arithmetic (a button's step,
+  what a wheel event counts for, the zoom that fits, the limits), popup placement, the made-up
+  histories and the smoke check's own measures. None of it runs ELK; the placement tests use a fake shaped
   like a layout.
 
 - `braid-types`: `tsc --strict` over `src/`, `test/`, `smoke/` and `browser/`. esbuild strips
@@ -718,8 +751,10 @@ In `checks/default.nix`:
 - `test-site` checks the built page: its data block parses and carries the history, the meetups
   come from the events section and carry `there` and `away` lists, a record's attendance reaches
   its meetup through the template's merge, the fallback list is absent, and the bundle, the
-  vendored layout engine (before the bundle), the toggle and the roster are in place. It also
-  proves the About filter with a guest probe.
+  vendored layout engine (before the bundle), the toggle, the zoom's four labelled buttons and
+  the roster are in place. It reads the stylesheet for the rules behind the legend's tooltip,
+  the hand over the map, and the dimming of whoever is not lit. It also proves the About filter
+  with a guest probe.
 
 - `braid-smoke`: builds the story from the built site's own data block, which is the repository's
   `data/moments.toml` and `content/events/` through the template's merge, not from fixtures. It
@@ -759,8 +794,10 @@ In `checks/default.nix`:
 
 **On demand, not a check:** `nix run .#socal-nug-braid-browser` loads the page in headless
 Chromium and behaves like a visitor: it wheels past the map, drags a finger through it on a
-phone-sized screen, clicks and tabs into cards, hovers moments, switches modes, blocks the layout
-engine, and asks for the dark theme. Twenty-five checks, each named for what a visitor would
+phone-sized screen, clicks and tabs into cards, hovers moments, switches modes, zooms with the
+buttons and with Ctrl and the wheel, takes hold of the map with a pressed mouse and drags it,
+blocks the layout engine, and asks for the dark theme. Thirty-nine checks, each named for what a
+visitor would
 notice and none naming a moment or a person, so the data can change under it. It needs the
 network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
 and is typechecked by `braid-types`, which is what stops it rotting between uses.
@@ -843,7 +880,24 @@ a present concern.
   esbuild, the committed bundle at `static/js/braid.js` and how to rebuild it, the vendored ELK,
   or that `zola serve` does not watch `data/`, which has twice made a change look like it had
   not landed.
-- **How Subway signals it pans** on desktop, where there is no touch affordance.
+- **Seating among people who joined at the same meetup.** Slot order breaks that tie by first
+  moment and then by slug, which nobody chose for how it looks. It is the one free choice in the
+  order: the rest follows from who joined when. There are three such ties today (Rob Hernandez,
+  Daniel Baker and David Nuon; Jared Baur and Samuel Raumin; Kyle Risse and Tristan Ross), so
+  twenty-four possible seatings, and they were all laid out through the real engine and their
+  thread crossings counted: 140 as it stands, between 126 and 143 across the twenty-four, the
+  same in both modes. Daniel's suggestion, David left of Daniel, gives 133. The fewest, 126,
+  leaves the founders as they are and swaps the other two pairs. The effects do not add up,
+  because ELK chooses again which side each side moment and each detour goes; and most crossings
+  come from people going around meetups they were away from, which no seating removes. Whether
+  to make the tie something the data decides, and which seating to pick, is undecided.
+- **Zoom and grab beyond what was tried.** The browser check drives them in headless Chromium.
+  They were also driven once in headless Firefox 159 through geckodriver, by a script that is
+  not in the repository: a drag from empty map, from a face and from a moment, a card kept open
+  through a drag let go inside and outside the box, Ctrl and the wheel, Fit, and the dimming all
+  behaved as described. A mouse wheel that reports lines rather than pixels is covered by a unit
+  test of the arithmetic and by no browser. A pinch in Safari arrives as gesture events, not as
+  Ctrl and the wheel, and is not handled.
 - **An id rule in the validator.** Nothing stops a `|` in a moment id, or a person slugged
   `spine`, and either would break placement: port ids are split on `|`, and the spine's edges
   are named `spine:<n>`, as a person's edges are named `<slug>:<n>`.
@@ -881,6 +935,11 @@ a present concern.
 - With JavaScript disabled the page shows no picture, by the trade recorded under Accessibility.
 - The picture is reachable and operable by keyboard alone: one Tab into it, arrows through the
   story, Enter to open a card, Escape to close, focus back where it started.
+- Hovering a face leaves that person at full strength and everyone else's thread, beads and face
+  faint; moving the pointer away brings them back.
+- The map can be dragged with a pressed mouse in both modes, and a click on a moment still opens
+  its card. `+`, `-`, Fit and 100% do what they say, and Ctrl with the wheel zooms about the
+  pointer while the plain wheel still scrolls.
 - Adding a new profile with `member = true` and a moment referencing it makes a new thread appear
   with no other edit.
 - A moment that is not a meetup, dated after the group began, draws the threads of the people it

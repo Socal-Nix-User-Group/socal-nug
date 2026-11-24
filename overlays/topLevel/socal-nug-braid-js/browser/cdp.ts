@@ -36,7 +36,10 @@ export interface Tab {
   move(x: number, y: number): Promise<void>;
   click(x: number, y: number): Promise<void>;
   key(name: "Tab" | "Enter" | "Escape" | "ArrowDown"): Promise<void>;
-  wheel(x: number, y: number, deltaY: number): Promise<void>;
+  /** With `ctrl`, the wheel a pinch on a trackpad sends. */
+  wheel(x: number, y: number, deltaY: number, ctrl?: boolean): Promise<void>;
+  /** A mouse pressed in one place, moved, and let go in another. */
+  pull(fromX: number, fromY: number, toX: number, toY: number): Promise<void>;
   /** A finger put down and lifted in one place. */
   tap(x: number, y: number): Promise<void>;
   /** A finger dragged from one height to another. */
@@ -218,8 +221,29 @@ async function attach(url: string): Promise<Tab> {
       await send("Input.dispatchKeyEvent", { type: "keyDown", ...key });
       await send("Input.dispatchKeyEvent", { type: "keyUp", ...key });
     },
-    async wheel(x: number, y: number, deltaY: number): Promise<void> {
-      await mouse("mouseWheel", x, y, { deltaX: 0, deltaY });
+    async wheel(x: number, y: number, deltaY: number, ctrl = false): Promise<void> {
+      // 2 is Ctrl in the protocol's modifier bits
+      await mouse("mouseWheel", x, y, {
+        deltaX: 0,
+        deltaY,
+        modifiers: ctrl ? 2 : 0,
+      });
+    },
+    async pull(fromX, fromY, toX, toY): Promise<void> {
+      const held = { button: "left", buttons: 1 };
+      const steps = 8;
+      await mouse("mouseMoved", fromX, fromY);
+      await mouse("mousePressed", fromX, fromY, { ...held, clickCount: 1 });
+      for (let i = 1; i <= steps; i += 1) {
+        await mouse(
+          "mouseMoved",
+          fromX + ((toX - fromX) * i) / steps,
+          fromY + ((toY - fromY) * i) / steps,
+          held,
+        );
+        await sleep(16);
+      }
+      await mouse("mouseReleased", toX, toY, { button: "left", clickCount: 1 });
     },
     async tap(x: number, y: number): Promise<void> {
       await touch("touchStart", [{ x, y }]);

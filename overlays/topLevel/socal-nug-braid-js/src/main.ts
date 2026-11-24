@@ -10,6 +10,7 @@ import type { DocumentLike, ElementLike } from "./render.ts";
 import { buildStory } from "./story.ts";
 import { readMode, writeMode } from "./toggle.ts";
 import type { StorageLike } from "./toggle.ts";
+import { fitZoom, stepZoom, wheelZoom, ZOOM_MAX, ZOOM_MIN } from "./zoom.ts";
 
 /**
  * Entry point for the Origins braid.
@@ -23,8 +24,8 @@ import type { StorageLike } from "./toggle.ts";
 interface PageElement extends ElementLike {
   readonly clientWidth: number;
   readonly clientHeight: number;
-  readonly scrollLeft: number;
-  readonly scrollTop: number;
+  scrollLeft: number;
+  scrollTop: number;
   readonly offsetWidth: number;
   readonly offsetHeight: number;
   hidden: boolean;
@@ -35,7 +36,17 @@ interface PageElement extends ElementLike {
   };
   readonly dataset: Record<string, string | undefined>;
   replaceChildren(...nodes: ElementLike[]): void;
-  addEventListener(type: string, listener: (event: DomEvent) => void): void;
+  addEventListener(
+    type: "pointerdown" | "pointermove" | "pointerup" | "pointercancel" | "wheel",
+    listener: (event: PointerInput) => void,
+    options?: { passive: boolean },
+  ): void;
+  addEventListener(
+    type: string,
+    listener: (event: DomEvent) => void,
+    capture?: boolean,
+  ): void;
+  setPointerCapture(pointer: number): void;
   querySelectorAll(selector: string): ArrayLike<PageElement> & Iterable<
     PageElement
   >;
@@ -56,7 +67,24 @@ interface DomEvent {
   readonly key?: string;
   /** "mouse", "pen" or "touch", on pointer events. */
   readonly pointerType?: string;
+  /** How many clicks this is. 0 for one made by the keyboard. */
+  readonly detail?: number;
   preventDefault(): void;
+  stopPropagation(): void;
+}
+
+/** What a pointer or a wheel says about where it is and what is held. */
+interface PointerInput extends DomEvent {
+  readonly clientX: number;
+  readonly clientY: number;
+  readonly pointerId: number;
+  /** The button that changed: 0 is the primary one. */
+  readonly button: number;
+  /** Every button now held, as bits: 1 is the primary one. */
+  readonly buttons: number;
+  readonly ctrlKey: boolean;
+  readonly deltaY: number;
+  readonly deltaMode: number;
 }
 
 declare const document: DocumentLike & {
@@ -75,6 +103,9 @@ declare const window: {
   clearTimeout(handle: number): void;
 } | undefined;
 declare const console: { error(...args: unknown[]): void };
+declare function getComputedStyle(element: ElementLike): {
+  readonly maxHeight: string;
+};
 
 /** The Eclipse Layout Kernel, which the page loads as a classic script. */
 declare const ELK: new () => {
@@ -83,6 +114,9 @@ declare const ELK: new () => {
 
 /** How long a window drag has to stop before the picture is redrawn. */
 const RESIZE_SETTLE_MS = 150;
+
+/** How far a pressed mouse has to travel before it is a drag and not a click. */
+const GRAB_SLOP = 4;
 
 function storage(): StorageLike | null {
   try {
@@ -134,6 +168,10 @@ function boot(): void {
    */
   const laidOut = new Map<Mode, LoomPlaced>();
   let shownAt = 0;
+  /** How far the map is zoomed. 1 is the size the layout drew it at. */
+  let zoom = 1;
+  /** The canvas as it was drawn, before any zoom. */
+  let canvas = { width: 0, height: 0 };
 
   // The one card, opened beside whatever was clicked. It lives inside the
   // scrolling map so it pans with it, and is put back after every redraw
@@ -168,7 +206,9 @@ function boot(): void {
 
     shownAt = mount!.clientWidth;
     const placed = centreLoomIn(bare, shownAt);
+    canvas = { width: placed.width, height: placed.height };
     mount!.replaceChildren(drawLoom(placed, story, document), popup);
+    sizeMap();
 
     // The old nodes went with replaceChildren, so the card has nothing left to
     // point at.
@@ -429,6 +469,171 @@ function boot(): void {
     }
   }
 
+  // --- zoom ---------------------------------------------------------------------
+  // The map zooms by resizing the picture inside its scrolling box, not by
+  // moving a camera over it, so the wheel, a finger and the scrollbars all go
+  // on working at any zoom, and a card still opens beside what was clicked.
+
+  const picture = (): PageElement | undefined =>
+    mount!.querySelectorAll(".origins-svg")[0];
+
+  function sizeMap(): void {
+    picture()?.setAttribute(
+      "style",
+      `width:${canvas.width * zoom}px;height:${canvas.height * zoom}px`,
+    );
+  }
+
+  const zoomButtons = document.getElementById("origins-zoom");
+
+  /** Mark the buttons that would do nothing at this zoom. */
+  function showZoom(): void {
+    if (zoomButtons === null) return;
+    for (const button of zoomButtons.querySelectorAll("[data-origins-zoom]")) {
+      const does = button.dataset.originsZoom;
+      // Not `disabled`: a button that disables itself under the keyboard
+      // drops the focus that was on it.
+      button.setAttribute(
+        "aria-disabled",
+        String(
+          (does === "in" && zoom === ZOOM_MAX) ||
+            (does === "out" && zoom === ZOOM_MIN) ||
+            (does === "reset" && zoom === 1),
+        ),
+      );
+    }
+  }
+
+  /**
+   * Zoom to `next`, holding still whatever is at `still`, a point on screen:
+   * the pointer for a wheel, the middle of the box for a button.
+   */
+  function zoomTo(next: number, still?: { x: number; y: number }): void {
+    const svg = picture();
+    if (svg === undefined || next === zoom) return;
+    const box = mount!.getBoundingClientRect();
+    const at = still ?? {
+      x: box.left + mount!.clientWidth / 2,
+      y: box.top + mount!.clientHeight / 2,
+    };
+    // Where that point is on the picture, as a fraction of it, and where the
+    // same fraction of the resized picture has landed.
+    const before = svg.getBoundingClientRect();
+    const across = (at.x - before.left) / before.width;
+    const down = (at.y - before.top) / before.height;
+    zoom = next;
+    sizeMap();
+    const after = svg.getBoundingClientRect();
+    mount!.scrollLeft += after.left + across * after.width - at.x;
+    mount!.scrollTop += after.top + down * after.height - at.y;
+    // The card was placed beside something that has just moved.
+    closePopup();
+    showZoom();
+  }
+
+  if (zoomButtons !== null) {
+    for (const button of zoomButtons.querySelectorAll("[data-origins-zoom]")) {
+      button.addEventListener("click", (event) => {
+        const does = event.currentTarget.dataset.originsZoom;
+        if (does === "in") zoomTo(stepZoom(zoom, 1));
+        else if (does === "out") zoomTo(stepZoom(zoom, -1));
+        else if (does === "reset") zoomTo(1);
+        else if (does === "fit") {
+          // The box is as tall as its picture up to a ceiling, so the room
+          // there is to fit into is the ceiling and not the box as it stands.
+          zoomTo(fitZoom(canvas, {
+            width: mount!.clientWidth,
+            height: parseFloat(getComputedStyle(mount!).maxHeight),
+          }));
+        }
+      });
+    }
+    showZoom();
+  }
+
+  // The plain wheel scrolls the map and then the page, as it always has.
+  // Held with Ctrl it zooms about the pointer, which is also how a pinch on a
+  // trackpad arrives. Not passive: the browser's own zoom has to be refused.
+  mount.addEventListener("wheel", (event) => {
+    if (!event.ctrlKey) return;
+    event.preventDefault();
+    zoomTo(wheelZoom(zoom, event.deltaY, event.deltaMode), {
+      x: event.clientX,
+      y: event.clientY,
+    });
+  }, { passive: false });
+
+  // --- grab -----------------------------------------------------------------------
+  // A mouse can take hold of the map and move it. A finger already could:
+  // the box pans natively under one, with momentum, and is left to.
+
+  let grab:
+    | { x: number; y: number; left: number; top: number; pointer: number }
+    | null = null;
+  /** The press under way has moved far enough to be a drag. */
+  let grabbing = false;
+  /** The last press ended as a drag, so the click it ends with is not one. */
+  let dragged = false;
+
+  function letGo(): void {
+    grab = null;
+    if (!grabbing) return;
+    grabbing = false;
+    mount!.classList.remove("is-grabbing");
+  }
+
+  mount.addEventListener("pointerdown", (event) => {
+    dragged = false;
+    if (event.pointerType !== "mouse" || event.button !== 0) return;
+    // Not from inside the card, whose text is there to be selected.
+    if (popup.contains(event.target)) return;
+    // Not from the box's own scrollbars, which are outside its client area.
+    const box = mount.getBoundingClientRect();
+    if (
+      event.clientX - box.left >= mount.clientWidth ||
+      event.clientY - box.top >= mount.clientHeight
+    ) return;
+    grab = {
+      x: event.clientX,
+      y: event.clientY,
+      left: mount.scrollLeft,
+      top: mount.scrollTop,
+      pointer: event.pointerId,
+    };
+  });
+  mount.addEventListener("pointermove", (event) => {
+    if (grab === null) return;
+    // Let go somewhere the box never heard about.
+    if ((event.buttons & 1) === 0) {
+      letGo();
+      return;
+    }
+    const dx = event.clientX - grab.x;
+    const dy = event.clientY - grab.y;
+    if (!grabbing) {
+      if (Math.hypot(dx, dy) < GRAB_SLOP) return;
+      grabbing = true;
+      dragged = true;
+      // Only now, not on the press: a captured pointer's click goes to the
+      // box, and a press that stays put is a click meant for a moment.
+      mount.setPointerCapture(grab.pointer);
+      mount.classList.add("is-grabbing");
+    }
+    mount.scrollLeft = grab.left - dx;
+    mount.scrollTop = grab.top - dy;
+  });
+  mount.addEventListener("pointerup", letGo);
+  mount.addEventListener("pointercancel", letGo);
+  // The click a drag ends with would open whatever it was let go over, and
+  // close the card that was open. Stopped on the way down, before either. A
+  // click made by the keyboard has no press before it to clear the flag, so
+  // it is never taken for the end of a drag.
+  mount.addEventListener("click", (event) => {
+    const endsDrag = dragged && event.detail !== 0;
+    dragged = false;
+    if (endsDrag) event.stopPropagation();
+  }, true);
+
   // The canvas is sized to its box, so a resized window needs a redraw. It
   // needs no new layout though, only re-centring, which is why this can run
   // on a drag at all. Settle first: a drag fires continuously, and the width
@@ -477,8 +682,10 @@ function boot(): void {
   draw(mode).then(() => {
     // Shown once there is a picture to switch, so a reader whose layout
     // engine never arrived is not offered a control that does nothing. The
-    // legend goes with it: it explains marks that are not there without one.
+    // zoom and the legend go with it: there is nothing to zoom, and the
+    // legend explains marks that are not there without a picture.
     buttons?.classList.remove("is-hidden");
+    zoomButtons?.classList.remove("is-hidden");
     document.getElementById("origins-legend")?.classList.remove("is-hidden");
   }).catch((error: unknown) => {
     console.error("origins: could not lay out the braid", error);

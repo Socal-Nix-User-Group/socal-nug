@@ -318,6 +318,41 @@ class SiteBuild(unittest.TestCase):
         toggle = page.split('id="origins-toggle"')[1].split('>')[0]
         self.assertIn('is-hidden', toggle)
 
+    def test_origins_has_a_zoom_hidden_until_the_script_reveals_it(self):
+        # nothing to zoom until there is a picture
+        page = (self.out / 'origins' / 'index.html').read_text()
+        zoom = page.split('id="origins-zoom"')[1].split('</div>')[0]
+        self.assertIn('is-hidden', zoom.split('>')[0])
+        # out, in, the whole map, and back to the size it was drawn
+        buttons = zoom.split('<button')[1:]
+        self.assertEqual(len(buttons), 4)
+        for button, does in zip(buttons, ('out', 'in', 'fit', 'reset')):
+            tag = button.split('>')[0]
+            self.assertIn(f'data-origins-zoom="{does}"', tag)
+            # two of them are only a sign, so each says what it does
+            self.assertRegex(tag, r'aria-label="[^"]+"')
+        # one that would do nothing is dimmed, not disabled: disabling the
+        # button under a keyboard drops the focus that was on it
+        self.assertIn('.origins-zoom [aria-disabled=true]{', self.css)
+
+    def test_origins_map_can_be_held_and_moved(self):
+        # a hand over the map, a closed one while it is held, and nothing in
+        # the map selected by the drag; the card keeps its text selectable
+        self.assertIn('cursor:grab;-webkit-user-select:none;user-select:none}', self.css)
+        self.assertIn(
+            '.origins-braid.is-grabbing,.origins-braid.is-grabbing *{cursor:grabbing}',
+            self.css)
+        self.assertIn('user-select:text', self.css.split('.origins-popup{')[1].split('}')[0])
+
+    def test_origins_dims_whoever_is_not_lit(self):
+        # in the picture only, and only threads, beads and faces: a moment
+        # belongs to everyone through it, and the roster is a list being read
+        self.assertIn(
+            '.origins-svg:has(.is-lit) .origins-thread:not(.is-lit),'
+            '.origins-svg:has(.is-lit) .origins-bead:not(.is-lit),'
+            '.origins-svg:has(.is-lit) .origins-root:not(.is-lit){opacity:.25}',
+            self.css)
+
     def test_origins_has_a_legend_hidden_until_the_script_runs(self):
         # it explains marks a reader without the picture never sees
         page = (self.out / 'origins' / 'index.html').read_text()

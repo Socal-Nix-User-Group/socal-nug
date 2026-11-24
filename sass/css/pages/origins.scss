@@ -191,9 +191,26 @@ html[data-theme=dark] .origins-legend {
     overflow-x: auto;
     overscroll-behavior-x: contain;
 
+    // A mouse can take hold of the map and move it. Nothing in it is there
+    // to be selected, and a drag across its labels would otherwise paint a
+    // selection behind the pointer.
+    cursor: grab;
+    -webkit-user-select: none;
+    user-select: none;
+
+    // Everything under the pointer says so while the map is held, the
+    // moments and faces included, which otherwise ask to be clicked.
+    &.is-grabbing,
+    &.is-grabbing * {
+        cursor: grabbing;
+    }
+
     .origins-svg {
         width: auto;
         max-width: none;
+        // Zoomed out, the picture is narrower than the box and sits in the
+        // middle of it, where it was centred at full size.
+        margin: 0 auto;
     }
 }
 
@@ -264,6 +281,7 @@ html[data-theme=dark] .origins-legend {
 .origins-bead {
     fill: var(--origins-thread, var(--origins-muted));
     pointer-events: none;
+    transition: opacity 0.15s ease;
 
     // Where someone joined: their own colour, ringed in the page's ink.
     &.is-join {
@@ -338,6 +356,19 @@ html[data-theme=dark] .origins-legend {
 
 .origins-root {
     cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+// While anyone is lit, everyone who is not steps back: their thread, their
+// beads and their face. The moments stay as they are, since they belong to
+// whoever is through them. The roster does not dim: it is a list being read,
+// and its lit card already says who.
+.origins-svg:has(.is-lit) {
+    .origins-thread:not(.is-lit),
+    .origins-bead:not(.is-lit),
+    .origins-root:not(.is-lit) {
+        opacity: 0.25;
+    }
 }
 
 // The braid is one tab stop and the arrow keys move a cursor through it, so
@@ -371,6 +402,11 @@ html[data-theme=dark] .origins-legend {
 .origins-popup {
     position: absolute;
     z-index: 2;
+    // The map around it is held and moved; the card is read, and its words
+    // can be selected.
+    cursor: auto;
+    -webkit-user-select: text;
+    user-select: text;
     width: 18rem;
     max-width: calc(100% - 1rem);
     background: var(--bulma-scheme-main, #fff);
@@ -565,8 +601,25 @@ html[data-theme=dark] .origins-legend {
 
 // --- fallback and controls --------------------------------------------------
 
-.origins-toggle {
+// The layout toggle and the zoom on one line, wrapping on a phone.
+.origins-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
     margin-bottom: 0.75rem;
+
+    // Bulma spaces a row of buttons from whatever follows it; here the line
+    // they share does that.
+    .buttons {
+        margin-bottom: 0;
+    }
+}
+
+// A zoom button that would do nothing at this zoom. Dimmed and not disabled,
+// so it keeps the focus a keyboard put on it.
+.origins-zoom [aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: default;
 }
 
 // One line under the toggle, wrapping on a phone. Softened a little through
