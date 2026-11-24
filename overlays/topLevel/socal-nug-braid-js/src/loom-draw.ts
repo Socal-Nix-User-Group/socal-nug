@@ -36,6 +36,49 @@ function make(
   return element;
 }
 
+export interface YearMarks {
+  /** One line for each change of year, in date order. */
+  readonly ticks: readonly { x1: number; y1: number; x2: number; y2: number }[];
+  /** The opening year first, then one for each tick. */
+  readonly labels: readonly { x: number; y: number; text: string }[];
+}
+
+/**
+ * Where the years are marked. The opening year is pinned to the corner. Each
+ * change of year is a line across the picture, between the last moment of one
+ * year and the first of the next.
+ */
+export function yearMarks(placed: LoomPlaced, story: Story): YearMarks {
+  const along = placed.mode === "river" ? "y" : "x";
+  const ticks: { x1: number; y1: number; x2: number; y2: number }[] = [];
+  const labels: { x: number; y: number; text: string }[] = [];
+  let previousYear: number | undefined;
+  let previousAlong = 0;
+  for (const gathering of story.moments) {
+    const year = new Date(gathering.moment.date.start).getUTCFullYear();
+    const at = placed.moments.get(gathering.moment.id)!;
+    const here = along === "y" ? at.y : at.x;
+    if (previousYear === undefined) {
+      labels.push({ x: 6, y: YEAR_GUTTER - 14, text: String(year) });
+    } else if (year !== previousYear) {
+      const mid = round((previousAlong + here) / 2);
+      ticks.push(
+        along === "y"
+          ? { x1: 0, y1: mid, x2: round(placed.width), y2: mid }
+          : { x1: mid, y1: 0, x2: mid, y2: round(placed.height) },
+      );
+      labels.push({
+        x: along === "y" ? 6 : mid + 6,
+        y: along === "y" ? mid - 5 : YEAR_GUTTER - 14,
+        text: String(year),
+      });
+    }
+    previousYear = year;
+    previousAlong = here;
+  }
+  return { ticks, labels };
+}
+
 export function drawLoom(
   placed: LoomPlaced,
   story: Story,
@@ -57,47 +100,29 @@ export function drawLoom(
   });
 
   // --- year markers ---------------------------------------------------------
-  // The opening year is pinned to the corner. Each change of year is a dashed
-  // line across the picture, between the last moment of one year and the
-  // first of the next.
-  let previousYear: number | undefined;
-  let previousAlong = 0;
-  for (const gathering of story.moments) {
-    const year = new Date(gathering.moment.date.start).getUTCFullYear();
-    const at = placed.moments.get(gathering.moment.id)!;
-    const here = along === "y" ? at.y : at.x;
-    if (previousYear === undefined) {
-      const label = make(doc, "text", {
-        class: "origins-year is-opening",
-        x: 6,
-        y: YEAR_GUTTER - 14,
-        "text-anchor": "start",
-      });
-      label.textContent = String(year);
-      svg.appendChild(label);
-    } else if (year !== previousYear) {
-      const mid = round((previousAlong + here) / 2);
+  // The opening year's label, then each change of year as a dashed line and
+  // the label of the year it starts.
+  const marks = yearMarks(placed, story);
+  marks.labels.forEach((year, i) => {
+    if (i > 0) {
+      const tick = marks.ticks[i - 1];
       svg.appendChild(
         make(doc, "path", {
           class: "origins-year-tick",
-          d: along === "y"
-            ? `M0,${mid} L${round(width)},${mid}`
-            : `M${mid},0 L${mid},${round(height)}`,
+          d: `M${tick.x1},${tick.y1} L${tick.x2},${tick.y2}`,
           fill: "none",
         }),
       );
-      const label = make(doc, "text", {
-        class: "origins-year is-boundary",
-        x: along === "y" ? 6 : mid + 6,
-        y: along === "y" ? mid - 5 : YEAR_GUTTER - 14,
-        "text-anchor": "start",
-      });
-      label.textContent = String(year);
-      svg.appendChild(label);
     }
-    previousYear = year;
-    previousAlong = here;
-  }
+    const label = make(doc, "text", {
+      class: i === 0 ? "origins-year is-opening" : "origins-year is-boundary",
+      x: year.x,
+      y: year.y,
+      "text-anchor": "start",
+    });
+    label.textContent = year.text;
+    svg.appendChild(label);
+  });
 
   // --- threads --------------------------------------------------------------
   // One path per person, not per edge: two round-capped paths that meet in

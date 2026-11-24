@@ -80,6 +80,29 @@ test("each change of year is marked once, the opening year in the corner", () =>
   assert.equal(withClass(made, "origins-year-tick").length, 2);
 });
 
+test("the year lines cross the picture halfway between two years, each with its year beside it", async () => {
+  const marks = (drawn: Node[]) => ({
+    ticks: withClass(drawn, "origins-year-tick").map((n) => n.attrs.d),
+    labels: withClass(drawn, "origins-year").map((n) => [n.attrs.class, n.attrs.x, n.attrs.y, n.attrs["text-anchor"]]),
+  });
+  assert.deepEqual(marks(made), {
+    ticks: ["M0,82 L640,82", "M0,332 L640,332"],
+    labels: [
+      ["origins-year is-opening", "6", "20", "start"],
+      ["origins-year is-boundary", "6", "77", "start"],
+      ["origins-year is-boundary", "6", "327", "start"],
+    ],
+  });
+  assert.deepEqual(marks((await draw("subway")).made), {
+    ticks: ["M117,0 L117,480", "M227,0 L227,480"],
+    labels: [
+      ["origins-year is-opening", "6", "20", "start"],
+      ["origins-year is-boundary", "123", "20", "start"],
+      ["origins-year is-boundary", "233", "20", "start"],
+    ],
+  });
+});
+
 /** The points a path's `d` passes through: its M points and the end of each C. */
 function anchors(d: string): Array<{ x: number; y: number; move: boolean }> {
   const out: Array<{ x: number; y: number; move: boolean }> = [];
