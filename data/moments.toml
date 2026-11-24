@@ -129,8 +129,15 @@ id = "kyle-joins"
 event = "2023-09-19"
 people = ["kyle-risse"]
 
-# Connor is not in the pictures of NUG #6, where he was first thought to
-# have joined.
+# NUG #5 was Chris's first meetup, a month after SCaLE 21x, where Chris
+# already was.
+[[moment]]
+id = "chris-joins"
+event = "2024-04-13"
+people = ["chris-tewfik"]
+
+# Connor is not in the pictures of NUG #6, which was first thought to be
+# where Connor joined.
 [[moment]]
 id = "connor-joins"
 event = "2024-08-01" # CONFIRM: "may have been at NUG #7 first"
@@ -178,6 +185,7 @@ people = [
   "kyle-risse",
   "connor-baker",
   "mica",
+  "chris-tewfik",
 ]
 blurb = "NixCon North America ran alongside SCaLE 21x, 14 to 17 March."
 links = [
@@ -208,6 +216,7 @@ people = [
   "connor-baker",
   "morgan-jones",
   "mica",
+  "chris-tewfik",
 ]
 blurb = "PlanetNix ran alongside SCaLE 22x, 6 to 9 March."
 links = [
@@ -252,6 +261,7 @@ people = [
   "connor-baker",
   "morgan-jones",
   "mica",
+  "chris-tewfik",
 ]
 blurb = "PlanetNix ran alongside SCaLE 23x, 5 to 8 March."
 links = [
@@ -292,6 +302,10 @@ links = [{ title = "NixCon 2026", url = "https://2026.nixcon.org/" }]
 # whole: everyone in the group at the time is `there` or `away`. For the
 # rest only Daniel and David are recorded, and nothing is said about anyone
 # else.
+#
+# One gap in that: Chris Tewfik was added after those seven were recorded.
+# Daniel said Chris was at NUG #6 and NUG #17 and said nothing about the
+# Mini NUG of June 2025, so Chris is on neither list there.
 
 [[moment]]
 id = "nug-1-attendance"
@@ -353,6 +367,7 @@ there = [
   "mica",
   "kyle-risse",
   "morgan-jones",
+  "chris-tewfik",
 ]
 away = ["jared-baur", "samuel-raumin"]
 
@@ -428,7 +443,14 @@ there = ["daniel-baker", "david-nuon"]
 [[moment]]
 id = "nug-17-attendance"
 event = "2026-11-14"
-there = ["daniel-baker", "david-nuon", "tristan-ross", "morgan-jones", "mica"]
+there = [
+  "daniel-baker",
+  "david-nuon",
+  "tristan-ross",
+  "morgan-jones",
+  "mica",
+  "chris-tewfik",
+]
 away = [
   "rob-hernandez",
   "jared-baur",

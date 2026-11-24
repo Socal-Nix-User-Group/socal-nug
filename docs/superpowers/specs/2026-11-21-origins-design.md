@@ -874,8 +874,8 @@ be reasonable if layout moved to build time.
 - **The card.** The treatment was called out early as generic and never revisited beyond
   squaring the corners. There is one card surface now, used in the popup and the roster, so it
   is a single thing to design rather than two.
-- **Descriptions and quotes.** Connor Baker, Kyle Risse, Morgan Jones and Samuel Raumin have
-  neither. Jared Baur and Mica have a quote and no description, which rather shows up the gap.
+- **Descriptions and quotes.** Connor Baker, Kyle Risse, Morgan Jones, Samuel Raumin and Chris
+  Tewfik have neither. Jared Baur and Mica have a quote and no description, which rather shows up the gap.
   Rob Hernandez's and Jared Baur's "First contact" have no blurb, though Daniel Baker's has one,
   and several conference and camp moments have none.
 - **Seven `CONFIRM` markers** in `data/moments.toml`: two dates given as approximations, one
@@ -885,10 +885,13 @@ be reasonable if layout moved to build time.
 - **Who was at each meetup** is recorded whole, everyone in the group either there or away, for
   the seven meetups Daniel checked against pictures: NUG #1, #2, #3, #4, #6, the June 2025 Mini
   NUG and NUG #17. For the other twelve up to NUG #17 only Daniel Baker and David Nuon are
-  recorded, and nothing is said about anyone else.
-- **Connor Baker's first meetup** is recorded as NUG #7, as a guess. He was first thought to
-  have joined at NUG #6 and is not in the pictures of it; Daniel thinks he may have come to
-  NUG #7 first.
+  recorded, and nothing is said about anyone else. One gap in the seven: Chris Tewfik was added
+  after they were recorded. Daniel said Chris was at NUG #6 and NUG #17, and said nothing about
+  the June 2025 Mini NUG, so Chris is neither there nor away at it. Chris joined at NUG #5,
+  which is one of the twelve.
+- **Connor Baker's first meetup** is recorded as NUG #7, as a guess. NUG #6 was first thought
+  to be where Connor joined, but Connor is not in the pictures of it; Daniel thinks NUG #7 may
+  have been the first.
 - **The README** names the Origins checks and the browser tool, but still says nothing about
   esbuild, the committed bundle at `static/js/braid.js` and how to rebuild it, the vendored ELK,
   or that `zola serve` does not watch `data/`, which has twice made a change look like it had
