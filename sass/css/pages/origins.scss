@@ -303,6 +303,15 @@ html[data-theme=dark] .origins-legend {
         stroke: var(--origins-ink);
         stroke-width: 1.2;
     }
+
+    // Where the record says someone was not there: an empty seat in their
+    // colour. Their thread stops either side of the oval, so nothing runs
+    // under the ring.
+    &.is-away {
+        fill: none;
+        stroke: var(--origins-thread, var(--origins-muted));
+        stroke-width: 1.2;
+    }
 }
 
 .origins-label {

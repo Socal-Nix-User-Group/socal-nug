@@ -82,7 +82,8 @@ rewriting the story. That post stays as it is; this is a separate page with a di
   wrong answer at forty.
 - A bead the record does not support. Attendance is never inferred: not from membership, not from
   a photo nobody has read into the data, not from "probably".
-- A thread through a meetup for someone the record says was away from it.
+- A thread drawn through a meetup for someone the record says was away from it. Theirs stops
+  short of it and starts again after it.
 - A ribbon that jogs sideways, shipped without saying so.
 - A layout failure that reads as the author's mistake. When the site's own data lays out badly
   the check fails, and it says plainly that the layout is at fault and not the change, and that
@@ -365,25 +366,29 @@ Decided by Daniel. This is the one rule a data author must know.
 ```
 the record says they were there    ━━━●━━━   through the moment, with a bead
 nothing is recorded                ━━━━━━━   through the moment, no bead
-the record says they were not      ━━╮ ╭━━   around the moment
-                                     ╰─╯
+the record says they were not      ━━ ○ ━━   broken at the moment, with a hollow bead
 ```
 
 - After someone joins, their thread goes through every meetup by default. That says "in the
   group then", and nothing more.
 - A bead on a thread inside a moment says the record vouches for that person being there.
-- A member's thread goes around a meetup only where the record says they were away. Someone who
-  has not joined yet is not in the ribbon at all: their thread, if it has started, passes the
-  meetups wherever the layout routes it. The two need no separate mark. The first is a thread
-  leaving the ribbon for one moment and coming straight back; the second is a line that has not
-  reached the ribbon yet.
+- Where the record says a member was away, their thread stays in its own slot but is not drawn
+  through the meetup: it stops just short of it and starts again just after it, and a hollow
+  bead in their colour sits in their slot inside it, an empty seat. Nothing goes around a
+  meetup for an absence. It did at first: the thread left the ribbon and came back. Daniel
+  changed it on 2026-11-23, choosing this mark from mock-ups on the real data, because the
+  detours were most of the picture's crossings: 164 with them, 104 in River and 106 in Subway
+  without, and River about 150px shorter.
+- Someone who has not joined yet is not in the ribbon at all: their thread, if it has started,
+  passes the meetups wherever the layout routes it. That is the only thing that goes around a
+  meetup now, a line that has not reached the ribbon yet.
 - At a moment that is not a meetup (a conference, a camp, a personal moment), everyone named was
   there by definition, so every thread through it carries a bead.
 - At the meetup where someone joined, they were there by definition, so they carry a bead. It is
   drawn larger, in their own colour, with a ring, because it also marks the join.
 
-A recorded absence is shown only by the thread going around the meetup. It is not listed on the
-meetup's card or in its screen reader label, by Daniel's decision. The page carries a short
+A recorded absence is shown only by the broken thread and its hollow bead. It is not listed on
+the meetup's card or in its screen reader label, by Daniel's decision. The page carries a short
 legend (see "Toggle and responsive behaviour"), because a thread without a bead has to be read as
 "in the group then" and not as "attended".
 
@@ -401,11 +406,12 @@ nothing positional in it beyond a person's slot across a moment:
 1. Moments are ordered by date, ties broken by id, so the same data always draws the same.
 1. A join comes only from a meetup naming you in `people`. Nothing is inferred from company
    kept. The people in the group at a moment are everyone who has joined at or before it.
-1. Who is through each moment: at a meetup, everyone in the group then, less anyone the record
-   says was away; at any other moment, the people it names.
+1. Who is through each moment: at a meetup, everyone in the group then, including anyone the
+   record says was away, who is marked as away; at any other moment, the people it names.
 1. Every person with at least one moment is one thread through the moments they are through, in
-   date order, from their first to their last. A meetup they are recorded away from is not on
-   it. Someone who never joins has a thread through the moments that name them and nothing else.
+   date order, from their first to their last. A meetup they are recorded away from is on it,
+   so a thread runs on to a last meetup its person was away from. Someone who never joins has a
+   thread through the moments that name them and nothing else.
 1. Slot order is one order of people for the whole picture: by the meetup they joined at (people
    who never join go last), then by their first moment, then by slug. Because it is ordered by
    joining, the people in the group at any date are the first so many in it, and two threads keep
@@ -413,12 +419,13 @@ nothing positional in it beyond a person's slot across a moment:
 1. A moment is on the ribbon when it is a meetup, or when there is a group at its date and
    everyone in it is through it. Nothing before the group exists is on the ribbon. On the ribbon
    a member's slot is their place in the slot order, so their thread stays in one slot from each
-   such moment to the next, and a member recorded away leaves their slot empty: a gap, not a
-   closing of ranks. Anyone through it who has not joined yet takes the slots after the members'.
-   Off the ribbon the people through it are packed, in slot order.
+   such moment to the next, and a member recorded away keeps theirs. Anyone through it who has
+   not joined yet takes the slots after the members'. Off the ribbon the people through it are
+   packed, in slot order.
 1. A passage through a moment is vouched for where the record says so: at any moment that is not
    a meetup, at the meetup a person joined at, and where a meetup's record lists them under
-   `there`. Attendance is never inferred.
+   `there`. Attendance is never inferred. A passage is away where a meetup's record lists the
+   person under `away`; it is then neither vouched for nor a join.
 1. Who is passing a moment off the ribbon: the members of the group at its date who are not
    through it, each at their ribbon slot. A thread stops at its person's last moment, so a member
    passes a side moment only if they are through a later one. Nobody passes a moment on the
@@ -443,8 +450,8 @@ The graph:
   moment.
 - A person's thread is one edge from their root to their first stop and one from each stop's
   outgoing port to the next stop's incoming port. A stop is a moment they are through or a
-  pass-through they are passing, in date order. A meetup someone is away from has no edge of
-  theirs into it, so their thread crosses that layer as a long edge and ELK routes it around.
+  pass-through they are passing, in date order. A meetup someone is away from is a stop like any
+  other, with their ports at their slot, which is what keeps their thread in the ribbon.
 - A pass-through: a side moment that anyone is passing also has an unseen node in its layer,
   `pass:<moment id>`, as wide as the group's slots, with no label, carrying a port pair at the
   ribbon slot of each member passing it. Their threads run straight through it, so only the
@@ -469,7 +476,11 @@ slot inside it, each label's anchor, each pass-through's box (kept apart from th
 no centre or label), each face's centre, and a polyline per edge saying whose thread it is and
 which nodes it runs between. Each polyline is carried on from the port on a box's edge to the
 person's slot inside it, at both ends, so one person's edges meet inside the moment and the
-thread is unbroken. An edge ELK routed nowhere is left out. The canvas is then widened to the box
+thread is unbroken. The exception is an end at a meetup its person is away from. It is not
+carried to the slot: the point ELK gave on the box's edge is replaced by one 3.5px short of the
+box on the way in, and 3.5px past it on the way out, along the time axis at the slot's place
+across. The thread is 3px wide with round caps, so what shows is a break that starts 2px
+outside the pill. An edge ELK routed nowhere is left out. The canvas is then widened to the box
 it is shown in and the drawing centred, rather than stretched.
 
 The layout is injected into `loom-place.ts`: the page gives the real ELK, the smoke check gives
@@ -485,14 +496,16 @@ run ELK; the smoke check is the one place the engine is tested through it.
   end. Each hop eases between its points with control points along the time axis, so a hop that
   stays in its slot is straight and one that changes slot is an S-curve. One path per person
   rather than per edge, because two round-capped paths meeting in open space leave a faint seam.
-  An edge left out starts a new subpath.
+  An edge left out starts a new subpath, and so does a meetup the person was away from, where
+  one edge ends before the pill and the next begins after it.
 - Moments: a pill sized to the moment's box, a rectangle with ends as round as half its shorter
   side, filled with the page's colour partly opaque so the threads show through. Meetups are
   outlined in the page's accent colour, other moments in a muted one. The pill is the click,
   hover and focus target, with a hit area a few pixels larger.
 - Beads: a small filled circle in the person's colour at their slot, wherever the record vouches
   for them. Where they joined, the join bead: larger, in their own colour, ringed in the page's
-  ink colour.
+  ink colour. Where the record says they were away, a hollow bead: a ring in their colour, the
+  size of an ordinary bead, with nothing in it.
 - Faces: the person's avatar, or their initial when there is no image, in a circle ringed in their
   thread colour.
 - Labels: each moment's title, where ELK left room for it.
@@ -535,7 +548,8 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   word, by Daniel's choice: a thread with a bead is "cache hit" (the record says they were
   there); a thread with the ringed join bead is "first build" (they joined here); a bare thread
   through a moment is "unevaluated" (in the group then, attendance not recorded); and a thread
-  stepping around a moment is "cache miss" (the record says they were not there). The labels
+  broken either side of a moment, with a hollow bead in it, is "cache miss" (the record says
+  they were not there). The labels
   favour the group's own humour over a newcomer reading them cold, so each mark carries its
   plain meaning as a hover tooltip, and the help cursor over the legend says there is one. The
   tooltip is the page's own, drawn by the stylesheet from a `data-tip` attribute: it appears a
@@ -604,7 +618,8 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   beside River and under Subway (see "Toggle and responsive behaviour").
 - Hovering a face lights that person: their thread is drawn thicker, their face's ring too, and
   their roster card is tinted. Hovering or focusing a roster card does the same. Hovering a moment
-  lights everyone through it. A touch does not light anything; a tap opens the card.
+  lights everyone through it who was not away from it. A touch does not light anything; a tap
+  opens the card.
 - While anyone is lit, everyone who is not steps back: their thread, their beads and their face
   are drawn at a quarter strength, in the picture only. Moments and labels are not dimmed, since
   a moment belongs to everyone through it, and neither is the roster, which is a list being read
@@ -672,7 +687,7 @@ needs no pointer. Taking hold of the map is a mouse's convenience and has no key
 arrow keys already bring each moment into view as the cursor reaches it.
 
 The legend is hidden from assistive technology (`aria-hidden`), by Daniel's decision. A recorded
-absence is not in any card or label; it is shown only by the thread going around the meetup, also
+absence is not in any card or label; it is shown only by the broken thread and hollow bead, also
 by Daniel's decision.
 
 **There was a rendered fallback list**, emitted by Tera beside the picture: the page without
@@ -711,9 +726,11 @@ In `checks/default.nix`:
 
 - `braid-engine`: esbuild-compiles the engine's unit tests, runs `node --test`. Covers the story
   half (order, joins, who is through each moment, slots, who is passing, what the record vouches
-  for), the graph handed to ELK (sizes, ports at slots, edges port to port, no edge into a meetup
-  someone is away from, pass-throughs, the spine), the mapping of its output into positions, the
-  drawing from those, cards, keyboard order, the toggle, the zoom's arithmetic (a button's step,
+  for and where it says someone was away), the graph handed to ELK (sizes, ports at slots, edges
+  port to port, a meetup someone is away from as a stop like any other, pass-throughs, the
+  spine), the mapping of its output into positions (the break either side of a meetup someone
+  is away from among them), the drawing from those (the hollow bead, the thread's new subpath),
+  cards, keyboard order, the toggle, the zoom's arithmetic (a button's step,
   what a wheel event counts for, the zoom that fits, the limits), popup placement, the made-up
   histories and the smoke check's own measures. None of it runs ELK; the placement tests use a fake shaped
   like a layout.
@@ -775,15 +792,18 @@ In `checks/default.nix`:
     is in that slot;
   - no hop from one stop on the ribbon to the next (a moment on the ribbon or a pass-through, with
     no ribbon moment between them) has a point more than a slot outside its two ends, across the
-    time axis. A hop that skips a ribbon moment is someone going around a meetup they are away
-    from or not yet part of, and is not measured;
+    time axis. Someone away from a meetup stops at it like everyone else, so their hops are
+    measured. A hop that skips a ribbon moment is someone going around a meetup they are not yet
+    part of, and is not measured;
   - no thread runs through a moment or a face that is not its own, sampled along ELK's polylines
     and again along the drawn curve;
   - every moment and face is on the canvas; no label sits on a face or a moment, runs off the
     canvas or is wider than the 150px it may claim, and no thread runs under a label;
-  - every bead is inside its own moment, and a person has a bead exactly where the record vouches
-    for them and nowhere else;
-  - nobody recorded as away from a meetup has a thread through it.
+  - every filled bead is inside its own moment, and a person has one exactly where the record
+    vouches for them and nowhere else;
+  - for everyone recorded as away from a meetup, no part of their drawn thread is inside that
+    meetup's box and a hollow bead is at their slot in it, and there is no hollow bead anywhere
+    else.
 
   It does the same for nine made-up histories generated from fixed seeds (`smoke/histories.ts`):
   seeds 1 to 3, each at about today's size and one and two years on, twenty layouts in all with
@@ -794,7 +814,8 @@ In `checks/default.nix`:
   now stands, that nothing in the author's change is mistaken, and that it needs a maintainer who
   knows the layout engine; on a made-up history it says only a change to the engine can have
   caused it. The rest (a missing position, edge or pass-through, a bead with no record behind it,
-  a thread through a meetup its person is recorded away from) cannot be caused by data and say
+  a thread inside a meetup its person is recorded away from, a hollow bead missing or out of
+  place) cannot be caused by data and say
   they are a bug in the engine. Every other engine test runs on fixtures and fakes the layout, so
   without this a plausible typo in the real data, or a layout ELK is happy with that the renderer
   is not, ships with the whole suite green.
@@ -859,9 +880,9 @@ made-up histories; that a layout fault on the real data fails the check, in word
 not the author's mistake; that switching modes does not animate; the meetup card's wording; and
 the legend.
 
-Also decided by Daniel: a recorded absence is shown only by the thread going around the meetup
-and is listed nowhere; the legend is hidden from assistive technology; a phone-sized screen is not
-a present concern.
+Also decided by Daniel: a recorded absence is shown only in the picture, by the broken thread and
+hollow bead, and is listed nowhere; the legend is hidden from assistive technology; a
+phone-sized screen is not a present concern.
 
 Seating among people who joined at the same meetup stays with the rule, first moment and then
 slug, also by Daniel's decision. It is the one free choice in slot order: the rest follows from
@@ -870,8 +891,10 @@ Nuon; Jared Baur and Samuel Raumin; Kyle Risse and Tristan Ross), so twenty-four
 all were laid out through the real engine and their thread crossings counted: 140 as it stands,
 126 at best, 143 at worst, the same in both modes. Putting David left of Daniel alone gives 133.
 The effects do not add up, because ELK chooses again which side each side moment and each detour
-goes, and most crossings come from people going around meetups they were away from, which no
-seating removes. Setting the seating by hand in the data was turned down: the best one changes
+goes, and most crossings then came from people going around meetups they were away from, which
+no seating removes. (Those detours have since gone, and the numbers here with them; see "What a
+thread through a meetup means". The seatings were not counted again.) Setting the seating by
+hand in the data was turned down: the best one changes
 with every person and every attendance record added, so it would not stay the best. Choosing it
 automatically means a layout for each candidate, which is too slow at page load and would only
 be reasonable if layout moved to build time.
@@ -943,8 +966,10 @@ be reasonable if layout moved to build time.
   as the people through it, and a moment everyone was at sits on the ribbon.
 - A meetup with no `there` entry has a ringed join bead for whoever joined there and no other
   bead; NUG #18 is one. A `there` entry for someone at a meetup puts a bead on their thread there
-  and their name under "Confirmed there:" on its card. An `away` entry takes their thread around
-  that meetup; NUG #2 is the first with any. The legend shows all four marks either way.
+  and their name under "Confirmed there:" on its card. An `away` entry breaks their thread
+  either side of that meetup and puts a hollow bead in their slot; NUG #2 is the first with
+  any. Nothing goes around a meetup but the thread of someone who has not joined yet. The legend
+  shows all four marks either way.
 - With JavaScript disabled the page shows no picture, by the trade recorded under Accessibility.
 - The picture is reachable and operable by keyboard alone: one Tab into it, arrows through the
   story, Enter to open a card, Escape to close, focus back where it started.

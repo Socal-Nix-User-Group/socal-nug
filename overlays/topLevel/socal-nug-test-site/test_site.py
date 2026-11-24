@@ -390,6 +390,15 @@ class SiteBuild(unittest.TestCase):
         self.assertIn('.origins-legend-item:hover::after{', self.css)
         for label in ('cache hit', 'first build', 'unevaluated', 'cache miss'):
             self.assertIn(f'</svg>{label}</span>', body)
+        # an absence is drawn as it is in the picture: the thread broken
+        # either side of the meetup, and a hollow bead in the empty seat
+        miss = items[3]
+        self.assertIn('d="M2,8 H8 M28,8 H34"', miss)
+        self.assertIn('class="origins-bead is-away"', miss)
+        self.assertIn(
+            '.origins-bead.is-away{fill:none;'
+            'stroke:var(--origins-thread, var(--origins-muted));stroke-width:1.2}',
+            self.css)
 
     def test_origins_palette_follows_the_three_state_theme(self):
         self.assertIn(
