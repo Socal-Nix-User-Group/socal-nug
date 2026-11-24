@@ -885,17 +885,21 @@ be reasonable if layout moved to build time.
   Tewfik have neither. Jared Baur and Mica have a quote and no description, which rather shows up the gap.
   Rob Hernandez's and Jared Baur's "First contact" have no blurb, though Daniel Baker's has one,
   and several conference and camp moments have none.
-- **Seven `CONFIRM` markers** in `data/moments.toml`: two dates given as approximations, one
+- **Eight `CONFIRM` markers** in `data/moments.toml`: two dates given as approximations, one
   meetup guessed at (Connor Baker's first, below), "I think everyone was there" on the three
-  SCaLE moments, and "I believe David and I were at every single NUG event" over the attendance
-  records.
+  SCaLE moments, "I believe David and I were at every single NUG event" over the attendance
+  records, and Chris Tewfik at NUG #6 and NUG #17 (below).
 - **Who was at each meetup** is recorded whole, everyone in the group either there or away, for
   the seven meetups Daniel checked against pictures: NUG #1, #2, #3, #4, #6, the June 2025 Mini
   NUG and NUG #17. For the other twelve up to NUG #17 Daniel Baker and David Nuon are recorded,
-  with Chris Tewfik at NUG #12, and nothing is said about anyone else. Chris Tewfik was added
-  after the seven were recorded and Daniel then placed Chris at each of them from NUG #5 on:
-  there at NUG #6 and NUG #17, away from the June 2025 Mini NUG. NUG #5, where Chris joined, is
-  one of the twelve.
+  and Chris Tewfik, and nothing is said about anyone else.
+- **Chris Tewfik at NUG #6 and NUG #17.** Chris is recorded at every meetup from NUG #5, where
+  Chris joined, to NUG #17, on Chris's own account as Daniel passed it on: there at NUG #7, #8,
+  #10, #11, #12, #13 and the June 2025 Mini NUG, and at no other after the first. That makes
+  Chris away from NUG #9, the April 2025 Mini NUG and NUG #14, #15 and #16, and it overturned
+  Daniel's earlier word that Chris was not at the June 2025 Mini NUG. It also leaves out NUG #6
+  and NUG #17, where Daniel had said "I know they were also at #6 and #17". Those two still
+  record Chris as there, as Daniel said, under a `CONFIRM` marker, until one account gives way.
 - **Connor Baker's first meetup** is recorded as NUG #7, as a guess. NUG #6 was first thought
   to be where Connor joined, but Connor is not in the pictures of it; Daniel thinks NUG #7 may
   have been the first.

@@ -300,8 +300,16 @@ links = [{ title = "NixCon 2026", url = "https://2026.nixcon.org/" }]
 # Seven meetups were checked against pictures Daniel found: NUG #1, #2, #3,
 # #4, #6, the Mini NUG of June 2025 and NUG #17. For those the record is
 # whole: everyone in the group at the time is `there` or `away`. For the
-# rest Daniel and David are recorded, with Chris Tewfik at NUG #12, and
-# nothing is said about anyone else.
+# rest Daniel and David are recorded, and Chris Tewfik (below), and nothing
+# is said about anyone else.
+#
+# Chris Tewfik is recorded at every meetup from NUG #5, the first, to
+# NUG #17, on Chris's own account: there at NUG #7, #8, #10, #11, #12, #13
+# and the Mini NUG of June 2025, and at no other after the first.
+#
+# CONFIRM: that account leaves out NUG #6 and NUG #17, where Daniel had said
+# "I know they were also at #6 and #17". Chris is still `there` at those two,
+# as Daniel said, until one of the two accounts gives way.
 
 [[moment]]
 id = "nug-1-attendance"
@@ -370,37 +378,39 @@ away = ["jared-baur", "samuel-raumin"]
 [[moment]]
 id = "nug-7-attendance"
 event = "2024-08-01"
-there = ["daniel-baker", "david-nuon"]
+there = ["daniel-baker", "david-nuon", "chris-tewfik"]
 
 [[moment]]
 id = "nug-8-attendance"
 event = "2024-09-19"
-there = ["daniel-baker", "david-nuon"]
+there = ["daniel-baker", "david-nuon", "chris-tewfik"]
 
 [[moment]]
 id = "nug-9-attendance"
 event = "2024-11-02"
 there = ["daniel-baker", "david-nuon"]
+away = ["chris-tewfik"]
 
 [[moment]]
 id = "nug-10-attendance"
 event = "2025-02-08"
-there = ["daniel-baker", "david-nuon"]
+there = ["daniel-baker", "david-nuon", "chris-tewfik"]
 
 [[moment]]
 id = "mini-nug-2025-04-10-attendance"
 event = "2025-04-10"
 there = ["daniel-baker", "david-nuon"]
+away = ["chris-tewfik"]
 
 [[moment]]
 id = "nug-11-attendance"
 event = "2025-05-03"
-there = ["daniel-baker", "david-nuon"]
+there = ["daniel-baker", "david-nuon", "chris-tewfik"]
 
 [[moment]]
 id = "mini-nug-2025-06-04-attendance"
 event = "2025-06-04"
-there = ["daniel-baker", "david-nuon", "tristan-ross"]
+there = ["daniel-baker", "david-nuon", "tristan-ross", "chris-tewfik"]
 away = [
   "rob-hernandez",
   "jared-baur",
@@ -409,7 +419,6 @@ away = [
   "kyle-risse",
   "connor-baker",
   "morgan-jones",
-  "chris-tewfik",
 ]
 
 [[moment]]
@@ -420,22 +429,25 @@ there = ["daniel-baker", "david-nuon", "chris-tewfik"]
 [[moment]]
 id = "nug-13-attendance"
 event = "2025-12-04"
-there = ["daniel-baker", "david-nuon"]
+there = ["daniel-baker", "david-nuon", "chris-tewfik"]
 
 [[moment]]
 id = "nug-14-attendance"
 event = "2026-04-11"
 there = ["daniel-baker", "david-nuon"]
+away = ["chris-tewfik"]
 
 [[moment]]
 id = "nug-15-attendance"
 event = "2026-06-27"
 there = ["daniel-baker", "david-nuon"]
+away = ["chris-tewfik"]
 
 [[moment]]
 id = "nug-16-attendance"
 event = "2026-09-12"
 there = ["daniel-baker", "david-nuon"]
+away = ["chris-tewfik"]
 
 [[moment]]
 id = "nug-17-attendance"
