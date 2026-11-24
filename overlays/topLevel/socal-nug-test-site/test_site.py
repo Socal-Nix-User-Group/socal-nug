@@ -365,6 +365,12 @@ class SiteBuild(unittest.TestCase):
             self.css)
         self.assertIn('user-select:text', self.css.split('.origins-popup{')[1].split('}')[0])
 
+    def test_origins_map_answers_nothing_while_it_morphs(self):
+        # between the two modes the picture is neither, so a press on it
+        # means nothing, and the box the script is sizing shows no scrollbars
+        self.assertIn(
+            '.origins-braid.is-morphing{overflow:hidden;pointer-events:none}', self.css)
+
     def test_origins_dims_whoever_is_not_lit(self):
         # in the picture only, and only threads, beads and faces: a moment
         # belongs to everyone through it, and the roster is a list being read

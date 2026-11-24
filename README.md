@@ -47,7 +47,8 @@ Each lives under `overlays/topLevel/` and runs with `nix run`:
 - `.#socal-nug-test-site`: the build-output tests, given the site source directory.
 - `.#socal-nug-logos`: regenerate the sibling group logos in `static/siblings/`.
 - `.#socal-nug-braid-browser`: load the Origins page in headless Chromium and check how it
-  behaves when scrolled, clicked, dragged, zoomed, tabbed through and tapped. Linux only, needs the network, and
+  behaves when scrolled, clicked, dragged, zoomed, switched between its two layouts, tabbed
+  through and tapped. Linux only, needs the network, and
   is not part of `nix flake check`. Run it after changing the page's script (anything under
   `overlays/topLevel/socal-nug-braid-js/src/`), its stylesheet `sass/css/pages/origins.scss` or
   its template `templates/origins.html`.

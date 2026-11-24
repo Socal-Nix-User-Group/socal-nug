@@ -468,7 +468,8 @@ The graph:
   150px. That is what makes it leave room for them: they become part of the node's margin,
   nothing else is placed there, and edges route around them.
 - River is direction DOWN with labels beside nodes; Subway is direction RIGHT with labels above.
-  The same graph, laid out twice. Switching modes redraws the picture; nothing slides.
+  The same graph, laid out twice, which is what lets the picture morph from one to the other
+  (see "Toggle and responsive behaviour").
 - The other options are layered layout with network simplex node placement and polyline routing,
   30px between layers in River and 60px in Subway, node spacing 28, edge-to-node 20, edge-to-edge
   7, label-to-node 12, padding 40 and thoroughness 20.
@@ -530,7 +531,12 @@ column. ELK's partitioning is the feature itself.
 `static/js/vendor/` with its EPL-2.0 licence rather than fetched from a CDN, because the site is
 heading for self-hosting. Layout is asynchronous, so the picture appears a beat after the page,
 and it takes longer as the history grows. Each mode is laid out once per visit: a window resize
-re-centres the layout already made, and a second visit to a mode is instant.
+re-centres the layout already made, and a second visit to a mode is instant. The mode the reader
+did not open in is laid out 1.5 seconds after the first picture is drawn, whether or not they
+ever switch, so that a switch can start moving at once. Daniel chose that over laying it out at
+the first press, or when the pointer reaches the toggle. It costs every visitor the work of a
+second layout, about half a second today and about a second two years on by the made-up
+histories, during which the page does not respond.
 
 **What stayed.** Everything either side of the seam: the data model and its validator, faces, the
 card and popup, the toggle, the checks. The old allocator, its projections and its label sweep
@@ -594,9 +600,48 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   the page once it reaches its end. Under the map it is the whole list with nothing to scroll.
   The roster keeps that ceiling when the map is zoomed out until it is shorter than its own: a
   roster that shrank with the map would be no use at the small zooms.
-- Switching modes redraws the picture and nothing animates. The slide between modes went with
-  the Loom: a moment that is wide in one mode and tall in the other has nowhere sensible to slide
-  from.
+- Switching modes morphs. Pressing the other mode's button moves everything from where it is to
+  where it will be, over 1.2 seconds with a cubic ease in and out:
+  - inside the picture, each face, each moment's pill, each bead, each label, each year line and
+    year label, and each thread, bent from one shape to the other;
+  - the canvas, from one mode's size to the other's;
+  - the map's box, from the tall box beside the roster to the wide one above it;
+  - each roster card, from the column into the grid or back. A card really is the width it
+    appears to be on the way, so its text wraps as it travels and is never stretched. Cards
+    cross over the picture on their way, which Daniel does not mind.
+- The first Loom dropped the slide the page had before it, because a moment that is wide in one
+  mode and tall in the other had nowhere sensible to slide from. The pill now changes shape as
+  it moves, through a circle half way. Threads were the hard part: the two modes give one edge
+  different numbers of points, so each edge's curves are cut, without changing how either mode
+  looks, until both have as many, and then every control point moves in a straight line. A
+  thread broken either side of a meetup its person was away from stays in the same stretches all
+  the way. Daniel asked for it to see whether it felt right, tried it as a throwaway, and kept
+  it.
+- The view lands the same share of the way along the other map: the start to the start, the end
+  to the end, anywhere between the same way through. The share is of how far the box can
+  scroll, which is found by asking it to scroll too far and reading back where it stopped,
+  because the sizes the box reports count the room kept for a scrollbar. The scroll position
+  moves in a straight line from where it was to where it lands, so everything crosses the screen
+  in a straight line. A round trip comes back to where it began, to within a pixel: the browser
+  keeps a scroll position to whole pixels and Subway scrolls more than twice as far as River.
+- A view whose zoom was last set by Fit arrives at the other mode's fit, the zoom changing on
+  the way. Fit is a different zoom in each mode, because the pictures are different shapes (19%
+  in Subway and 32% in River in a 1400px window today), and carrying one across left the other
+  too small. Any other zoom is carried across unchanged.
+- While it runs the map answers no pointer and hides its overflow, and a press on either mode
+  button or any zoom button does nothing. Ignoring a press, in place of turning round part way,
+  is Daniel's choice. A window resized while it runs is dealt with when it lands: if the box is
+  not the width the landing was drawn for, the picture is redrawn for the width it is.
+- When it lands, the picture in the box is the ordinary drawing for that mode, the one a fresh
+  visit draws, and nothing the morph set on the box, the layout, the roster or the cards is
+  left behind.
+- A reader whose system asks for reduced motion gets the instant switch. So does anyone whose
+  two layouts do not pair up, an edge or a face in only one of them, which a layout that passed
+  the smoke check cannot be.
+- The arithmetic is in `src/morph.ts` and touches no page: given two layouts it says where
+  everything is at any point between them, and it carries a scroll position across as shares.
+  The page script measures the box and the cards before and after the layout flips, applies one
+  frame of that for each animation frame, and swaps in the ordinary drawing at the end.
 - If laying out the newly chosen mode fails, the picture already on screen stays, under the new
   mode's name. This is left as it is on purpose; see "Still open".
 - If the first layout fails, the map says "The picture could not be drawn. Reloading the page may
@@ -735,8 +780,11 @@ In `checks/default.nix`:
   spine), the mapping of its output into positions (the break either side of a meetup someone
   is away from among them), the drawing from those (the hollow bead, the thread's new subpath),
   cards, keyboard order, the toggle, the zoom's arithmetic (a button's step,
-  what a wheel event counts for, the zoom that fits, the limits), popup placement, the made-up
-  histories and the smoke check's own measures. None of it runs ELK; the placement tests use a fake shaped
+  what a wheel event counts for, the zoom that fits, the limits), the morph's arithmetic (where
+  everything is at the start, half way and the end; a thread cut to match and still tracing its
+  line; a broken thread kept in its stretches; two layouts that do not pair up; a scroll
+  position carried across as shares), popup placement, the made-up histories and the smoke
+  check's own measures. None of it runs ELK; the placement tests use a fake shaped
   like a layout.
 
 - `braid-types`: `tsc --strict` over `src/`, `test/`, `smoke/` and `browser/`. esbuild strips
@@ -809,6 +857,13 @@ In `checks/default.nix`:
     meetup's box and a hollow bead is at their slot in it, and there is no hollow bead anywhere
     else.
 
+  With both modes laid out it also builds the morph between them, each way, and checks that it
+  starts on the drawing of the mode being left and ends on the drawing of the one arrived at:
+  the layouts pair up; each thread traces the drawn one to within a twentieth of a pixel and is
+  in the same number of stretches at the start, half way and the end; and the beads, labels,
+  year lines and years are where they are drawn. The unit tests cut a thread's curves to match
+  only on a made-up case, and this is where it is tried on real layouts.
+
   It does the same for nine made-up histories generated from fixed seeds (`smoke/histories.ts`):
   seeds 1 to 3, each at about today's size and one and two years on, twenty layouts in all with
   the real data. They depend on nothing but their seeds, so a content change can never alter them
@@ -827,9 +882,14 @@ In `checks/default.nix`:
 **On demand, not a check:** `nix run .#socal-nug-braid-browser` loads the page in headless
 Chromium and behaves like a visitor: it wheels past the map and past the roster beside it, drags
 a finger through the map on a phone-sized screen, clicks and tabs into cards, hovers moments,
-switches modes, zooms with the buttons and with Ctrl and the wheel, takes hold of the map with a
-pressed mouse and drags it, blocks the layout engine, and asks for the dark theme. Forty-three
-checks, each named for what a visitor would
+switches modes and watches the picture travel, zooms with the buttons and with Ctrl and the
+wheel, takes hold of the map with a pressed mouse and drags it, blocks the layout engine, and
+asks for the dark theme and for reduced motion. Eleven of its checks are about the morph: that
+it takes time and stops; that it lands on the picture a fresh visit draws, both ways and after
+the window is narrowed part way; that nothing is left set on the box, the layout or the cards;
+that the view lands the same share of the way along and a round trip returns; that a fitted view
+arrives fitted; that the mode and zoom buttons do nothing while it moves; and that reduced
+motion makes it instant. Fifty-four checks, each named for what a visitor would
 notice and none naming a moment or a person, so the data can change under it. It needs the
 network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
 and is typechecked by `braid-types`, which is what stops it rotting between uses.
@@ -881,8 +941,9 @@ through a meetup, and that attendance is recorded optionally with `there` and `a
 moment everyone in the group is at sits on the ribbon; that the ribbon is held to one column by
 the hidden spine and the pass-throughs, measured by the smoke check on the real data and on the
 made-up histories; that a layout fault on the real data fails the check, in words that say it is
-not the author's mistake; that switching modes does not animate; the meetup card's wording; and
-the legend.
+not the author's mistake; the meetup card's wording; and the legend. The Loom also settled that
+switching modes does not animate, which Daniel reversed on 2026-11-24: it morphs, as "Toggle
+and responsive behaviour" describes.
 
 Also decided by Daniel: a recorded absence is shown only in the picture, by the broken thread and
 hollow bead, and is listed nowhere; the legend is hidden from assistive technology; a
@@ -946,6 +1007,15 @@ be reasonable if layout moved to build time.
   behaved as described. A mouse wheel that reports lines rather than pixels is covered by a unit
   test of the arithmetic and by no browser. A pinch in Safari arrives as gesture events, not as
   Ctrl and the wheel, and is not handled.
+- **The morph beyond what was tried.** The browser check drives it in headless Chromium. It was
+  also run in headless Firefox 159 through geckodriver, by a script that is not in the
+  repository: both ways it ran without an error and landed where it should, and Daniel tried
+  the throwaway version in Firefox by hand. Safari has not been tried. The instant switch for
+  two layouts that do not pair up has never run in a browser, because the real layouts always
+  pair up. Three things have been read in the code and not tried: Ctrl and the wheel over the
+  map while it morphs should go to the browser, which zooms the page, since the map answers no
+  pointer then; pressing Enter on a focused moment while it morphs should open a card that the
+  landing closes; and a mouse already holding the map when a keyboard press switches modes.
 - **An id rule in the validator.** Nothing stops a `|` in a moment id, or a person slugged
   `spine`, and either would break placement: port ids are split on `|`, and the spine's edges
   are named `spine:<n>`, as a person's edges are named `<slug>:<n>`.
@@ -990,6 +1060,10 @@ be reasonable if layout moved to build time.
 - The map can be dragged with a pressed mouse in both modes, and a click on a moment still opens
   its card. `+`, `-`, Fit and 100% do what they say, and Ctrl with the wheel zooms about the
   pointer while the plain wheel still scrolls.
+- Pressing the other mode's button moves the picture, the box and the roster's cards to their
+  places in the other mode in a little over a second, in Chromium and in Firefox. From the top
+  of River it lands at the start of Subway and from the bottom at the end. After Fit it lands
+  fitted. With the system asking for reduced motion it switches at once.
 - Adding a new profile with `member = true` and a moment referencing it makes a new thread appear
   with no other edit.
 - A moment that is not a meetup, dated after the group began, draws the threads of the people it
