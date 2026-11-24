@@ -144,7 +144,7 @@ class SiteBuild(unittest.TestCase):
 
     MEMBERS = ['Daniel Baker', 'David Nuon', 'Rob Hernandez', 'Tristan Ross',
                'Connor Baker', 'Jared Baur', 'Kyle Risse', 'Morgan Jones',
-               'Mica']
+               'Mica', 'Samuel Raumin']
 
     def test_about_members_are_in_curated_order(self):
         about = (self.out / 'about' / 'index.html').read_text()
@@ -221,13 +221,23 @@ class SiteBuild(unittest.TestCase):
             self.assertIsInstance(m['away'], list, m['id'])
 
     def test_an_attendance_record_merges_into_its_event_beside_its_joins(self):
-        # the data records no attendance yet, so a record is written into the
-        # copy for a meetup that already has two join records, and taken out
-        # again
+        # NUG #3 has two join records and an attendance record in the data
+        _, data = self.origins_data()
+        nug3 = next(m for m in data['moments'] if m['id'] == '2023-09-19')
+        self.assertIn('mica', nug3['there'])
+        self.assertIn('tristan-ross', nug3['people'])
+        self.assertIn('kyle-risse', nug3['people'])
+        self.assertNotIn('nug-3-attendance', [m['id'] for m in data['moments']])
+
+    def test_a_second_attendance_record_adds_to_its_event_and_to_no_other(self):
+        # the data records nobody away yet, and no meetup with two attendance
+        # records, so both are written into the copy for a meetup that already
+        # has one, and taken out again
+        _, real = self.origins_data()
         moments = ROOT / 'data' / 'moments.toml'
         original = moments.read_text()
-        moments.write_text(original + '\n[[moment]]\nid = "nug-3-roll"\nevent = "2023-09-19"\n'
-                           'there = ["daniel-baker"]\naway = ["rob-hernandez"]\n')
+        moments.write_text(original + '\n[[moment]]\nid = "nug-5-roll"\nevent = "2024-04-13"\n'
+                           'there = ["rob-hernandez"]\naway = ["mica"]\n')
         tmp = pathlib.Path(tempfile.mkdtemp(prefix='socal-nug-attendance-'))
         try:
             build(tmp)
@@ -239,15 +249,12 @@ class SiteBuild(unittest.TestCase):
             r'<script type="application/json" id="origins-data">(.*?)</script>',
             page, re.S)
         data = json.loads(blob.group(1))
-        nug3 = next(m for m in data['moments'] if m['id'] == '2023-09-19')
-        self.assertEqual(nug3['there'], ['daniel-baker'])
-        self.assertEqual(nug3['away'], ['rob-hernandez'])
-        self.assertIn('tristan-ross', nug3['people'])
-        self.assertIn('kyle-risse', nug3['people'])
-        others = [m['id'] for m in data['moments']
-                  if m['id'] != '2023-09-19' and (m.get('there') or m.get('away'))]
-        self.assertEqual(others, [])
-        self.assertNotIn('nug-3-roll', [m['id'] for m in data['moments']])
+        before = {m['id']: (m.get('there'), m.get('away')) for m in real['moments']}
+        after = {m['id']: (m.get('there'), m.get('away')) for m in data['moments']}
+        there, away = before.pop('2024-04-13')
+        self.assertEqual(after.pop('2024-04-13'), (there + ['rob-hernandez'], away + ['mica']))
+        self.assertEqual(after, before)
+        self.assertNotIn('nug-5-roll', after)
 
     def test_a_dated_moment_is_not_duplicated_as_an_event(self):
         _, data = self.origins_data()

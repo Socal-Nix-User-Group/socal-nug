@@ -344,7 +344,9 @@ not resolve to a file in `content/events/`.
   the group began and naming people already in it, is written like any other shared moment. It is
   drawn as its own moment with those people's threads through it: on the ribbon when it names
   everyone in the group at its date, beside the ribbon otherwise. Nix Camp in autumn 2023 is one
-  beside it; SCaLE 22x, which everyone was at, is on it.
+  beside it. The three SCaLE moments after the founding named everyone in the group, and sat on
+  the ribbon, until Samuel Raumin was added to the group from NUG #1; the record does not say he
+  was at them, so they sit beside the ribbon until it does (see "Still open").
 - `links` on a freestanding moment is a list of `{ title, url }`; `braid-data` rejects an entry
   without both.
 - Every shared moment is stated exactly once, in one place, chronologically readable.
@@ -626,7 +628,7 @@ page is a wall to anyone tabbing past, which is the reason for the roving patter
 focusable moments.
 
 A meetup's label gives its title, its date and how many are in the group by then, for example
-"NUG #6, 1 June 2024, 9 in the group". Another moment's says how many people it names. Labels say
+"NUG #6, 1 June 2024, 10 in the group". Another moment's says how many people it names. Labels say
 how many, not who: eight names read out on every arrow press is a wall of its own, and the card
 names them for anyone who opens it. A face's label is the person's name and "member" or "guest".
 Beads have no role and are not tab stops.
@@ -822,12 +824,20 @@ a present concern.
 - **The card.** The treatment was called out early as generic and never revisited beyond
   squaring the corners. There is one card surface now, used in the popup and the roster, so it
   is a single thing to design rather than two.
-- **Descriptions and quotes.** Connor Baker, Jared Baur, Kyle Risse and Morgan Jones have
-  neither. Mica has a quote and no description, which rather shows up the gap. Rob Hernandez's
-  "First contact" has no blurb, though Daniel Baker's has one, and several conference and camp
-  moments have none.
-- **Seven `CONFIRM` markers** in `data/moments.toml`: two dates given as approximations, two
-  meetups guessed at, and "I think everyone was there" on the three SCaLE moments.
+- **Descriptions and quotes.** Connor Baker, Kyle Risse, Morgan Jones and Samuel Raumin have
+  neither. Jared Baur and Mica have a quote and no description, which rather shows up the gap.
+  Rob Hernandez's and Jared Baur's "First contact" have no blurb, though Daniel Baker's has one,
+  and several conference and camp moments have none.
+- **Eight `CONFIRM` markers** in `data/moments.toml`: two dates given as approximations, two
+  meetups guessed at, "I think everyone was there" on the three SCaLE moments, and "I believe
+  David and I were at every single NUG event" over the attendance records.
+- **Samuel Raumin and the SCaLE moments.** SCaLE 21x, 22x and 23x each name everyone who was in
+  the group except Samuel Raumin, who was added later with a join at NUG #1. Nobody has said
+  whether he was at them. Until someone does, each is drawn beside the ribbon with everyone but
+  him leaving for it, where before it sat on the ribbon.
+- **Who was at each meetup** is recorded for Daniel Baker and David Nuon at every meetup up to
+  NUG #17, and for others at seven of them, from Daniel's memory. Nobody is recorded away from
+  any meetup.
 - **The README** names the Origins checks and the browser tool, but still says nothing about
   esbuild, the committed bundle at `static/js/braid.js` and how to rebuild it, the vendored ELK,
   or that `zola serve` does not watch `data/`, which has twice made a change look like it had
@@ -863,10 +873,10 @@ a present concern.
 - The page renders in light and dark themes, in both modes, at desktop width, in Firefox and
   Chromium: every person has one unbroken thread, no trunk is drawn, each moment is a pill as wide
   as the people through it, and a moment everyone was at sits on the ribbon.
-- With no `there` or `away` in the data, every meetup has a ringed join bead for whoever joined
-  there and no other bead. Adding `there` for someone at a meetup puts a bead on their thread
-  there and their name under "Confirmed there:" on its card. Adding `away` takes their thread
-  around that meetup. The legend shows all four marks either way.
+- A meetup with no `there` entry has a ringed join bead for whoever joined there and no other
+  bead; NUG #18 is one. A `there` entry for someone at a meetup puts a bead on their thread there
+  and their name under "Confirmed there:" on its card. An `away` entry takes their thread around
+  that meetup; the data has none yet. The legend shows all four marks either way.
 - With JavaScript disabled the page shows no picture, by the trade recorded under Accessibility.
 - The picture is reachable and operable by keyboard alone: one Tab into it, arrows through the
   story, Enter to open a card, Escape to close, focus back where it started.

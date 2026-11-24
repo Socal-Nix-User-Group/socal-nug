@@ -60,6 +60,14 @@ title = "Paths cross"
 people = ["daniel-baker", "david-nuon"]
 blurb = "Daniel Baker and David Nuon met at a Code and Coffee meetup."
 
+# --- Jared Baur ------------------------------------------------------------
+
+[[moment]]
+id = "jared-finds-nix"
+date = "2021-12"
+title = "First contact"
+people = ["jared-baur"]
+
 # --- Conferences and camps -------------------------------------------------
 # Dates are the first day of each event.
 
@@ -100,6 +108,11 @@ blurb = "A group chat called 'Cool Guys from SCaLE'."
 id = "jared-joins"
 event = "2023-05-30"
 people = ["jared-baur"]
+
+[[moment]]
+id = "samuel-joins"
+event = "2023-05-30"
+people = ["samuel-raumin"]
 
 [[moment]]
 id = "mica-joins"
@@ -259,3 +272,135 @@ people = [
   "tristan-ross",
 ]
 links = [{ title = "NixCon 2026", url = "https://2026.nixcon.org/" }]
+
+# --- Who was at each meetup ------------------------------------------------
+# One record per meetup, in date order. A meetup with no record here says
+# nothing about who came. NUG #18 has not happened yet.
+#
+# CONFIRM: "I believe David and I were at every single NUG event". That is
+# why Daniel Baker and David Nuon are on every one of these, the two Mini
+# NUGs included. Everyone else is named only where Daniel remembered them.
+
+[[moment]]
+id = "nug-1-attendance"
+event = "2023-05-30"
+there = [
+  "daniel-baker",
+  "david-nuon",
+  "rob-hernandez",
+  "samuel-raumin",
+  "jared-baur",
+]
+
+[[moment]]
+id = "nug-2-attendance"
+event = "2023-07-08"
+there = ["daniel-baker", "david-nuon", "mica", "rob-hernandez"]
+
+[[moment]]
+id = "nug-3-attendance"
+event = "2023-09-19"
+there = [
+  "daniel-baker",
+  "david-nuon",
+  "rob-hernandez",
+  "mica",
+  "samuel-raumin",
+  "tristan-ross",
+  "kyle-risse",
+  "jared-baur",
+]
+
+[[moment]]
+id = "nug-4-attendance"
+event = "2024-01-25"
+there = [
+  "daniel-baker",
+  "david-nuon",
+  "mica",
+  "rob-hernandez",
+  "jared-baur",
+  "tristan-ross",
+]
+
+[[moment]]
+id = "nug-5-attendance"
+event = "2024-04-13"
+there = ["daniel-baker", "david-nuon"]
+
+[[moment]]
+id = "nug-6-attendance"
+event = "2024-06-01"
+there = [
+  "daniel-baker",
+  "david-nuon",
+  "tristan-ross",
+  "rob-hernandez",
+  "mica",
+  "kyle-risse",
+]
+
+[[moment]]
+id = "nug-7-attendance"
+event = "2024-08-01"
+there = ["daniel-baker", "david-nuon"]
+
+[[moment]]
+id = "nug-8-attendance"
+event = "2024-09-19"
+there = ["daniel-baker", "david-nuon"]
+
+[[moment]]
+id = "nug-9-attendance"
+event = "2024-11-02"
+there = ["daniel-baker", "david-nuon"]
+
+[[moment]]
+id = "nug-10-attendance"
+event = "2025-02-08"
+there = ["daniel-baker", "david-nuon"]
+
+[[moment]]
+id = "mini-nug-2025-04-10-attendance"
+event = "2025-04-10"
+there = ["daniel-baker", "david-nuon"]
+
+[[moment]]
+id = "nug-11-attendance"
+event = "2025-05-03"
+there = ["daniel-baker", "david-nuon"]
+
+[[moment]]
+id = "mini-nug-2025-06-04-attendance"
+event = "2025-06-04"
+there = ["daniel-baker", "david-nuon", "tristan-ross"]
+
+[[moment]]
+id = "nug-12-attendance"
+event = "2025-08-01"
+there = ["daniel-baker", "david-nuon"]
+
+[[moment]]
+id = "nug-13-attendance"
+event = "2025-12-04"
+there = ["daniel-baker", "david-nuon"]
+
+[[moment]]
+id = "nug-14-attendance"
+event = "2026-04-11"
+there = ["daniel-baker", "david-nuon"]
+
+[[moment]]
+id = "nug-15-attendance"
+event = "2026-06-27"
+there = ["daniel-baker", "david-nuon"]
+
+[[moment]]
+id = "nug-16-attendance"
+event = "2026-09-12"
+there = ["daniel-baker", "david-nuon"]
+
+[[moment]]
+id = "nug-17-attendance"
+event = "2026-11-14"
+there = ["daniel-baker", "david-nuon", "tristan-ross", "morgan-jones", "mica"]
