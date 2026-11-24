@@ -76,7 +76,8 @@ people = ["jared-baur"]
 id = "nix-camp-2022"
 date = "2022-09-12"
 title = "Nix Camp"
-people = ["rob-hernandez"]
+# Matthew Croughan organizes Nix Camp and is at every one.
+people = ["rob-hernandez", "matthew-croughan"]
 links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
 
 [[moment]]
@@ -95,7 +96,13 @@ title = "Nix booth at SCaLE 20x"
 # CONFIRM: Joshua Campbell has "been at scale the last 4 years", which would
 # take in this one, but "not sure if they were at the nix booth at 20x".
 # Left off.
-people = ["daniel-baker", "rob-hernandez", "david-nuon", "mica"]
+people = [
+  "daniel-baker",
+  "rob-hernandez",
+  "david-nuon",
+  "mica",
+  "matthew-croughan",
+]
 blurb = "Daniel Baker, Daniel Fullmer and Ben Futoriansky were at the booth. Daniel Baker and David Nuon met Rob Hernandez there."
 
 [[moment]]
@@ -173,7 +180,13 @@ blurb = "Daniel Baker and Morgan Jones met on Discord."
 id = "nix-camp-2023"
 date = "2023-09-24"
 title = "Nix Camp"
-people = ["daniel-baker", "rob-hernandez", "david-nuon", "kyle-risse"]
+people = [
+  "daniel-baker",
+  "rob-hernandez",
+  "david-nuon",
+  "kyle-risse",
+  "matthew-croughan",
+]
 links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
 
 # SCaLE runs co-located events alongside the main conference. One moment per
@@ -196,6 +209,7 @@ people = [
   "mica",
   "chris-tewfik",
   "joshua-campbell",
+  "matthew-croughan",
 ]
 blurb = "NixCon North America ran alongside SCaLE 21x, 14 to 17 March."
 links = [
@@ -207,7 +221,7 @@ links = [
 id = "nix-camp-2024"
 date = "2024-09-02"
 title = "Nix Camp"
-people = ["daniel-baker", "david-nuon"]
+people = ["daniel-baker", "david-nuon", "matthew-croughan"]
 links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
 
 [[moment]]
@@ -246,7 +260,13 @@ links = [{ title = "Nix Vegas 2025", url = "https://nix.vegas/2025/" }]
 id = "nix-camp-2025"
 date = "2025-08-27"
 title = "Nix Camp"
-people = ["daniel-baker", "rob-hernandez", "connor-baker", "jared-baur"]
+people = [
+  "daniel-baker",
+  "rob-hernandez",
+  "connor-baker",
+  "jared-baur",
+  "matthew-croughan",
+]
 links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
 
 [[moment]]

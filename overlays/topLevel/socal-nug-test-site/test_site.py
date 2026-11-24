@@ -163,9 +163,19 @@ class SiteBuild(unittest.TestCase):
             self.assertTrue(src.startswith('/'), f'external avatar: {src}')
             self.assertTrue((self.out / src.lstrip('/')).is_file(), src)
 
+    def test_a_guest_in_the_data_is_on_origins_and_not_in_the_members_grid(self):
+        # Matthew Croughan is in the story and not in the group
+        page, data = self.origins_data()
+        guests = [p['name'] for p in data['people'] if p['member'] is False]
+        self.assertIn('Matthew Croughan', guests)
+        about = (self.out / 'about' / 'index.html').read_text()
+        for name in guests:
+            self.assertNotIn(name, about)
+        self.assertTrue((self.out / 'about' / 'matthew-croughan' / 'index.html').is_file())
+
     def test_a_guest_has_a_page_but_is_not_in_the_members_grid(self):
-        # there are no guests in the data at the moment, so the filter is
-        # proved with a probe rather than left untested
+        # the filter is proved with a probe as well, so it does not rest on
+        # whoever happens to be a guest in the data
         probe = ROOT / 'content' / 'about' / 'zzz-guest-probe.md'
         probe.write_text('+++\nweight = 98\n[extra]\nmember = false\n'
                          'name = "Guest Probe"\nalias = "@guestprobe"\n+++\n')

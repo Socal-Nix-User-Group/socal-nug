@@ -234,9 +234,11 @@ the page reads people from. A thin guest page is the cheaper cost.
 
 Guests may fill in `image_url` and `description` or leave them empty. The page handles both.
 
-There are no guests in the data at present. The mechanism stays, because the page is meant to
-be able to show people who are part of the story without listing them as members of the group,
-and `test_site.py` proves the About filter with a probe rather than leaving it untested.
+There is one guest in the data: Matthew Croughan, who organizes Nix Camp and is at every one, and
+was at SCaLE 20x and 21x. That is what the mechanism is for: the page is meant to show people
+who are part of the story without listing them as members of the group. `test_site.py` checks
+that Matthew is on the Origins page and not in the About grid, and proves the About filter with
+a probe as well, so it does not rest on whoever happens to be a guest.
 
 Daniel Baker, "Dan" and `@djacu` are one person with one slug, `daniel-baker`. The anniversary
 post's "Dan, Daniel and Ben" is three separate people: Daniel Baker, Daniel Fullmer, and Ben.
@@ -657,7 +659,9 @@ one, and every thread after that takes a single muted colour. Past that point id
 the face, the roster card and highlight-on-hover, which thickens a thread rather than colouring
 it. Member and guest remain distinguishable at any size, because that distinction rides on ring,
 stroke, card and badge rather than on hue. This is a call made in the absence of a preference
-and is worth revisiting once the group passes a dozen.
+and is worth revisiting once the group passes a dozen. It has reached it: the twelve members
+take the twelve hues, and Matthew Croughan, the thirteenth thread and a guest, is the first in
+the muted colour. The next member added will be too.
 
 The badge carries no meeting number. The card instead shows where someone joined using the title
 and date of the meetup they joined at, which the engine already computes. Parsing a number out of
@@ -777,8 +781,8 @@ In `checks/default.nix`:
   vendored layout engine (before the bundle), the toggle, the zoom's four labelled buttons and
   the roster are in place. It reads the stylesheet for the rules behind the legend's tooltip,
   the hand over the map, the dimming of whoever is not lit, and the roster taking the map's
-  ceiling beside it. It also proves the About filter
-  with a guest probe.
+  ceiling beside it. It checks that the guest in the data is on the Origins page and not in the
+  About grid, and proves the About filter with a guest probe as well.
 
 - `braid-smoke`: builds the story from the built site's own data block, which is the repository's
   `data/moments.toml` and `content/events/` through the template's merge, not from fixtures. It
@@ -907,7 +911,8 @@ be reasonable if layout moved to build time.
   squaring the corners. There is one card surface now, used in the popup and the roster, so it
   is a single thing to design rather than two.
 - **Descriptions and quotes.** Connor Baker, Kyle Risse, Morgan Jones, Samuel Raumin, Chris
-  Tewfik and Joshua Campbell have neither. Jared Baur and Mica have a quote and no description, which rather shows up the gap.
+  Tewfik, Joshua Campbell and Matthew Croughan have neither. Jared Baur and Mica have a quote and
+  no description, which rather shows up the gap.
   Rob Hernandez's and Jared Baur's "First contact" have no blurb, though Daniel Baker's has one,
   and several conference and camp moments have none.
 - **Eight `CONFIRM` markers** in `data/moments.toml`: two dates given as approximations, one
