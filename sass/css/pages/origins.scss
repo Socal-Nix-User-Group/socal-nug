@@ -607,8 +607,12 @@ html[data-theme=dark] .origins-legend {
         width: max-content;
         max-width: 22rem;
         padding: 0.3rem 0.5rem;
-        background: var(--origins-ink);
-        color: var(--bulma-scheme-main, #fff);
+        // The page's own colours, like a card: dark with light text in the
+        // dark theme, light with dark text in the light one. The border and
+        // the shadow are what set it off from the map under it.
+        background: var(--bulma-scheme-main, #fff);
+        color: var(--origins-ink);
+        border: 1px solid var(--origins-line);
         box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
         font-size: 0.75rem;
         line-height: 1.3;
