@@ -92,6 +92,9 @@ links = [{ title = "NixCon 2022", url = "https://2022.nixcon.org/" }]
 id = "scale-20x"
 date = "2023-03-09" # SCaLE 20x ran 9 to 12 March
 title = "Nix booth at SCaLE 20x"
+# CONFIRM: Joshua Campbell has "been at scale the last 4 years", which would
+# take in this one, but "not sure if they were at the nix booth at 20x".
+# Left off.
 people = ["daniel-baker", "rob-hernandez", "david-nuon", "mica"]
 blurb = "Daniel Baker, Daniel Fullmer and Ben Futoriansky were at the booth. Daniel Baker and David Nuon met Rob Hernandez there."
 
@@ -119,6 +122,11 @@ people = ["samuel-raumin"]
 id = "mica-joins"
 event = "2023-07-08"
 people = ["mica"]
+
+[[moment]]
+id = "joshua-joins"
+event = "2023-07-08"
+people = ["joshua-campbell"]
 
 [[moment]]
 id = "tristan-joins"
@@ -187,6 +195,7 @@ people = [
   "connor-baker",
   "mica",
   "chris-tewfik",
+  "joshua-campbell",
 ]
 blurb = "NixCon North America ran alongside SCaLE 21x, 14 to 17 March."
 links = [
@@ -218,6 +227,7 @@ people = [
   "morgan-jones",
   "mica",
   "chris-tewfik",
+  "joshua-campbell",
 ]
 blurb = "PlanetNix ran alongside SCaLE 22x, 6 to 9 March."
 links = [
@@ -263,6 +273,7 @@ people = [
   "morgan-jones",
   "mica",
   "chris-tewfik",
+  "joshua-campbell",
 ]
 blurb = "PlanetNix ran alongside SCaLE 23x, 5 to 8 March."
 links = [
@@ -308,6 +319,10 @@ links = [{ title = "NixCon 2026", url = "https://2026.nixcon.org/" }]
 # NUG #17. Daniel knew of NUG #6 and NUG #17. Chris added NUG #7, #8, #10,
 # #11, #12, #13 and the Mini NUG of June 2025, and said there were no
 # others, so Chris is `away` at the rest.
+#
+# Joshua Campbell was added after the seven were recorded. Daniel placed
+# Joshua at each of them from NUG #2, the first, except NUG #17, about which
+# nothing was said, so Joshua is on neither list there.
 
 [[moment]]
 id = "nug-1-attendance"
@@ -339,6 +354,7 @@ there = [
   "kyle-risse",
   "jared-baur",
 ]
+away = ["joshua-campbell"]
 
 [[moment]]
 id = "nug-4-attendance"
@@ -350,6 +366,7 @@ there = [
   "rob-hernandez",
   "jared-baur",
   "tristan-ross",
+  "joshua-campbell",
 ]
 away = ["samuel-raumin", "kyle-risse"]
 
@@ -371,7 +388,7 @@ there = [
   "morgan-jones",
   "chris-tewfik",
 ]
-away = ["jared-baur", "samuel-raumin"]
+away = ["jared-baur", "samuel-raumin", "joshua-campbell"]
 
 [[moment]]
 id = "nug-7-attendance"
@@ -417,6 +434,7 @@ away = [
   "kyle-risse",
   "connor-baker",
   "morgan-jones",
+  "joshua-campbell",
 ]
 
 [[moment]]

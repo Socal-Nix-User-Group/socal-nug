@@ -886,8 +886,10 @@ phone-sized screen is not a present concern.
 
 Seating among people who joined at the same meetup stays with the rule, first moment and then
 slug, also by Daniel's decision. It is the one free choice in slot order: the rest follows from
-who joined when. On 2026-11-23 there were three such ties (Rob Hernandez, Daniel Baker and David
-Nuon; Jared Baur and Samuel Raumin; Kyle Risse and Tristan Ross), so twenty-four seatings, and
+who joined when. When it was measured, on 2026-11-23 with ten people in the data, there were
+three such ties (Rob Hernandez, Daniel Baker and David Nuon; Jared Baur and Samuel Raumin; Kyle
+Risse and Tristan Ross; Mica and Joshua Campbell at NUG #2 make a fourth since), so twenty-four
+seatings, and
 all were laid out through the real engine and their thread crossings counted: 140 as it stands,
 126 at best, 143 at worst, the same in both modes. Putting David left of Daniel alone gives 133.
 The effects do not add up, because ELK chooses again which side each side moment and each detour
@@ -904,14 +906,16 @@ be reasonable if layout moved to build time.
 - **The card.** The treatment was called out early as generic and never revisited beyond
   squaring the corners. There is one card surface now, used in the popup and the roster, so it
   is a single thing to design rather than two.
-- **Descriptions and quotes.** Connor Baker, Kyle Risse, Morgan Jones, Samuel Raumin and Chris
-  Tewfik have neither. Jared Baur and Mica have a quote and no description, which rather shows up the gap.
+- **Descriptions and quotes.** Connor Baker, Kyle Risse, Morgan Jones, Samuel Raumin, Chris
+  Tewfik and Joshua Campbell have neither. Jared Baur and Mica have a quote and no description, which rather shows up the gap.
   Rob Hernandez's and Jared Baur's "First contact" have no blurb, though Daniel Baker's has one,
   and several conference and camp moments have none.
-- **Seven `CONFIRM` markers** in `data/moments.toml`: two dates given as approximations, one
+- **Eight `CONFIRM` markers** in `data/moments.toml`: two dates given as approximations, one
   meetup guessed at (Connor Baker's first, below), "I think everyone was there" on the three
-  SCaLE moments, and "I believe David and I were at every single NUG event" over the attendance
-  records.
+  SCaLE moments, "I believe David and I were at every single NUG event" over the attendance
+  records, and whether Joshua Campbell was at the Nix booth at SCaLE 20x. Joshua has been at
+  SCaLE the last four years, which would take it in, but Daniel is not sure about the booth, so
+  Joshua is left off that moment.
 - **Who was at each meetup** is recorded whole, everyone in the group either there or away, for
   the seven meetups Daniel checked against pictures: NUG #1, #2, #3, #4, #6, the June 2025 Mini
   NUG and NUG #17. For the other twelve up to NUG #17 Daniel Baker and David Nuon are recorded,
@@ -919,7 +923,10 @@ be reasonable if layout moved to build time.
   from NUG #5, where Chris joined, to NUG #17: there at NUG #6 and NUG #17, which Daniel knew
   of, and at NUG #7, #8, #10, #11, #12, #13 and the June 2025 Mini NUG, which Chris added,
   saying there were no others; so away from NUG #9, the April 2025 Mini NUG and NUG #14, #15
-  and #16.
+  and #16. One gap in the seven: Joshua Campbell was added after they were recorded, and Daniel
+  placed Joshua at each from NUG #2, where Joshua joined (there at NUG #4; away from NUG #3,
+  NUG #6 and the June 2025 Mini NUG), except NUG #17, about which nothing was said, so Joshua
+  is neither there nor away at it.
 - **Connor Baker's first meetup** is recorded as NUG #7, as a guess. NUG #6 was first thought
   to be where Connor joined, but Connor is not in the pictures of it; Daniel thinks NUG #7 may
   have been the first.
