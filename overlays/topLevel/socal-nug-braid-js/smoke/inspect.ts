@@ -132,8 +132,9 @@ export function inspectPlacement(story: Story, placed: LoomPlaced): Finding[] {
 
   // A hop from one stop on the ribbon to the next stays in the ribbon: no
   // point of it is more than a slot outside its two ends, across the time
-  // axis. A hop that skips a moment on the ribbon is someone going around a
-  // meetup they are away from or not yet part of, and is meant to step out.
+  // axis. Someone away from a meetup stops at it like everyone else. A hop
+  // that skips a moment on the ribbon is someone going around a meetup they
+  // are not yet part of, and is meant to step out.
   const stops = new Map(ribbonStops(story, placed).map((s) => [s.node, s]));
   const meetups = story.moments.flatMap((g, i) => (g.onRibbon ? [i] : []));
   const acrossOf = (p: Point) => (placed.mode === "river" ? p.x : p.y);
@@ -317,9 +318,11 @@ function rectReach(
 
 /**
  * Whether the drawn picture holds up: everything is on the canvas, no thread
- * runs through an oval or a face that is not its own, no label is on a face or
- * an oval or under a thread, and every bead is inside its oval and exactly
- * where the record vouches for the person.
+ * runs through an oval or a face that is not its own or into a meetup its
+ * person is recorded away from, no label is on a face or an oval or under a
+ * thread, every filled bead is inside its oval and exactly where the record
+ * vouches for the person, and every hollow bead is exactly where the record
+ * says they were away.
  */
 export function inspectDrawing(
   story: Story,
@@ -439,9 +442,16 @@ export function inspectDrawing(
       }`,
     });
   };
-  const awayFrom = (id: string, slug: string) =>
-    story.moments.find((g) => g.moment.id === id)?.moment.away?.includes(slug) ??
-      false;
+  // Every recorded absence: someone in the group the record lists away from
+  // a meetup. Their thread breaks either side of it, so no part of it is in
+  // the meetup's box, and a hollow bead sits in their slot.
+  const absences = story.moments.flatMap((g) =>
+    g.moment.trunk
+      ? (g.moment.away ?? [])
+        .filter((slug) => g.through.some((p) => p.slug === slug))
+        .map((slug) => ({ id: g.moment.id, slug }))
+      : []
+  );
 
   for (const path of made) {
     if (path.tag !== "path" || !hasClass(path, "origins-thread")) continue;
@@ -451,19 +461,22 @@ export function inspectDrawing(
         g.moment.id
       ),
     );
+    const away = absences.filter((a) => a.slug === slug);
     for (const [x, y] of sample(path.attrs.d)) {
       for (const o of ovals) {
         if (own.has(o.id) || ovalReach(o, pointAt(x, y)) >= 1) continue;
-        if (awayFrom(o.id, slug)) {
+        report("layout", slug, `${o.id}'s oval`, x, y);
+      }
+      for (const a of away) {
+        const box = placed.boxes.get(a.id)!;
+        if (x > box.x && x < box.x + box.width && y > box.y && y < box.y + box.height) {
           report(
             "engine",
             slug,
-            `${o.id}, which they are recorded away from,`,
+            `${a.id}, which they are recorded away from,`,
             x,
             y,
           );
-        } else {
-          report("layout", slug, `${o.id}'s oval`, x, y);
         }
       }
       for (const f of faces) {
@@ -479,16 +492,42 @@ export function inspectDrawing(
     }
   }
 
-  // Beads: one exactly where the record vouches, each inside its own oval.
-  const beads = made
-    .filter((n) => n.tag === "circle" && hasClass(n, "origins-bead"))
-    .map((n) => ({
-      slug: n.attrs["data-person"],
-      x: +n.attrs.cx,
-      y: +n.attrs.cy,
-      matched: false,
-    }));
+  // Beads: a filled one exactly where the record vouches, each inside its own
+  // oval, and a hollow one exactly where it records an absence.
+  const beadsOf = (hollow: boolean) =>
+    made
+      .filter((n) =>
+        n.tag === "circle" && hasClass(n, "origins-bead") &&
+        hasClass(n, "is-away") === hollow
+      )
+      .map((n) => ({
+        slug: n.attrs["data-person"],
+        x: +n.attrs.cx,
+        y: +n.attrs.cy,
+        matched: false,
+      }));
+  const beads = beadsOf(false);
   const near = (a: number, b: number) => Math.abs(a - b) < 0.01;
+
+  const hollow = beadsOf(true);
+  for (const a of absences) {
+    const at = placed.slots.get(slotKey(a.id, a.slug))!;
+    const bead = hollow.find((b) =>
+      !b.matched && b.slug === a.slug && near(b.x, at.x) && near(b.y, at.y)
+    );
+    if (bead === undefined) {
+      engine(`${a.slug} is recorded away from ${a.id} and has no hollow bead there`);
+    } else {
+      bead.matched = true;
+    }
+  }
+  for (const b of hollow) {
+    if (b.matched) continue;
+    engine(
+      `${b.slug} has a hollow bead at ${b.x.toFixed(0)},${b.y.toFixed(0)} and is not recorded away there`,
+    );
+  }
+
   const vouched: Array<{ id: string; slug: string; x: number; y: number }> = [];
   for (const g of story.moments) {
     for (const p of g.through) {

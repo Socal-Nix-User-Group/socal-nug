@@ -103,12 +103,26 @@ test("there is exactly one thread path per person, in thread order, that says wh
     assert.equal(path.attrs["data-hue"], String(meta.hue));
     assert.equal(path.attrs.fill, "none");
     assert.ok(path.attrs.class.split(" ").includes(meta.member ? "is-member" : "is-guest"));
-    // every edge joins the next, so one subpath
-    assert.equal(path.attrs.d.match(/M/g)!.length, 1, meta.slug);
+    // every edge joins the next, so one subpath, but where Rob is away from nug3
+    assert.equal(path.attrs.d.match(/M/g)!.length, meta.slug === "rob" ? 2 : 1, meta.slug);
   });
 });
 
-test("a thread path starts at its person's face and passes through their slot at every moment on their path, in order", () => {
+test("a thread breaks at a meetup its person is away from: the run ends where the edge in ends, and a new one starts where the edge out starts", () => {
+  const robs = placed.edges.filter((e) => e.meta.slug === "rob");
+  const into = robs.find((e) => e.to === "nug3")!;
+  const out = robs.find((e) => e.from === "nug3")!;
+  const path = withClass(made, "origins-thread").find((p) => p.attrs["data-person"] === "rob")!;
+  const at = anchors(path.attrs.d);
+  const second = at.findIndex((p, i) => i > 0 && p.move);
+  assert.deepEqual([at[second - 1].x, at[second - 1].y], [into.points.at(-1)!.x, into.points.at(-1)!.y]);
+  assert.deepEqual([at[second].x, at[second].y], [out.points[0].x, out.points[0].y]);
+  // neither end is in the oval
+  const box = placed.boxes.get("nug3")!;
+  assert.ok(at[second - 1].y < box.y && at[second].y > box.y + box.height);
+});
+
+test("a thread path starts at its person's face and passes through their slot at every moment on their path they are not away from, in order", () => {
   const near = (a: { x: number; y: number }, b: { x: number; y: number }) =>
     Math.abs(a.x - b.x) < 0.01 && Math.abs(a.y - b.y) < 0.01;
   for (const thread of story.threads) {
@@ -118,6 +132,7 @@ test("a thread path starts at its person's face and passes through their slot at
     assert.ok(near(at[0], placed.roots.get(slug)!), slug);
     let from = 0;
     for (const g of thread.path) {
+      if (g.through.find((p) => p.slug === slug)!.away) continue;
       const slot = placed.slots.get(slotKey(g.moment.id, slug))!;
       const found = at.findIndex((p, i) => i >= from && near(p, slot));
       assert.ok(found >= 0, `${slug} does not pass their slot at ${g.moment.id} in order`);
@@ -135,7 +150,8 @@ test("a person whose edges do not all join gets one path with a second M where t
   const rob = withClass(drawn, "origins-thread").filter((p) => p.attrs["data-person"] === "rob");
   assert.equal(rob.length, 1);
   const at = anchors(rob[0].attrs.d);
-  assert.equal(at.filter((p) => p.move).length, 2);
+  // the gap, and the break at nug3, which Rob is away from
+  assert.equal(at.filter((p) => p.move).length, 3);
   const second = at.findIndex((p, i) => i > 0 && p.move);
   assert.deepEqual([at[second].x, at[second].y], [robs[4].points[0].x, robs[4].points[0].y]);
 });
@@ -190,14 +206,41 @@ test("a meetup and another moment are told apart", () => {
   assert.equal(withClass(made, "origins-node").length, story.moments.length);
 });
 
-test("there is a bead exactly where the record vouches", () => {
-  const beads = withClass(made, "origins-bead");
+const filled = (drawn: Node[]) =>
+  withClass(drawn, "origins-bead").filter((b) => !b.attrs.class.split(" ").includes("is-away"));
+
+test("there is a filled bead exactly where the record vouches", () => {
+  const beads = filled(made);
   const vouched = story.moments.flatMap((g) => g.through.filter((p) => p.vouched));
   assert.equal(beads.length, vouched.length);
 });
 
+test("there is a hollow bead at the slot of everyone away from a meetup, in their colour, and nowhere else", async () => {
+  for (const mode of ["river", "subway"] as const) {
+    const { placed: p, made: drawn } = await draw(mode);
+    const hollow = withClass(drawn, "is-away");
+    const away = story.moments.flatMap((g) =>
+      g.through.filter((x) => x.away).map((x) => ({ at: p.slots.get(slotKey(g.moment.id, x.slug))!, slug: x.slug }))
+    );
+    assert.equal(away.length, 1);
+    assert.deepEqual(
+      hollow.map((b) => [b.tag, b.attrs.class, b.attrs["data-person"], b.attrs["data-hue"], Number(b.attrs.cx), Number(b.attrs.cy), b.attrs.r]),
+      away.map((a) => ["circle", "origins-bead is-away", a.slug, "0", a.at.x, a.at.y, "2.6"]),
+      mode,
+    );
+  }
+});
+
+test("a hollow bead is drawn with the other beads", () => {
+  const indices = (token: string) =>
+    made.flatMap((n, i) => ((n.attrs.class ?? "").split(" ").includes(token) ? [i] : []));
+  const [index] = indices("is-away");
+  assert.ok(index > Math.max(...indices("origins-node")));
+  assert.ok(index < Math.min(...indices("origins-root")));
+});
+
 test("a bead sits on its person's slot, in their colour", () => {
-  const beads = withClass(made, "origins-bead");
+  const beads = filled(made);
   const expected = story.moments.flatMap((g) =>
     g.through
       .filter((p) => p.vouched)
@@ -214,7 +257,7 @@ test("a bead sits on its person's slot, in their colour", () => {
 });
 
 test("the bead where someone joined is the larger one, with the join class", () => {
-  const beads = withClass(made, "origins-bead");
+  const beads = filled(made);
   const joins = beads.filter((b) => b.attrs.class.split(" ").includes("is-join"));
   const joinedCount = story.moments.flatMap((g) => g.through.filter((p) => p.joined)).length;
   assert.equal(joins.length, joinedCount);

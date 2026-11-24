@@ -79,7 +79,7 @@ test("every history has a meetup with no joiner that the whole group is away fro
     assert.ok(
       story.moments.some((g) =>
         g.moment.trunk && g.moment.people.length === 0 && g.inGroup > 0 &&
-        g.through.length === 0 && g.moment.away?.length === g.inGroup
+        g.through.length === g.inGroup && g.through.every((p) => p.away)
       ),
       name,
     );

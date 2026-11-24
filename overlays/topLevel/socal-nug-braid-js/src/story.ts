@@ -13,6 +13,8 @@ export interface Passage {
   readonly slot: number;
   /** The record says they were there. */
   readonly vouched: boolean;
+  /** The record says they were not there. Only ever true at a meetup. */
+  readonly away: boolean;
   /** This is the meetup they joined at. */
   readonly joined: boolean;
 }
@@ -21,7 +23,7 @@ export interface Gathering {
   readonly moment: Moment;
   /** A meetup, or a moment everyone in the group at its date is through. */
   readonly onRibbon: boolean;
-  /** How many slots its oval has, gaps for absent members included. Never less than 1. */
+  /** How many slots its oval has. Never less than 1. */
   readonly slots: number;
   /** How many people are in the group at its date. */
   readonly inGroup: number;
@@ -75,11 +77,11 @@ export function buildStory(
   const members = (index: number) =>
     [...joinIndex].filter(([, joined]) => joined <= index).map(([slug]) => slug);
 
-  const through = seq.map((moment, index) => {
-    if (!moment.trunk) return moment.people.filter((slug) => people.has(slug));
-    const away = moment.away ?? [];
-    return members(index).filter((slug) => !away.includes(slug));
-  });
+  // Everyone in the group is through a meetup, those the record lists away
+  // from it included: they keep their slot and their thread stays in it.
+  const through = seq.map((moment, index) =>
+    moment.trunk ? members(index) : moment.people.filter((slug) => people.has(slug))
+  );
 
   const firstMoment = new Map<string, number>();
   const lastMoment = new Map<string, number>();
@@ -105,6 +107,7 @@ export function buildStory(
     const onRibbon =
       moment.trunk || (inGroup > 0 && group.every((s) => here.includes(s)));
     const there = moment.there ?? [];
+    const away = moment.trunk ? moment.away ?? [] : [];
     const visitors = here.filter((slug) => !group.includes(slug));
     const slotOf = (slug: string) =>
       onRibbon
@@ -117,12 +120,17 @@ export function buildStory(
       onRibbon,
       slots: Math.max(1, onRibbon ? inGroup + visitors.length : here.length),
       inGroup,
-      through: here.map((slug) => ({
-        slug,
-        slot: slotOf(slug),
-        vouched: !moment.trunk || joinIndex.get(slug) === index || there.includes(slug),
-        joined: moment.trunk && joinIndex.get(slug) === index,
-      })),
+      through: here.map((slug) =>
+        away.includes(slug)
+          ? { slug, slot: slotOf(slug), vouched: false, away: true, joined: false }
+          : {
+            slug,
+            slot: slotOf(slug),
+            vouched: !moment.trunk || joinIndex.get(slug) === index || there.includes(slug),
+            away: false,
+            joined: moment.trunk && joinIndex.get(slug) === index,
+          }
+      ),
       passing: onRibbon
         ? []
         : group

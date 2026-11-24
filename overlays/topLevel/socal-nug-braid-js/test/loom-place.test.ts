@@ -4,6 +4,7 @@ import { labelWidth, rootId } from "../src/elk.ts";
 import type { ElkGraph, ElkPoint } from "../src/elk.ts";
 import { loomGraphFor, passId, portId } from "../src/loom-graph.ts";
 import {
+  AWAY_GAP,
   centreLoomIn,
   loomPlacedFrom,
   placeLoom,
@@ -52,7 +53,35 @@ test("subway turns the slot the other way", async () => {
 });
 
 test("nobody has a slot at a moment they are not through", () => {
-  assert.equal(placed.slots.get(slotKey("nug3", "rob")), undefined);
+  assert.equal(placed.slots.get(slotKey("nug3", "connor")), undefined);
+  assert.equal(placed.slots.get(slotKey("camp", "david")), undefined);
+});
+
+test("someone away from a meetup keeps their slot in it, where the hollow bead goes", () => {
+  const box = placed.boxes.get("nug3")!;
+  assert.deepEqual(placed.slots.get(slotKey("nug3", "rob")), { x: box.x + 8, y: box.y + 7 });
+});
+
+test("a thread stops AWAY_GAP short of a meetup its person is away from and starts again AWAY_GAP after it, at their slot across it", async () => {
+  assert.equal(AWAY_GAP, 3.5);
+  for (const mode of ["river", "subway"] as const) {
+    const p = await placeLoom(story, mode, fakeLoomLayout);
+    const box = p.boxes.get("nug3")!;
+    const slot = p.slots.get(slotKey("nug3", "rob"))!;
+    const rob = p.edges.filter((e) => e.meta.slug === "rob");
+    const into = rob.find((e) => e.to === "nug3")!;
+    const out = rob.find((e) => e.from === "nug3")!;
+    const [stop, start] = mode === "river"
+      ? [{ x: slot.x, y: box.y - 3.5 }, { x: slot.x, y: box.y + box.height + 3.5 }]
+      : [{ x: box.x - 3.5, y: slot.y }, { x: box.x + box.width + 3.5, y: slot.y }];
+    // The point the layout gave on the pill's edge is replaced, not kept beside
+    // it: the fake layout's one bend comes straight before and after.
+    assert.deepEqual(into.points.slice(-2), [{ x: 7, y: 7 }, stop], mode);
+    assert.deepEqual(out.points.slice(0, 2), [start, { x: 7, y: 7 }], mode);
+    // and the other ends of those edges are carried to the slot as ever
+    assert.deepEqual(into.points[0], p.slots.get(slotKey("camp", "rob")), mode);
+    assert.deepEqual(out.points.at(-1), p.slots.get(slotKey("scale", "rob")), mode);
+  }
 });
 
 test("an edge comes back as its points in order, with whose thread it is", async () => {
@@ -91,13 +120,17 @@ test("an edge comes back as its points in order, with whose thread it is", async
   assert.equal(mapped.edges.length, built.graph.edges.length - spine.length);
 });
 
-test("a thread runs through every oval on its path, from its slot to its slot", () => {
+test("a thread runs through every oval on its path that its person is not away from, from its slot to its slot", () => {
   const same = (a: ElkPoint, b: ElkPoint) => a.x === b.x && a.y === b.y;
   for (const thread of story.threads) {
     const slug = thread.person.slug;
     const edges = placed.edges.filter((e) => e.meta.slug === slug);
     thread.path.forEach((g, index) => {
       const slot = placed.slots.get(slotKey(g.moment.id, slug))!;
+      if (g.through.find((p) => p.slug === slug)!.away) {
+        assert.ok(!edges.some((e) => same(e.points.at(-1)!, slot) || same(e.points[0], slot)), `${slug} at ${g.moment.id}`);
+        return;
+      }
       assert.ok(
         edges.some((e) => same(e.points[e.points.length - 1], slot)),
         `${slug} does not arrive at their slot at ${g.moment.id}`,
@@ -132,8 +165,9 @@ test("the piece of thread inside an oval runs straight along time, without stepp
         );
       }
     }
-    // every hop has two slot ends but a face's first hop, which has one
-    assert.equal(checked, 2 * p.edges.length - story.threads.length, mode);
+    // every hop has two slot ends but a face's first hop, which has one, and
+    // Rob's two hops at nug3, which he is away from
+    assert.equal(checked, 2 * p.edges.length - story.threads.length - 2, mode);
   }
 });
 
@@ -282,8 +316,8 @@ test("every edge says where it is from and where it goes to: a face, a moment or
     ],
   );
   assert.deepEqual(
-    placed.edges.filter((e) => e.meta.slug === "rob").map((e) => [e.from, e.to]).slice(-3),
-    [["nug2", "camp"], ["camp", "scale"], ["scale", "nug4"]],
+    placed.edges.filter((e) => e.meta.slug === "rob").map((e) => [e.from, e.to]).slice(-4),
+    [["nug2", "camp"], ["camp", "nug3"], ["nug3", "scale"], ["scale", "nug4"]],
   );
 });
 

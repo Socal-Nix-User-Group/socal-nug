@@ -66,6 +66,13 @@ export type Layout = (graph: ElkGraph) => Promise<ElkGraph>;
 /** Where a label's text hangs from: its baseline, at the end ELK aligned. */
 const BASELINE = 11;
 
+/**
+ * How far short of a meetup's box a thread stops, and how far after it the
+ * thread starts again, when its person is away from it. Half the thread's
+ * width of that is its round cap.
+ */
+export const AWAY_GAP = 3.5;
+
 export function slotKey(moment: string, slug: string): string {
   return `${moment}|${slug}`;
 }
@@ -155,25 +162,44 @@ export function loomPlacedFrom(
   };
   // The node an edge end is on: a port's node, or a face's own id.
   const nodeOf = (end: string): string => end.split("|")[0];
+  // An end at a meetup its person is away from is not carried on to the slot.
+  // It is pulled back off the box instead, AWAY_GAP along time, at the slot
+  // across it, so the thread breaks either side of the meetup.
+  const awayAt = (end: string): boolean => {
+    const [node, , slug] = end.split("|");
+    return gatherings.get(node)?.through.find((p) => p.slug === slug)?.away ?? false;
+  };
+  const shortOf = (end: string): Point => {
+    const [node, side, slug] = end.split("|");
+    const box = boxes.get(node)!;
+    const slot = slots.get(slotKey(node, slug))!;
+    const into = side === "in";
+    return river
+      ? { x: slot.x, y: into ? box.y - AWAY_GAP : box.y + box.height + AWAY_GAP }
+      : { x: into ? box.x - AWAY_GAP : box.x + box.width + AWAY_GAP, y: slot.y };
+  };
 
   // An edge ELK routed nowhere is left out rather than drawn from nothing.
   const edges = laidOut.edges.flatMap((edge) => {
     const meta = built.meta.get(edge.id);
     const section = edge.sections?.[0];
     if (meta === undefined || section === undefined) return [];
+    const source = edge.sources[0];
+    const target = edge.targets[0];
+    const route = [
+      section.startPoint,
+      ...(section.bendPoints ?? []),
+      section.endPoint,
+    ].map((p) => ({ x: p.x, y: p.y }));
     const points = [
-      ...slotAt(edge.sources[0]),
-      ...[
-        section.startPoint,
-        ...(section.bendPoints ?? []),
-        section.endPoint,
-      ].map((p) => ({ x: p.x, y: p.y })),
-      ...slotAt(edge.targets[0]),
+      ...(awayAt(source) ? [shortOf(source)] : [...slotAt(source), route[0]]),
+      ...route.slice(1, -1),
+      ...(awayAt(target) ? [shortOf(target)] : [route.at(-1)!, ...slotAt(target)]),
     ];
     return [{
       meta,
-      from: nodeOf(edge.sources[0]),
-      to: nodeOf(edge.targets[0]),
+      from: nodeOf(source),
+      to: nodeOf(target),
       points,
     }];
   });

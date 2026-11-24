@@ -65,15 +65,18 @@ test("a single slot sits in the middle of its moment", () => {
   assert.equal(node("rob-nix").ports![0].x, 9);
 });
 
-test("an empty slot has no port, and the others keep their places", () => {
+test("someone away from a meetup has a port in and out at their slot, and the others keep their places", () => {
   assert.equal(node("nug3").width, 44); // five slots
-  assert.ok(!node("nug3").ports!.some((p) => p.id.endsWith("|rob")));
+  const rob = node("nug3").ports!.filter((p) => p.id.endsWith("|rob"));
+  assert.deepEqual(rob.map((p) => [p.id, p.x, p.y]), [["nug3|in|rob", 8, 0], ["nug3|out|rob", 8, 14]]);
   assert.equal(node("nug3").ports!.find((p) => p.id === "nug3|in|daniel")!.x, 15);
 });
 
-test("a thread is one edge per hop, port to port, and has none into a meetup it skips", () => {
+test("a thread is one edge per hop, port to port, into and out of a meetup its person is away from", () => {
   assert.deepEqual(hops("connor"), ["root:connor>scale|in|connor", "scale|out|connor>nug4|in|connor"]);
-  assert.ok(!hops("rob").some((h) => h.includes("nug3")));
+  assert.ok(hops("rob").includes("camp|out|rob>nug3|in|rob"));
+  assert.ok(hops("rob").includes("nug3|out|rob>scale|in|rob"));
+  assert.ok(!hops("rob").includes("camp|out|rob>scale|in|rob"));
   assert.ok(hops("rob").includes("nug2|out|rob>camp|in|rob"));
 });
 
@@ -91,7 +94,7 @@ test("a moment on the ribbon has a spine port in and out, half a slot before its
   const out = ports.find((p) => p.id === "founded|out|~")!;
   assert.deepEqual([into.x, into.y, into.layoutOptions["elk.port.side"]], [4.5, 0, "NORTH"]);
   assert.deepEqual([out.x, out.y, out.layoutOptions["elk.port.side"]], [4.5, 14, "SOUTH"]);
-  // Rob is away from nug3 and its first slot is empty: the spine is placed by the slot.
+  // Rob is away from nug3, in its first slot: the spine is placed by the slot.
   assert.equal(node("nug3").ports!.find((p) => p.id === "nug3|in|~")!.x, 4.5);
   const p = loomGraphFor(story, "subway").graph.children.find((n) => n.id === "founded")!.ports!;
   const sub = p.find((q) => q.id === "founded|out|~")!;
@@ -140,7 +143,7 @@ test("subway puts the ports on the sides time runs through", () => {
   assert.deepEqual([p[3].x, p[3].y, p[3].layoutOptions["elk.port.side"]], [14, 15, "EAST"]);
 });
 
-test("a meetup of nothing but gaps is still a node of the right size, with no ports but the spine's", () => {
+test("a meetup everyone is away from is still a node of the right size, with ports for everyone and the spine", () => {
   const lone = buildStory(
     [
       at("founded", "2023-04", ["rob"], true),
@@ -148,10 +151,15 @@ test("a meetup of nothing but gaps is still a node of the right size, with no po
     ],
     PEOPLE,
   );
-  const empty = loomGraphFor(lone, "river").graph.children.find((n) => n.id === "nug1")!;
+  const built = loomGraphFor(lone, "river");
+  const empty = built.graph.children.find((n) => n.id === "nug1")!;
   assert.equal(empty.width, 18);
   assert.equal(empty.height, 14);
-  assert.deepEqual(empty.ports!.map((p) => p.id), ["nug1|in|~", "nug1|out|~"]);
+  assert.deepEqual(empty.ports!.map((p) => p.id), ["nug1|in|rob", "nug1|out|rob", "nug1|in|~", "nug1|out|~"]);
+  assert.deepEqual(
+    built.graph.edges.filter((e) => built.meta.has(e.id)).map((e) => `${e.sources[0]}>${e.targets[0]}`),
+    ["root:rob>founded|in|rob", "founded|out|rob>nug1|in|rob"],
+  );
 });
 
 test("a visitor at a whole-group gathering has a port after every member's", () => {

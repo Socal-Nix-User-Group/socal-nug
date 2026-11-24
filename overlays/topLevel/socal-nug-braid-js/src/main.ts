@@ -409,14 +409,14 @@ function boot(): void {
       });
     }
 
-    // Hovering a moment lights the threads of everyone through it; clicking
-    // it opens the card. Hover is for "who was in this", click is for "tell me
-    // about it", which is the part worth dwelling on.
+    // Hovering a moment lights the threads of everyone through it who was not
+    // away; clicking it opens the card. Hover is for "who was in this", click
+    // is for "tell me about it", which is the part worth dwelling on.
     for (const node of mount!.querySelectorAll("[data-moment]")) {
       const id = node.dataset.moment;
       const gathering = story.moments.find((m) => m.moment.id === id);
       if (gathering === undefined) continue;
-      const who = gathering.through.map((p) => p.slug);
+      const who = gathering.through.filter((p) => !p.away).map((p) => p.slug);
       node.addEventListener("pointerenter", (e) => {
         if (!hovers(e)) return;
         for (const slug of who) highlight(slug, true);

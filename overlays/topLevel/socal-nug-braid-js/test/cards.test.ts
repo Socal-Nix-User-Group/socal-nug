@@ -229,7 +229,8 @@ test("a detail card renders every outside link with its own title", () => {
 // --- who a card names ----------------------------------------------------------
 // A thread through a meetup says "in the group then", not "was there". So a
 // meetup's card names who joined there and who the record confirms, and
-// nobody else; who was away is said by the thread going around the oval.
+// nobody else; who was away is said by their thread breaking at the oval,
+// with a hollow bead in their slot.
 
 const g = (id: string) => story.moments.find((m) => m.moment.id === id)!;
 const textOf = (card: ElementLike): string => {
@@ -250,7 +251,24 @@ test("a meetup's card says who the record confirms, and leaves the joiners out o
 });
 
 test("a meetup's card never lists who was away", () => {
+  assert.ok(g("nug3").through.some((p) => p.slug === "rob" && p.away));
   assert.ok(!textOf(detailFor(g("nug3"), PEOPLE, doc)).includes("ROB"));
+});
+
+test("a meetup's card names nobody who was away under any heading, even one the record also lists as there", () => {
+  const s = buildStory(
+    [
+      at("founded", "2023-04", ["rob", "daniel", "david"], true),
+      at("nug", "2023-06", ["jared"], true, { there: ["daniel", "rob"], away: ["rob"] }),
+    ],
+    PEOPLE,
+  );
+  const nug = s.moments.find((m) => m.moment.id === "nug")!;
+  assert.deepEqual(nug.through.filter((p) => p.away).map((p) => p.slug), ["rob"]);
+  const text = textOf(detailFor(nug, PEOPLE, doc));
+  assert.ok(text.includes("Joined here: JARED"), text);
+  assert.ok(text.includes("Confirmed there: DANIEL"), text);
+  assert.ok(!text.includes("ROB"), text);
 });
 
 test("a meetup nobody joined at, with nothing recorded, has no people line", () => {

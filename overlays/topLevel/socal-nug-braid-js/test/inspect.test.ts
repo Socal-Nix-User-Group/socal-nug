@@ -52,8 +52,9 @@ test("the spread is how far slot 0 strays, measured where the slot is and not wh
   const base = aligned();
   assert.equal(ribbonSpread(story, base), 0);
   assert.equal(ribbonSpread(story, shifted(base, "founded", 30)), 30);
-  // Nobody is through nug3's first slot, and it still counts.
-  assert.equal(story.moments.find((g) => g.moment.id === "nug3")!.through[0].slot, 1);
+  // Rob, in nug3's first slot, is away from it, and it still counts.
+  const first = story.moments.find((g) => g.moment.id === "nug3")!.through[0];
+  assert.deepEqual([first.slug, first.slot, first.away], ["rob", 0, true]);
   assert.equal(ribbonSpread(story, shifted(base, "nug3", 30)), 30);
 });
 
@@ -175,15 +176,17 @@ test("a thread through a moment that is not its own is a layout finding", () => 
   const base = clean();
   const nug3 = base.boxes.get("nug3")!;
   const inside = { x: nug3.x + nug3.width / 2, y: nug3.y + nug3.height / 2 };
-  const edges = base.edges.map((e, i) =>
-    i === base.edges.findIndex((x) => x.meta.slug === "rob")
+  // Connor is not in the group until nug4, so nug3 is not his. His hop from
+  // SCaLE to nug4 doubles back into it.
+  const edges = base.edges.map((e) =>
+    e.meta.slug === "connor" && e.from === "scale"
       ? { ...e, points: [e.points[0], inside, ...e.points.slice(1)] }
       : e
   );
   const found = inspectPlacement(story, { ...base, edges });
   assert.equal(found.length, 1);
   assert.equal(found[0].kind, "layout");
-  assert.ok(/rob/.test(found[0].message));
+  assert.ok(/connor/.test(found[0].message));
   assert.ok(/nug3/.test(found[0].message));
 });
 
@@ -278,7 +281,7 @@ test("a ribbon hop with a point pushed more than a slot outside its two ends is 
   assert.deepEqual(inspectPlacement(story, pushed(clean(), "david", "nug2", passId("camp"), SLOT - 1)), []);
 });
 
-test("the same push on a hop that skips a moment on the ribbon, someone recorded away, is not a finding", async () => {
+test("a member away from a meetup stops at it like everyone else, so the same push on their hop into or out of it is a finding", async () => {
   const s = buildStory(
     [
       at("founded", "2023-04", ["rob", "daniel"], true),
@@ -289,12 +292,33 @@ test("the same push on a hop that skips a moment on the ribbon, someone recorded
   );
   const base = clean(s, await placeLoom(s, "river", fakeLoomLayout));
   assert.deepEqual(inspectPlacement(s, base), []);
-  // Rob goes around nug1, from the founding to nug2.
-  assert.deepEqual(inspectPlacement(s, pushed(base, "rob", "founded", "nug2", 30)), []);
+  for (const [from, to] of [["founded", "nug1"], ["nug1", "nug2"]]) {
+    const found = inspectPlacement(s, pushed(base, "rob", from, to, 30));
+    assert.equal(found.length, 1, JSON.stringify(found));
+    assert.equal(found[0].kind, "layout");
+    assert.equal(found[0].message, `rob's thread steps 30.0px out of the ribbon between ${from} and ${to}`);
+  }
+});
+
+test("the same push on a hop that skips a moment on the ribbon, someone who has not joined yet, is not a finding", async () => {
+  // Morgan visits a gathering of the whole group and joins two meetups later.
+  const s = buildStory(
+    [
+      at("founded", "2023-04", ["rob", "daniel"], true),
+      at("conf", "2023-05", ["rob", "daniel", "morgan"]),
+      at("nug1", "2023-06", [], true),
+      at("nug2", "2023-07", ["morgan"], true),
+    ],
+    PEOPLE,
+  );
+  assert.equal(s.moments[1].onRibbon, true);
+  const base = clean(s, await placeLoom(s, "river", fakeLoomLayout));
+  assert.deepEqual(inspectPlacement(s, base), []);
+  assert.deepEqual(inspectPlacement(s, pushed(base, "morgan", "conf", "nug2", 30)), []);
   // Daniel's hop past nothing, pushed the same, is a finding.
-  const found = inspectPlacement(s, pushed(base, "daniel", "founded", "nug1", 30));
+  const found = inspectPlacement(s, pushed(base, "daniel", "conf", "nug1", 30));
   assert.equal(found.length, 1, JSON.stringify(found));
-  assert.equal(found[0].message, "daniel's thread steps 30.0px out of the ribbon between founded and nug1");
+  assert.equal(found[0].message, "daniel's thread steps 30.0px out of the ribbon between conf and nug1");
 });
 
 test("a hop to or from a side moment is not measured", () => {
@@ -314,7 +338,9 @@ test("a hop to or from a side moment is not measured", () => {
  * apart, each with its label on its left and its beads at its centre. Faces
  * stand in a column to the left, between the moments' rows. Each person's
  * thread leaves a thing to the right along its own row, drops down a gutter of
- * its own beyond the moments and comes back along the next thing's row.
+ * its own beyond the moments and comes back along the next thing's row. At a
+ * meetup its person is away from it stops short of the oval's right end and
+ * starts again from there.
  */
 function drawable(): LoomPlaced {
   const boxes = new Map<string, Box>();
@@ -334,7 +360,15 @@ function drawable(): LoomPlaced {
   story.threads.forEach((t, k) => roots.set(t.person.slug, { x: 25, y: 70 + 60 * k }));
   const edges = story.threads.flatMap((t, k) => {
     const ids = [rootId(t.person.slug), ...t.path.map((g) => g.moment.id)];
-    const things = [roots.get(t.person.slug)!, ...t.path.map((g) => moments.get(g.moment.id)!)];
+    const things = [
+      roots.get(t.person.slug)!,
+      ...t.path.map((g) => {
+        const at = moments.get(g.moment.id)!;
+        if (!g.through.some((p) => p.slug === t.person.slug && p.away)) return at;
+        const box = boxes.get(g.moment.id)!;
+        return { x: box.x + box.width + 4, y: at.y };
+      }),
+    ];
     const gutter = 400 + 6 * k;
     return things.slice(1).map((to, i) => ({
       meta: { slug: t.person.slug, hue: 0, member: true },
@@ -376,16 +410,64 @@ test("a thread point moved inside another person's oval is a layout finding nami
   assert.ok(found[0].message.includes("camp"), found[0].message);
 });
 
-test("a thread through a meetup its person is recorded away from is one engine finding and no layout finding", () => {
+test("a thread inside the box of a meetup its person is recorded away from is one engine finding and no layout finding", () => {
+  const placed = drawable();
+  const nug3 = placed.boxes.get("nug3")!;
+  // its middle, and its corner, which is in the box and outside the pill
+  for (const [x, y] of [[nug3.x + nug3.width / 2, nug3.y + nug3.height / 2], [nug3.x + 1, nug3.y + 1]]) {
+    const made = drawn(placed);
+    const thread = withClass(made, "origins-thread").find((p) => p.attrs["data-person"] === "rob")!;
+    thread.attrs.d = goesTo(x, y);
+    const found = inspectDrawing(story, placed, made);
+    assert.equal(found.length, 1, JSON.stringify(found));
+    assert.equal(found[0].kind, "engine");
+    assert.equal(found[0].message, `rob's thread runs through nug3, which they are recorded away from, near ${x.toFixed(0)},${y.toFixed(0)}`);
+    assert.ok(explain(found[0]).endsWith("This is a bug in the engine, not in the data."));
+  }
+});
+
+test("a thread that stops just short of a meetup its person is away from is no finding", () => {
   const placed = drawable();
   const nug3 = placed.boxes.get("nug3")!;
   const made = drawn(placed);
   const thread = withClass(made, "origins-thread").find((p) => p.attrs["data-person"] === "rob")!;
-  thread.attrs.d = goesTo(nug3.x + nug3.width / 2, nug3.y + nug3.height / 2);
+  thread.attrs.d = goesTo(nug3.x + nug3.width + 2, nug3.y + nug3.height / 2);
+  assert.deepEqual(inspectDrawing(story, placed, made), []);
+});
+
+test("a recorded absence with no hollow bead at its slot is an engine finding", () => {
+  const placed = drawable();
+  assert.equal(withClass(drawn(placed), "is-away").length, 1);
+  // left out
+  const missing = drawn(placed);
+  missing.splice(missing.indexOf(withClass(missing, "is-away")[0]), 1);
+  assert.deepEqual(inspectDrawing(story, placed, missing), [
+    { kind: "engine", message: "rob is recorded away from nug3 and has no hollow bead there" },
+  ]);
+  // drawn off the slot
+  const moved = drawn(placed);
+  const bead = withClass(moved, "is-away")[0];
+  bead.attrs.cx = String(+bead.attrs.cx + 5);
+  const found = inspectDrawing(story, placed, moved);
+  assert.ok(found.every((f) => f.kind === "engine"), JSON.stringify(found));
+  assert.ok(found.some((f) => f.message === "rob is recorded away from nug3 and has no hollow bead there"), JSON.stringify(found));
+});
+
+test("a hollow bead where nobody is recorded away is an engine finding, and is not taken for a filled one", () => {
+  const placed = drawable();
+  const made = drawn(placed);
+  // Mica's filled bead at nug2, where she joined, drawn hollow instead.
+  const nug2 = placed.slots.get(slotKey("nug2", "mica"))!;
+  const bead = withClass(made, "origins-bead").find((b) =>
+    b.attrs["data-person"] === "mica" && +b.attrs.cx === nug2.x && +b.attrs.cy === nug2.y
+  )!;
+  bead.attrs.class = "origins-bead is-away";
   const found = inspectDrawing(story, placed, made);
-  assert.equal(found.length, 1, JSON.stringify(found));
-  assert.equal(found[0].kind, "engine");
-  assert.ok(/rob/.test(found[0].message) && /nug3/.test(found[0].message), found[0].message);
+  assert.ok(found.every((f) => f.kind === "engine"), JSON.stringify(found));
+  assert.deepEqual(found.map((f) => f.message).sort(), [
+    `mica has a hollow bead at ${(+bead.attrs.cx).toFixed(0)},${(+bead.attrs.cy).toFixed(0)} and is not recorded away there`,
+    "mica is vouched for at nug2 and has no bead there",
+  ]);
 });
 
 test("a thread through someone else's face is a layout finding", () => {
@@ -542,7 +624,8 @@ test("a missing bead is an engine finding", () => {
 test("a bead where the record does not vouch is an engine finding", () => {
   const placed = drawable();
   const made = drawn(placed);
-  // Rob is recorded away from nug3, so no record puts a bead there.
+  // Rob is recorded away from nug3, so no record puts a filled bead there,
+  // beside his hollow one.
   const at = placed.moments.get("nug3")!;
   const extra: Recorded = {
     tag: "circle",

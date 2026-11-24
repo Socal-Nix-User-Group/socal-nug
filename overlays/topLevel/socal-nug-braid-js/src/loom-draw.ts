@@ -104,7 +104,8 @@ export function drawLoom(
   // open space composite their anti-aliased edges twice and leave a seam. A
   // person's edges share their ends, each ending at the slot the next starts
   // from, so they join end to end; where one does not (an edge the layout
-  // left out), a new subpath starts.
+  // left out, or a meetup they are away from, where the thread stops short
+  // of the oval and starts again after it), a new subpath starts.
   for (const thread of story.threads) {
     const edges = placed.edges.filter((e) => e.meta.slug === thread.person.slug);
     if (edges.length === 0) continue;
@@ -169,17 +170,23 @@ export function drawLoom(
     svg.appendChild(node);
   }
 
-  // --- beads, only where the record vouches ---------------------------------
+  // --- beads, only where the record vouches or says they were away ------------
+  // Someone away has a hollow bead in their slot, between the ends of their
+  // broken thread.
   const hueOf = new Map(
     story.threads.map((thread, index) => [thread.person.slug, hueFor(index)]),
   );
   for (const gathering of story.moments) {
     for (const passage of gathering.through) {
-      if (!passage.vouched) continue;
+      if (!passage.vouched && !passage.away) continue;
       const at = placed.slots.get(slotKey(gathering.moment.id, passage.slug))!;
       svg.appendChild(
         make(doc, "circle", {
-          class: passage.joined ? "origins-bead is-join" : "origins-bead",
+          class: passage.away
+            ? "origins-bead is-away"
+            : passage.joined
+            ? "origins-bead is-join"
+            : "origins-bead",
           "data-person": passage.slug,
           "data-hue": hueOf.get(passage.slug)!,
           cx: round(at.x),
