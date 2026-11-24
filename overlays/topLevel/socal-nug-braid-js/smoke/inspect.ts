@@ -816,7 +816,7 @@ export function inspectMorph(
   return found;
 }
 
-const LAYOUT_ENDING ="This is a fault in how the picture was laid out for the " +
+const LAYOUT_ENDING = "This is a fault in how the picture was laid out for the " +
   "data as it now stands. Nothing in your change is mistaken. It needs a " +
   "maintainer who knows the layout engine in overlays/topLevel/socal-nug-braid-js.";
 const MADE_UP_ENDING = "This history is made up from a fixed seed, so only a change to the layout engine in overlays/topLevel/socal-nug-braid-js can have caused it.";

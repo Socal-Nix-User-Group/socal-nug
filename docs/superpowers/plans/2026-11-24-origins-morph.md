@@ -138,13 +138,16 @@ ______________________________________________________________________
    * `labelWidths` is how wide each moment's label text is drawn, by moment id. A label hangs
    * from its end in River and its middle in Subway; with the width both become where the text
    * starts.
+   *
+   * Null when the two layouts do not pair up: an edge, a face, a box or a bead's slot that only
+   * one of them has. Added after Task 1's review; the page then switches instantly.
    */
   export function morphBetween(
     story: Story,
     from: LoomPlaced,
     to: LoomPlaced,
     labelWidths: ReadonlyMap<string, number>,
-  ): Morph;
+  ): Morph | null;
 
   export interface MorphFrame {
     readonly width: number;
@@ -259,8 +262,9 @@ Requirements, in the page script:
   1500 ms after the first draw, and a switch all share it and the engine never lays one mode out
   twice. A layout that fails is forgotten, so it can be tried again.
 - `morph(next)` falls back to the existing `draw(next)` when there is no picture on screen yet,
-  when a morph is already running, or when `matchMedia("(prefers-reduced-motion: reduce)")`
-  matches.
+  when a morph is already running, when `matchMedia("(prefers-reduced-motion: reduce)")`
+  matches, or when `morphBetween` returns null. In the last case the page has already been put
+  in the new mode to measure it, so the fallback must leave nothing of that measuring behind.
 - Otherwise, in this order, with nothing painted between the first and the last of the
   measuring steps:
   1. Close any open card.
