@@ -192,6 +192,83 @@ const emptyMap = (down: number): Promise<Point | null> =>
 const mapAt = (): Promise<{ left: number; top: number }> =>
   tab.evaluate(`({ left: ${MAP}.scrollLeft, top: ${MAP}.scrollTop })`);
 
+const MORPHING = `${MAP}.classList.contains("is-morphing")`;
+
+/** Press a mode's button, as a visitor would. */
+async function pressMode(mode: "river" | "subway"): Promise<void> {
+  const at = await centreOf(`[data-origins-mode="${mode}"]`);
+  await tab.click(at.x, at.y);
+}
+
+/** Wait until the map shows a mode and has stopped moving. */
+const landedIn = (mode: "river" | "subway"): Promise<boolean> =>
+  tab.waitFor(`${PICTURE}.classList.contains("is-${mode}") && !${MORPHING}`, 15_000);
+
+/** From now on, note whether the map ever starts moving between modes. */
+const watchForMorph = (): Promise<boolean> =>
+  tab.evaluate(`(() => {
+    window.__originsMorphed = false;
+    new MutationObserver(() => {
+      if (${MORPHING}) window.__originsMorphed = true;
+    }).observe(${MAP}, { attributes: true, attributeFilter: ["class"] });
+    return true;
+  })()`);
+const morphed = (): Promise<boolean> => tab.evaluate(`window.__originsMorphed === true`);
+
+/** The picture as markup, without the inline size the zoom gives it. */
+const shape = (): Promise<string> =>
+  tab.evaluate(`(() => {
+    const svg = ${PICTURE}.cloneNode(true);
+    svg.removeAttribute("style");
+    return svg.outerHTML;
+  })()`);
+
+/**
+ * How far the map's box can scroll, found by asking it to go too far and
+ * reading back where it stopped. The sizes it reports count the room kept for
+ * a scrollbar, which cannot be scrolled into.
+ */
+const reach = (): Promise<Point> =>
+  tab.evaluate(`(() => {
+    const m = ${MAP};
+    const at = [m.scrollLeft, m.scrollTop];
+    m.scrollLeft = 1e7;
+    m.scrollTop = 1e7;
+    const r = { x: m.scrollLeft, y: m.scrollTop };
+    m.scrollLeft = at[0];
+    m.scrollTop = at[1];
+    return r;
+  })()`);
+
+/**
+ * Whatever a switch has left set on the box, the layout, the roster list or
+ * its cards, and any card that is not back in its place in the roster.
+ */
+const leftBehind = (): Promise<string[]> =>
+  tab.evaluate(`(() => {
+    const out = [];
+    const layout = document.getElementById("origins-layout");
+    const list = ${ROSTER}.querySelector(".origins-roster");
+    for (const [name, e] of [["box", ${MAP}], ["layout", layout], ["list", list]]) {
+      if (e.hasAttribute("style")) out.push(name + " has a style");
+    }
+    const rail = ${ROSTER}.getBoundingClientRect();
+    [...${ROSTER}.querySelectorAll(".origins-roster-item")].forEach((item, i) => {
+      const card = item.querySelector(".origins-card");
+      const b = item.getBoundingClientRect();
+      if (item.hasAttribute("style") || (card !== null && card.hasAttribute("style"))) {
+        out.push("card " + i + " has a style");
+      }
+      if (getComputedStyle(item).position !== "static" || item.parentElement !== list) {
+        out.push("card " + i + " is out of the list");
+      }
+      if (b.left < rail.left - 1 || b.right > rail.right + 1) {
+        out.push("card " + i + " is outside the roster");
+      }
+    });
+    return out;
+  })()`);
+
 /** Every check, in the order a failure is easiest to read. */
 async function run(): Promise<void> {
   // --- scrolling past the map ---------------------------------------------------
@@ -338,6 +415,225 @@ async function run(): Promise<void> {
       "toggle: Subway looks selected after switching, and River no longer does",
       await tab.evaluate(colours),
     );
+  }
+
+  // --- switching modes moves everything ----------------------------------------
+  // The picture, its box and the roster's cards travel from one layout to the
+  // other. Most of these press the button straight after loading, before the
+  // page has laid out the other mode by itself, and the rest well after.
+
+  await load("river");
+  {
+    await watchForMorph();
+    await pressMode("subway");
+    const moving = await tab.waitFor(MORPHING, 15_000);
+    const stopped = moving && (await tab.waitFor(`!${MORPHING}`, 3000));
+    check(
+      moving && stopped,
+      "switching modes: the map moves from one layout to the other, and stops within three seconds",
+      { moving, stopped },
+    );
+  }
+
+  await load("river");
+  {
+    await watchForMorph();
+    await pressMode("subway");
+    const landed = await landedIn("subway");
+    const moved = await morphed();
+    const after = await shape();
+    const left = await leftBehind();
+    await load("subway");
+    const fresh = await shape();
+    check(
+      landed && moved && after === fresh,
+      "switching to Subway lands on the picture a fresh visit to Subway draws",
+      { landed, moved, same: after === fresh },
+    );
+
+    await watchForMorph();
+    await pressMode("river");
+    const landedBack = await landedIn("river");
+    const movedBack = await morphed();
+    const back = await shape();
+    left.push(...(await leftBehind()));
+    await load("river");
+    const freshRiver = await shape();
+    check(
+      landedBack && movedBack && back === freshRiver,
+      "switching back to River lands on the picture a fresh visit to River draws",
+      { landed: landedBack, moved: movedBack, same: back === freshRiver },
+    );
+    check(
+      moved && movedBack && left.length === 0,
+      "switching modes leaves nothing set on the map, the layout or the roster, and every card back in the roster",
+      { moved, movedBack, left },
+    );
+  }
+
+  {
+    const missed: unknown[] = [];
+    let movedEvery = true;
+    for (const [where, share] of [["start", 0], ["middle", 0.5], ["end", 1]] as const) {
+      await load("river");
+      await watchForMorph();
+      const from = await reach();
+      await tab.evaluate(`${MAP}.scrollTop = ${share * from.y}`);
+      const was = await mapAt();
+      await pressMode("subway");
+      const landed = await landedIn("subway");
+      movedEvery &&= landed && (await morphed());
+      const to = await reach();
+      const is = await mapAt();
+      const along = from.y === 0 ? 0 : was.top / from.y;
+      const across = from.x === 0 ? 0.5 : was.left / from.x;
+      const want = { left: along * to.x, top: across * to.y };
+      if (
+        from.y === 0 || to.x === 0 ||
+        Math.abs(is.left - want.left) > 1 || Math.abs(is.top - want.top) > 1
+      ) {
+        missed.push({ where, from, was, to, is, want });
+      }
+    }
+    check(
+      movedEvery && missed.length === 0,
+      "switching modes lands the same share of the way along the other map, from its start, its middle and its end",
+      { moved: movedEvery, missed },
+    );
+  }
+
+  await load("river");
+  {
+    // After the page has laid out the other mode by itself.
+    await sleep(2500);
+    await watchForMorph();
+    const from = await reach();
+    await tab.evaluate(`${MAP}.scrollTop = ${Math.round(0.37 * from.y)}`);
+    const was = await mapAt();
+    await pressMode("subway");
+    const there = await landedIn("subway");
+    const between = await mapAt();
+    await pressMode("river");
+    const back = await landedIn("river");
+    const moved = await morphed();
+    const is = await mapAt();
+    check(
+      there && back && moved && was.top > 0 &&
+        Math.abs(is.left - was.left) <= 1 && Math.abs(is.top - was.top) <= 1,
+      "switching to Subway and back returns the map to where it was",
+      { moved, was, between, is },
+    );
+  }
+
+  await load("river");
+  {
+    const fit = await zoomButton("fit");
+    await tab.click(fit.x, fit.y);
+    const whole = `${MAP}.scrollHeight <= ${MAP}.clientHeight && ${MAP}.scrollWidth <= ${MAP}.clientWidth`;
+    await tab.waitFor(whole);
+    await watchForMorph();
+    await pressMode("subway");
+    const landed = await landedIn("subway");
+    const moved = await morphed();
+    const fitted = await tab.evaluate<boolean>(whole);
+    const width = await tab.evaluate<number>(pictureWidth);
+    const again = await zoomButton("fit");
+    await tab.click(again.x, again.y);
+    await sleep(300);
+    const refitted = await tab.evaluate<number>(pictureWidth);
+    check(
+      landed && moved && fitted && Math.abs(refitted - width) < 0.5,
+      "switching modes: a fitted view arrives fitted, with nothing to scroll to and nothing for Fit to do",
+      {
+        moved,
+        fitted,
+        width,
+        afterFit: refitted,
+        scroll: await tab.evaluate(`[${MAP}.scrollWidth, ${MAP}.scrollHeight]`),
+        box: await tab.evaluate(`[${MAP}.clientWidth, ${MAP}.clientHeight]`),
+      },
+    );
+  }
+
+  await load("river");
+  {
+    await pressMode("subway");
+    const moving = await tab.waitFor(MORPHING, 15_000);
+    await pressMode("river");
+    const landed = await landedIn("subway");
+    await sleep(300);
+    const still = await tab.evaluate<boolean>(
+      `${PICTURE}.classList.contains("is-subway") && !${MORPHING}`,
+    );
+    const pressed = await tab.evaluate<string[]>(
+      `[...document.querySelectorAll("[data-origins-mode]")].map((b) => b.dataset.originsMode + ":" + b.getAttribute("aria-pressed"))`,
+    );
+    check(
+      moving && landed && still && pressed.includes("subway:true") &&
+        pressed.includes("river:false"),
+      "switching modes: pressing the other mode while the map moves changes nothing",
+      { moving, landed, still, pressed },
+    );
+  }
+
+  await load("river");
+  {
+    await pressMode("subway");
+    const moving = await tab.waitFor(MORPHING, 15_000);
+    const plus = await zoomButton("in");
+    await tab.click(plus.x, plus.y);
+    const fit = await zoomButton("fit");
+    await tab.click(fit.x, fit.y);
+    const landed = await landedIn("subway");
+    const says = `document.querySelector('[data-origins-zoom="reset"]').getAttribute("aria-disabled")`;
+    const at100 = await tab.evaluate<boolean>(
+      `Math.abs(${pictureWidth} - ${drawnWidth}) < 0.5 && ${says} === "true"`,
+    );
+    check(
+      moving && landed && at100,
+      "switching modes: the zoom buttons do nothing while the map moves",
+      { moving, landed, width: await tab.evaluate(pictureWidth), drawn: await tab.evaluate(drawnWidth) },
+    );
+  }
+
+  {
+    // River is centred in its box, so a narrower box draws it differently.
+    await load("river", 1200, 1000);
+    const narrow = await shape();
+    await load("river");
+    const wide = await shape();
+    await load("subway");
+    await pressMode("river");
+    const moving = await tab.waitFor(MORPHING, 15_000);
+    await tab.size(1200, 1000);
+    const landed = await landedIn("river");
+    await sleep(600);
+    const after = await shape();
+    check(
+      moving && landed && narrow !== wide && after === narrow,
+      "switching modes: a window narrowed while the map moves ends with the picture a fresh visit at that width draws",
+      { moving, landed, narrowDiffers: narrow !== wide, same: after === narrow },
+    );
+  }
+
+  await tab.send("Emulation.setEmulatedMedia", {
+    features: [{ name: "prefers-reduced-motion", value: "reduce" }],
+  });
+  await load("river");
+  {
+    await watchForMorph();
+    await pressMode("subway");
+    const arrived = await tab.waitFor(`${PICTURE}.classList.contains("is-subway")`, 15_000);
+    const moved = await morphed();
+    check(
+      arrived && !moved,
+      "with reduced motion asked for, switching modes is instant",
+      { arrived, moved },
+    );
+  }
+  await tab.send("Emulation.setEmulatedMedia", { features: [] });
+  if (await tab.evaluate<boolean>(`matchMedia("(prefers-reduced-motion: reduce)").matches`)) {
+    throw new Error("reduced motion is still asked for after the check that asked for it");
   }
 
   // --- cards and focus ----------------------------------------------------------

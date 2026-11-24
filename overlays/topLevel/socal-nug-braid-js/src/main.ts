@@ -4,6 +4,7 @@ import { focusOrder, nextIndex } from "./focus.ts";
 import { drawLoom } from "./loom-draw.ts";
 import { centreLoomIn, placeLoom } from "./loom-place.ts";
 import type { LoomPlaced } from "./loom-place.ts";
+import { ease, frameAt, MORPH_MS, morphBetween, scrollFor, sharesOf } from "./morph.ts";
 import { parseData } from "./parse.ts";
 import { placePopup } from "./popup.ts";
 import type { DocumentLike, ElementLike } from "./render.ts";
@@ -47,6 +48,9 @@ interface PageElement extends ElementLike {
     capture?: boolean,
   ): void;
   setPointerCapture(pointer: number): void;
+  removeAttribute(name: string): void;
+  /** On SVG text. */
+  getComputedTextLength(): number;
   querySelectorAll(selector: string): ArrayLike<PageElement> & Iterable<
     PageElement
   >;
@@ -101,6 +105,8 @@ declare const window: {
   addEventListener(type: string, listener: () => void): void;
   setTimeout(body: () => void, ms: number): number;
   clearTimeout(handle: number): void;
+  requestAnimationFrame(body: (now: number) => void): number;
+  matchMedia(query: string): { readonly matches: boolean };
 } | undefined;
 declare const console: { error(...args: unknown[]): void };
 declare function getComputedStyle(element: ElementLike): {
@@ -117,6 +123,12 @@ const RESIZE_SETTLE_MS = 150;
 
 /** How far a pressed mouse has to travel before it is a drag and not a click. */
 const GRAB_SLOP = 4;
+
+/** How long after the first picture the other mode is laid out. */
+const OTHER_MODE_AFTER_MS = 1500;
+
+/** How far a moment's hit area reaches past its oval, as in loom-draw. */
+const HIT = 6;
 
 function storage(): StorageLike | null {
   try {
@@ -160,16 +172,42 @@ function boot(): void {
   let elk: InstanceType<typeof ELK> | undefined;
   let drawing = 0;
   /**
-   * What ELK made of each mode, before it was centred in anything.
+   * What ELK is making, or made, of each mode, before it was centred in
+   * anything.
    *
    * The layout does not depend on the width of the box, so a window resize
    * re-centres one of these rather than running the engine again, and a
-   * second visit to a mode is instant.
+   * second visit to a mode is instant. The promise is kept rather than what
+   * it gives, so a switch made while the other mode is still being laid out
+   * waits for that layout instead of starting another.
    */
-  const laidOut = new Map<Mode, LoomPlaced>();
+  const laidOut = new Map<Mode, Promise<LoomPlaced>>();
+  function layoutOf(next: Mode): Promise<LoomPlaced> {
+    let made = laidOut.get(next);
+    if (made === undefined) {
+      made = placeLoom(
+        story,
+        next,
+        (graph) => (elk ??= new ELK()).layout(graph),
+      );
+      laidOut.set(next, made);
+      // Forgotten when it fails, so the next attempt runs the engine again
+      // rather than failing the same way for the rest of the visit.
+      made.catch(() => {
+        if (laidOut.get(next) === made) laidOut.delete(next);
+      });
+    }
+    return made;
+  }
   let shownAt = 0;
+  /** What is on screen, centred in its box, for a morph to start from. */
+  let shown: LoomPlaced | null = null;
+  /** A morph is under way. */
+  let morphing = false;
   /** How far the map is zoomed. 1 is the size the layout drew it at. */
   let zoom = 1;
+  /** The zoom was last set by Fit, so a switch arrives at the other mode's fit. */
+  let fitted = false;
   /** The canvas as it was drawn, before any zoom. */
   let canvas = { width: 0, height: 0 };
 
@@ -193,20 +231,13 @@ function boot(): void {
     // are leaving and centres the picture in a box it is not in.
     mount!.setAttribute("data-mode", next);
     document.getElementById("origins-layout")?.setAttribute("data-mode", next);
-    let bare = laidOut.get(next);
-    if (bare === undefined) {
-      bare = await placeLoom(
-        story,
-        next,
-        (graph) => (elk ??= new ELK()).layout(graph),
-      );
-      if (token !== drawing) return;
-      laidOut.set(next, bare);
-    }
+    const bare = await layoutOf(next);
+    if (token !== drawing) return;
 
     shownAt = mount!.clientWidth;
     const placed = centreLoomIn(bare, shownAt);
     canvas = { width: placed.width, height: placed.height };
+    shown = placed;
     mount!.replaceChildren(drawLoom(placed, story, document), popup);
     sizeMap();
 
@@ -215,6 +246,252 @@ function boot(): void {
     closePopup();
     wireHover();
     wireKeyboard();
+  }
+
+  /**
+   * Switch to `next` by moving everything from where it is in this mode to
+   * where it will be in that one: inside the picture, the picture's size, the
+   * map's box and the roster's cards. Where there is nothing to move from, or
+   * the reader asks for less motion, or the two layouts do not pair up, it is
+   * the plain redraw.
+   */
+  async function morph(next: Mode): Promise<void> {
+    const from = shown;
+    const svg = picture();
+    if (
+      from === null || svg === undefined || morphing || window === undefined ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return draw(next);
+    }
+    morphing = true;
+    try {
+      const bare = await layoutOf(next);
+      closePopup();
+
+      const layout = document.getElementById("origins-layout");
+      const list = roster?.querySelectorAll(".origins-roster")[0];
+      const items = roster === null
+        ? []
+        : [...roster.querySelectorAll(".origins-roster-item")];
+      const rect = (e: PageElement) => {
+        const b = e.getBoundingClientRect();
+        return { x: b.left, y: b.top, w: b.width, h: b.height };
+      };
+      // How far the box can scroll, found by asking it to go too far. The
+      // sizes it reports do not say: the room kept for a scrollbar is counted
+      // in them and cannot be scrolled into.
+      const reachOf = () => {
+        const at = { x: mount!.scrollLeft, y: mount!.scrollTop };
+        mount!.scrollLeft = 1e7;
+        mount!.scrollTop = 1e7;
+        const reach = { x: mount!.scrollLeft, y: mount!.scrollTop };
+        mount!.scrollLeft = at.x;
+        mount!.scrollTop = at.y;
+        return reach;
+      };
+
+      // Where everything is now. From here to putting this picture back,
+      // nothing is painted, so the reader never sees the page in between.
+      const box0 = rect(mount!);
+      const scroll0 = { x: mount!.scrollLeft, y: mount!.scrollTop };
+      const shares = sharesOf(from.mode, scroll0, reachOf());
+      const rail0 = roster === null ? box0 : rect(roster);
+      const cards0 = items.map(rect);
+
+      // Where everything will be: the page in the other mode, with the other
+      // picture in the box at the zoom it will arrive at.
+      mount!.setAttribute("data-mode", next);
+      layout?.setAttribute("data-mode", next);
+      const width1 = mount!.clientWidth;
+      const to = centreLoomIn(bare, width1);
+      // A view fitted to its box arrives fitted to the other box, which is a
+      // different zoom: the two pictures are different shapes. Any other zoom
+      // is kept as it is.
+      const zoom0 = zoom;
+      const zoom1 = fitted
+        ? fitZoom(to, {
+          width: width1,
+          height: parseFloat(getComputedStyle(mount!).maxHeight),
+        })
+        : zoom;
+      const target = drawLoom(to, story, document) as PageElement;
+      target.setAttribute(
+        "style",
+        `width:${to.width * zoom1}px;height:${to.height * zoom1}px`,
+      );
+      mount!.replaceChildren(target, popup);
+      const box1 = rect(mount!);
+      const scroll1 = scrollFor(next, shares, reachOf());
+      const rail1 = roster === null ? box1 : rect(roster);
+      const cards1 = items.map(rect);
+      const room = list === undefined ? 0 : rect(list).h;
+      const origin = layout === null ? { x: 0, y: 0 } : rect(layout);
+      mount!.replaceChildren(svg, popup);
+      mount!.scrollLeft = scroll0.x;
+      mount!.scrollTop = scroll0.y;
+
+      // Labels are drawn in the story's order, for the moments that have one.
+      const texts = [...svg.querySelectorAll("text.origins-label")];
+      const labelled = story.moments
+        .map((g) => g.moment.id)
+        .filter((id) => from.labels.has(id));
+      const widths = new Map(
+        labelled.map((id, i) => [id, texts[i].getComputedTextLength()]),
+      );
+      const journey = morphBetween(story, from, to, widths);
+      if (journey === null) {
+        // The page is in the other mode already, with this picture back in
+        // the box; the plain redraw replaces it.
+        await draw(next);
+        return;
+      }
+
+      // A card the roster's own box hides in River fades in on the way to
+      // Subway and out on the way back, since under the map every card shows.
+      const river = from.mode === "river"
+        ? { rail: rail0, cards: cards0 }
+        : { rail: rail1, cards: cards1 };
+      const hiddenInRiver = river.cards.map((c) =>
+        c.y + c.h <= river.rail.y || c.y >= river.rail.y + river.rail.h
+      );
+
+      const threads = [...svg.querySelectorAll("path.origins-thread")];
+      const faces = [...svg.querySelectorAll(".origins-root")];
+      const pills = [...svg.querySelectorAll(".origins-node")].map((node) => ({
+        id: node.dataset.moment ?? "",
+        oval: node.querySelectorAll(".origins-oval")[0],
+        hit: node.querySelectorAll(".origins-node-hit")[0],
+      }));
+      const beads = [...svg.querySelectorAll("circle.origins-bead")];
+      const ticks = [...svg.querySelectorAll("path.origins-year-tick")];
+      const years = [...svg.querySelectorAll("text.origins-year")];
+
+      // For the journey the cards are lifted out of the roster and placed
+      // against the layout, which does not move, and the list keeps the room
+      // they will need so the page below does not jump.
+      mount!.classList.add("is-morphing");
+      layout?.setAttribute("style", "position:relative");
+      list?.setAttribute("style", `min-height:${room}px`);
+      for (const text of texts) text.setAttribute("text-anchor", "start");
+
+      const lerp = (a: number, b: number, t: number) => a * (1 - t) + b * t;
+      const paint = (t: number): void => {
+        const frame = frameAt(journey, t);
+        svg.setAttribute("viewBox", `0 0 ${frame.width} ${frame.height}`);
+        const z = lerp(zoom0, zoom1, t);
+        svg.setAttribute(
+          "style",
+          `width:${frame.width * z}px;height:${frame.height * z}px`,
+        );
+        mount!.setAttribute(
+          "style",
+          `width:${lerp(box0.w, box1.w, t)}px;` +
+            `height:${lerp(box0.h, box1.h, t)}px;max-height:none`,
+        );
+
+        for (const path of threads) {
+          const d = frame.threads.get(path.dataset.person ?? "");
+          if (d !== undefined) path.setAttribute("d", d);
+        }
+        for (const face of faces) {
+          const at = frame.faces.get(face.dataset.person ?? "");
+          if (at !== undefined) {
+            face.setAttribute("transform", `translate(${at.x} ${at.y})`);
+          }
+        }
+        for (const { id, oval, hit } of pills) {
+          const box = frame.boxes.get(id);
+          if (box === undefined) continue;
+          const end = Math.min(box.width, box.height) / 2;
+          for (const [e, grow] of [[oval, 0], [hit, HIT]] as const) {
+            if (e === undefined) continue;
+            e.setAttribute("x", String(box.x - grow));
+            e.setAttribute("y", String(box.y - grow));
+            e.setAttribute("width", String(box.width + 2 * grow));
+            e.setAttribute("height", String(box.height + 2 * grow));
+            e.setAttribute("rx", String(end + grow));
+            e.setAttribute("ry", String(end + grow));
+          }
+        }
+        beads.forEach((bead, i) => {
+          bead.setAttribute("cx", String(frame.beads[i].x));
+          bead.setAttribute("cy", String(frame.beads[i].y));
+        });
+        texts.forEach((text, i) => {
+          text.setAttribute("x", String(frame.labels[i].x));
+          text.setAttribute("y", String(frame.labels[i].y));
+        });
+        ticks.forEach((tick, i) => {
+          const { x1, y1, x2, y2 } = frame.ticks[i];
+          tick.setAttribute("d", `M${x1},${y1} L${x2},${y2}`);
+        });
+        years.forEach((text, i) => {
+          text.setAttribute("x", String(frame.years[i].x));
+          text.setAttribute("y", String(frame.years[i].y));
+        });
+
+        // Each card really is the width it looks on the way, so its words
+        // wrap as it narrows or widens and nothing in it is stretched. It is
+        // at least as tall as the journey says, and taller if its words need
+        // it.
+        items.forEach((item, i) => {
+          const a = cards0[i];
+          const b = cards1[i];
+          const seen = !hiddenInRiver[i] ? 1 : from.mode === "river" ? t : 1 - t;
+          item.setAttribute(
+            "style",
+            `position:absolute;margin:0;` +
+              `left:${lerp(a.x, b.x, t) - origin.x}px;` +
+              `top:${lerp(a.y, b.y, t) - origin.y}px;` +
+              `width:${lerp(a.w, b.w, t)}px;` +
+              `min-height:${lerp(a.h, b.h, t)}px;opacity:${seen}`,
+          );
+        });
+
+        // The view slides in a straight line from where it was to where it
+        // will be, as everything in it does.
+        mount!.scrollLeft = lerp(scroll0.x, scroll1.x, t);
+        mount!.scrollTop = lerp(scroll0.y, scroll1.y, t);
+      };
+
+      await new Promise<void>((done) => {
+        let began: number | undefined;
+        const step = (now: number): void => {
+          began ??= now;
+          const t = Math.min(1, (now - began) / MORPH_MS);
+          paint(ease(t));
+          if (t < 1) window.requestAnimationFrame(step);
+          else done();
+        };
+        window.requestAnimationFrame(step);
+      });
+
+      // Arrived: the ordinary picture for this mode takes over from the one
+      // that was bent into its shape, and nothing the journey set stays.
+      mount!.classList.remove("is-morphing");
+      mount!.removeAttribute("style");
+      layout?.removeAttribute("style");
+      list?.removeAttribute("style");
+      for (const item of items) item.removeAttribute("style");
+      mount!.replaceChildren(target, popup);
+      shown = to;
+      shownAt = width1;
+      canvas = { width: to.width, height: to.height };
+      zoom = zoom1;
+      sizeMap();
+      showZoom();
+      mount!.scrollLeft = scroll1.x;
+      mount!.scrollTop = scroll1.y;
+      closePopup();
+      wireHover();
+      wireKeyboard();
+      // The window may have changed size on the way, which the resize
+      // handler let pass while the morph ran.
+      if (mount!.clientWidth !== shownAt) await draw(next);
+    } finally {
+      morphing = false;
+    }
   }
 
   // Lighting a person lights them everywhere: their line and face in the
@@ -534,7 +811,10 @@ function boot(): void {
   if (zoomButtons !== null) {
     for (const button of zoomButtons.querySelectorAll("[data-origins-zoom]")) {
       button.addEventListener("click", (event) => {
+        // While a morph runs the picture is between two sizes.
+        if (morphing) return;
         const does = event.currentTarget.dataset.originsZoom;
+        fitted = does === "fit";
         if (does === "in") zoomTo(stepZoom(zoom, 1));
         else if (does === "out") zoomTo(stepZoom(zoom, -1));
         else if (does === "reset") zoomTo(1);
@@ -557,6 +837,7 @@ function boot(): void {
   mount.addEventListener("wheel", (event) => {
     if (!event.ctrlKey) return;
     event.preventDefault();
+    fitted = false;
     zoomTo(wheelZoom(zoom, event.deltaY, event.deltaMode), {
       x: event.clientX,
       y: event.clientY,
@@ -643,7 +924,8 @@ function boot(): void {
     window.addEventListener("resize", () => {
       window.clearTimeout(settling);
       settling = window.setTimeout(() => {
-        if (mount!.clientWidth === shownAt) return;
+        // A morph that is running checks the width when it lands.
+        if (morphing || mount!.clientWidth === shownAt) return;
         void draw(mode);
       }, RESIZE_SETTLE_MS);
     });
@@ -666,10 +948,10 @@ function boot(): void {
       button.addEventListener("click", (event) => {
         const next = event.currentTarget.dataset.originsMode;
         if (next !== "river" && next !== "subway") return;
-        if (next === mode) return;
+        if (next === mode || morphing) return;
         mode = next;
         writeMode(store, mode);
-        draw(mode).catch((error: unknown) => {
+        morph(mode).catch((error: unknown) => {
           // The picture already on screen stays; only the switch is lost.
           console.error("origins: could not switch mode", error);
         });
@@ -687,6 +969,12 @@ function boot(): void {
     buttons?.classList.remove("is-hidden");
     zoomButtons?.classList.remove("is-hidden");
     document.getElementById("origins-legend")?.classList.remove("is-hidden");
+    // Lay the other mode out once the page has settled, so the first switch
+    // can start moving at once. A switch pressed sooner waits for this same
+    // layout, and one that fails here is tried again by the switch.
+    window?.setTimeout(() => {
+      layoutOf(mode === "river" ? "subway" : "river").catch(() => {});
+    }, OTHER_MODE_AFTER_MS);
   }).catch((error: unknown) => {
     console.error("origins: could not lay out the braid", error);
     // Say so in the box. The roster beside it still lists everyone; an

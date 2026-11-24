@@ -227,6 +227,13 @@ html[data-theme=dark] .origins-legend {
         // middle of it, where it was centred at full size.
         margin: 0 auto;
     }
+
+    // While it moves from one mode to the other the script sizes the box and
+    // scrolls it, and nothing in it answers the pointer.
+    &.is-morphing {
+        overflow: hidden;
+        pointer-events: none;
+    }
 }
 
 // What the box says when the layout could not run.
