@@ -1,8 +1,8 @@
 # Origins: the Loom
 
-Status: built. Replaces the drawing and the story model described in
-`2026-11-21-origins-design.md`; everything that document says about the page, the people, the
-data file, the cards, the roster and the toolchain still stands unless this one says otherwise.
+Status: the design record of the redraw, written 2026-11-22 and brought up to what was built on
+2026-11-23. The page's current spec is `2026-11-21-origins-design.md`. This document is not kept
+up to date after that date, and where the two differ the spec is right.
 
 ## Intent
 

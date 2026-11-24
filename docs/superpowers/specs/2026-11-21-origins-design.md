@@ -2,10 +2,24 @@
 
 Date: 2026-11-21. Branch `worktree-how-we-met`, based on `main` after the CI rework (#98).
 
+This is the page's one current spec, kept up to date with the code; it was last brought up to
+the code on 2026-11-23. The page was first built around a central trunk and then redrawn as the
+Loom. The reasoning for the redraw and what was measured along the way are in
+`2026-11-22-origins-loom-design.md`, which is a dated record and is not kept up to date. Where
+the two differ, this one is right.
+
 ## Intent
 
 A page showing the separate paths that converged into the SoCal Nix Users Group, computed from
 event records rather than drawn by hand.
+
+The picture is a loom. Every person is one thread from their first moment to their last, visible
+all the way through. Every moment is a gathering of some of those threads: the founding is three
+threads gathering, a meetup is everyone in the group gathering, a camp is the few who went.
+There is no central trunk standing for "the group"; the group is the threads that are in it,
+running side by side as a ribbon that holds one column from the founding to the latest meetup.
+The picture has two modes over the same layout: River, where time runs down the page, and Subway,
+where it runs across.
 
 Two audiences. Members should feel how improbable the group was: a set of unrelated lives that
 happened to intersect. Newcomers should see that the group has roots, and where they would attach
@@ -25,20 +39,36 @@ rewriting the story. That post stays as it is; this is a separate page with a di
 - Everything that can be validated by `nix flake check` is.
 - The data set is deliberately incomplete at launch and gets backfilled over time. Several people
   will first appear at the founding or at a meetup with no personal history behind them. Their
-  thread simply starts there, short, with their avatar root at that point. Adding roots later
-  lengthens threads leftward and must require no engine, template or schema change. The page must
-  never look broken because somebody's history has not been collected yet, and it must not look
-  like a placeholder either.
+  thread simply starts there, with their face at that point. Adding earlier moments later
+  lengthens threads back in time and must require no engine, template or schema change. The
+  page must never look broken because somebody's history has not been collected yet, and it
+  must not look like a placeholder either.
+- One thread per person, unbroken from their first moment to their last, in both River and
+  Subway. Nothing in the picture stands for the group except the threads that are in it.
+- Each moment is as wide as the number of people through it, with each person's thread in its
+  own slot, so threads through a busy moment stay apart and can be told from one another.
+- The picture says what is known about attendance and no more (see "What a thread through a
+  meetup means").
+- A gathering that everyone in the group is at sits on the ribbon, meetup or not. Only a
+  gathering of part of the group draws threads away from it.
+- The ribbon holds one column (River) or one row (Subway) from the founding to the latest
+  meetup.
 
 ## Non-goals
 
 - Replacing the About page. Origins is a new page. About keeps its member grid.
 - Editing or replacing the "One Year of SNUG" post.
-- Meetup attendance records, at first. A person joins the braid at the moment their data says
-  they joined. This is a story, not a roll call. Meetups can now record who was there and who
-  was away, optionally; see "Attendance data" in the Loom design
-  (`2026-11-22-origins-loom-design.md`).
+- Complete attendance records. A meetup may record who was there and who was away, optionally,
+  and the picture is complete with none recorded. Filling them in is Daniel's, whenever he likes.
+  The page started with no attendance records at all; that position was reversed by the Loom.
 - Self-hosting. Netlify keeps building until that separate project lands.
+- Moving layout out of the visitor's browser. Layout runs in the page and the page is busy while
+  it runs; moving it to build time is a later infrastructure decision, not part of this page.
+- A second view such as a spiral. That is a separate project.
+- A dark canvas, glowing threads or woven over-and-under crossings. The picture follows the
+  site's light and dark themes.
+- A time scrubber, a detail panel in place of cards, or time-proportional spacing. Moments are
+  spaced by rank, one layer each.
 - Formatting of templates, SCSS or TypeScript. treefmt covers Nix, shell and documentation
   Markdown only, and that is unchanged.
 
@@ -47,9 +77,17 @@ rewriting the story. That post stays as it is; this is a separate page with a di
 - Any claim about who met whom. Two people sharing a moment means two threads passed through one
   point in time. It does not assert an introduction.
 - A second layout engine. One pass computes abstract positions; projections consume them. If
-  River and Map ever need separate position logic, the design has failed.
+  River and Subway ever need separate position logic, the design has failed.
 - A layout that silently degrades as the group grows, where the right answer at six people is the
   wrong answer at forty.
+- A bead the record does not support. Attendance is never inferred: not from membership, not from
+  a photo nobody has read into the data, not from "probably".
+- A thread through a meetup for someone the record says was away from it.
+- A ribbon that jogs sideways, shipped without saying so.
+- A layout failure that reads as the author's mistake. When the site's own data lays out badly
+  the check fails, and it says plainly that the layout is at fault and not the change, and that
+  it wants a maintainer.
+- Two models of the story. The trunk model was deleted, not kept alongside.
 
 ## Constraints
 
@@ -77,12 +115,16 @@ Verified in this worktree on 2026-11-21 unless noted.
   beyond `zola build` plus the calendar script has to be mirrored in `netlify.toml`.
 - Flakes only see git-tracked files. New files must be staged before any `nix` command, or the
   build and the formatting check will not see them.
-- `socal-nug-site` restricts its source with `lib.fileset` to `config.toml`, `content`, `sass`,
-  `static` and `templates`. Any new top-level directory Zola reads must be added there or the Nix
-  build will differ from a local `zola build`.
+- `socal-nug-site` restricts its source with `lib.fileset` to the inputs Zola reads:
+  `config.toml`, `content`, `data`, `sass`, `static` and `templates` (`data` was added for this
+  page). Any new top-level directory Zola reads must be added there or the Nix build will differ
+  from a local `zola build`.
 - The site supports light and dark themes. Anything drawn must work in both.
 
 ## Approaches
+
+This section is the record of what was considered, including what was built and later replaced.
+What is built now is under "Decisions".
 
 ### Connection semantics
 
@@ -98,22 +140,33 @@ Verified in this worktree on 2026-11-21 unless noted.
 
 1. Origin story ending at NUG #1. Rejected. Finished in 2023 and only changes when history is
    backfilled.
-1. **Living braid.** Chosen. Personal threads before convergence, then a SNUG trunk that thickens
-   as people join at the moment they first appear. A newcomer can see where they would attach.
-   Its known weakness is that the post-convergence half risks being one undifferentiated rope.
-   Excursions (layout rule 6) are the answer to that, not a decoration: subsets of the group peel
-   off for a camp or a conference and come back, sometimes with someone new.
+1. Living braid. Built first, then replaced by the Loom. Personal threads before convergence,
+   then a SNUG trunk that thickened as people joined at the moment they first appeared, and
+   excursions where subsets of the group peeled off for a camp or a conference and came back.
+   Its known weakness was that the post-convergence half risked being one undifferentiated rope,
+   and people disappeared into the trunk once they joined.
+1. **The Loom.** Chosen, and what is built. Every person keeps their own thread all the way
+   through, every moment is a gathering the threads pass through, and there is no trunk. The
+   meetups line up in one column, the ribbon, and a gathering of part of the group draws only its
+   people's threads out of it. A newcomer can still see where they would attach: at the end of
+   the ribbon. The reasoning is in `2026-11-22-origins-loom-design.md`.
 
 ### Layout
 
 Vertical river, horizontal subway map, and per-person swimlanes were all mocked up. Swimlanes were
 dropped: legible and cheap, but it reads as a project schedule, and one row per person wastes the
-page at forty members. River and Map were both kept, because they are the same layout transposed
-and the toggle is therefore nearly free.
+page at forty members. River and Subway were both kept, because they are the same layout
+transposed and the toggle is therefore nearly free.
 
 How the picture is laid out went through two engines: a hand-written lane allocator in the style
 of `git log --graph`, and then the Eclipse Layout Kernel. Why, and what each cost, is under "The
 layout engine" below.
+
+The Loom kept ELK and both modes. Three ways of drawing a loom were sketched on the real data:
+each person in a fixed lane with no layout engine; ELK with the trunk removed and moments as dots,
+rejected on sight because ELK laid the threads on top of one another between meetups; and ELK
+with each moment as wide as the people through it and a fixed slot for each person, which was
+chosen. The pictures, the timings and the numbers behind the choice are in the Loom design.
 
 ### Rendering
 
@@ -121,8 +174,9 @@ layout engine" below.
    without JavaScript, testable, zero new dependencies, but fixed geometry and no animation.
 1. **Client-side TypeScript.** Chosen, with the no-JavaScript cost accepted explicitly: without
    JavaScript there is no picture. A rendered fallback list stood in for one at first and was
-   later removed; see Accessibility. Chosen for the interaction headroom, since a morph between
-   projections, hover highlighting and popovers are the point of the page feeling good.
+   later removed; see Accessibility. Chosen for the interaction headroom: hover highlighting,
+   cards beside what was clicked, and keyboard movement through the story. A morph between
+   projections was part of the reason at first and went with the Loom.
 1. Pure Tera. Rejected. Lane assignment and label collision in a template language with no
    functions and no recursion is not worth attempting.
 
@@ -175,11 +229,11 @@ member = true   # or false for someone in the story who is not in the group
 
 Consequence, accepted: guests get a rendered page at `/about/<slug>/` like everyone else.
 `render = false` would suppress it but would also remove them from `section.pages`, which is where
-the braid reads people from. A thin guest page is the cheaper cost.
+the page reads people from. A thin guest page is the cheaper cost.
 
 Guests may fill in `image_url` and `description` or leave them empty. The page handles both.
 
-There are no guests in the data at present. The mechanism stays, because the braid is meant to
+There are no guests in the data at present. The mechanism stays, because the page is meant to
 be able to show people who are part of the story without listing them as members of the group,
 and `test_site.py` proves the About filter with a probe rather than leaving it untested.
 
@@ -193,13 +247,14 @@ that trio only `daniel-baker` carries a thread.
 
 The page merges two sources in the template.
 
-**`content/events/` supplies the spine.** Every event page is a trunk moment, contributing its
-date, title and permalink. Posting a meetup grows the braid with no edit anywhere else. The
-existing twenty-meetup history is already exact, and it is never copied.
+**`content/events/` supplies the meetups.** Every event page is a meetup, contributing its date,
+title and permalink. Posting a meetup grows the picture with no edit anywhere else. The meetup
+history is already exact in the event pages, and it is never copied.
 
-**`data/moments.toml` supplies the rest**: the personal moments before and outside the group, and
-the records of which event each person first turned up to. Event files carry no attendee list and
-are not gaining one, so a join is stated once here instead of by editing twenty event files.
+**`data/moments.toml` supplies the rest**: the personal moments before and outside the group, the
+records of which event each person first turned up to, and any attendance recorded for a
+meetup. Event files carry no attendee list and are not gaining one, so a join is stated once here
+instead of by editing event files.
 
 ```toml
 # A freestanding moment carries its own date and title.
@@ -217,40 +272,64 @@ links = [{ title = "...", url = "https://..." }]  # optional; one moment can be 
 id = "tristan-joins"
 event = "2024-01-25"
 people = ["tristan-ross"]
+
+# A record anchored to an event may also say who was there and who was away.
+[[moment]]
+id = "nug-6-roll"
+event = "2024-06-01"
+there = ["daniel-baker", "david-nuon"]   # the record vouches for them being at this meetup
+away = ["rob-hernandez"]                 # the record says they were not
 ```
 
 A moment carries either `date` plus `title`, or `event`. Never both: restating an event's date in
 the moments file is exactly the drift this design exists to prevent. `braid-data` rejects a
-moment with both, a moment with neither, and an `event` that does not resolve to a file in
-`content/events/`.
+moment with both, a moment with neither, a dated moment with no title, and an `event` that does
+not resolve to a file in `content/events/`.
 
+- On a record anchored to an event, `people` means who joined at that event. The template takes
+  only `people`, `there` and `away` from such a record and merges every record anchored to one
+  event, so several records may anchor to one meetup. A blurb, photo or links on an anchored
+  record are not shown; the meetup's card links to its event page instead.
+- In the page's JSON a meetup carries `people` (who joined there), `there` and `away`, each an
+  array, empty when nothing is recorded. Existing records need no change, and the picture is
+  complete with no `there` or `away` anywhere.
+- `there` and `away` are lists of profile slugs. The validator rejects, naming the record: an
+  unknown slug in either; either list on a record that is not anchored to an event (a dated
+  moment says who was there with `people`); the same person in `there` and `away` for one event,
+  across all its records; a person in either list for a meetup earlier than the one they joined
+  at, or with no join record at all (before joining they were not in the group, and being there
+  earlier would make that the meetup they joined at); and a person recorded `away` from the
+  meetup they joined at.
 - `date` accepts `YYYY`, `YYYY-MM` or `YYYY-MM-DD`. Precision is inferred from the format, never
   padded. A moment known only as "some time in April 2023" is written `2023-04` and displayed as
   "April 2023", not as an invented first-of-the-month. Much of the early history is fuzzy, and a
-  page about remembering should not state precision it does not have.
-- Imprecision shows in the node, not in the axis. Because spacing is rank-based there is no
-  proportional axis to stretch a node along, so a fuzzy moment is drawn with a hollow or softened
-  node and its label states the precision it actually has ("April 2023", "2021"). `braid-data`
-  rejects any other date format.
-- `trunk = true` marks a moment as part of the SNUG spine. The earliest trunk moment starts it.
-- The spine starts at the founding of the group (`2023-04`, month precision), not at SCaLE 20x.
+  page about remembering should not state precision it does not have. `braid-data` rejects any
+  other date format, and any date that does not exist.
+- Imprecision shows in words, not in the axis or the shape. Spacing is rank-based, so there is no
+  proportional axis to stretch a moment along, and a fuzzy moment is drawn like any other. Its
+  card and its screen reader label state the precision it actually has ("April 2023", "2021").
+  Its label in the picture is its title. A fuzzy date sorts at the start of its span.
+- `trunk = true` marks a moment as a meetup. Every event page is one automatically; in the
+  moments file only the founding carries it. People join only at a meetup, and a meetup is
+  always on the ribbon. The word is the data's and the page's JSON's; the engine takes it to mean
+  "a meetup".
+- The ribbon starts at the founding of the group (`2023-04`, month precision), not at SCaLE 20x.
   SCaLE is where two threads touched; the group did not exist for another month. SCaLE is
   therefore an ordinary shared moment, and the short stretch between the two, where the founders
   travel together but are not yet a group, is deliberate.
 - The founding moment's people are the three co-founders: `daniel-baker`, `david-nuon`,
   `rob-hernandez`. All three profiles say "Co-founder", and all three appear in the founder chat
   in the anniversary post.
-- The trunk must not start at the earliest moment in the file. If it did, every person would be
-  first seen at or after the trunk start, the negative lane side would be empty, and the
-  pre-convergence half of the braid would not render at all. The data has to carry personal root
-  moments before the first trunk moment. That is the premise of the page, but the engine cannot
-  enforce it, so `braid-data` warns when no moment predates the first trunk moment.
-- Every meetup is an oval on the ribbon automatically, whether or not a moment references it. An
-  anchored moment adds people to a meetup; it does not create one. The ribbon therefore gets
-  roughly twenty meetups without the moments file listing a single one.
-- A person named only in a `blurb` needs no profile. `braid-data` validates `people` entries, not
-  prose. Ben was on the SCaLE 20x booth and gets no thread; he is named in the telling and that
-  is all.
+- The data has to carry personal moments before the first meetup. That is the premise of the
+  page: without them every thread starts at or after the founding and there are no separate
+  paths to show converging. The engine cannot enforce it, so `braid-data` warns when no moment
+  predates the first `trunk` moment.
+- Every meetup is a moment on the ribbon automatically, whether or not a moment references it. An
+  anchored moment adds people to a meetup; it does not create one. The ribbon therefore carries
+  every meetup without the moments file listing a single one.
+- A person named only in a `blurb` needs no profile. `braid-data` validates `people`, `there`
+  and `away` entries, not prose. Ben was on the SCaLE 20x booth and gets no thread; he is named
+  in the telling and that is all.
 - Influence without presence is modelled as a separate moment, not a new field. The worked
   example below has since been removed from the data, but the rule stands for the next time
   somebody causes something they were not at. Ron Efroni
@@ -259,11 +338,14 @@ moment with both, a moment with neither, and an `event` that does not resolve to
   next to the moment it caused, and the picture never claims he was in the room. A `caused_by`
   link between moments was rejected for the same reason the `met` pair list was: it is a
   hand-maintained edge list wearing a data file as a disguise.
-- A moment with one person is a root or a solo beat. A moment with several merges those threads.
+- A moment with one person is a root or a solo beat. A moment with several gathers those threads.
 - A gathering away from the group needs no new syntax. A moment that is not a meetup, dated after
-  the group began and naming people already in it, is written like any other shared moment, and
-  is drawn as its own oval with those people's threads through it. Nix Camp in autumn 2023 is
-  one.
+  the group began and naming people already in it, is written like any other shared moment. It is
+  drawn as its own moment with those people's threads through it: on the ribbon when it names
+  everyone in the group at its date, beside the ribbon otherwise. Nix Camp in autumn 2023 is one
+  beside it; SCaLE 22x, which everyone was at, is on it.
+- `links` on a freestanding moment is a list of `{ title, url }`; `braid-data` rejects an entry
+  without both.
 - Every shared moment is stated exactly once, in one place, chronologically readable.
 
 One file rather than per-person files because `load_data` takes a single literal path and Tera has
@@ -271,54 +353,147 @@ no glob, so per-person data would mean one `load_data` call per profile with a c
 a missing-file case to handle. The merge-conflict cost of a single append-only file is small for a
 group this size.
 
-`data/` must be added to the `lib.fileset` in `overlays/topLevel/socal-nug-site/package.nix`.
+`data/` is in the `lib.fileset` in `overlays/topLevel/socal-nug-site/package.nix`.
+
+### What a thread through a meetup means
+
+Decided by Daniel. This is the one rule a data author must know.
+
+```
+the record says they were there    ━━━●━━━   through the moment, with a bead
+nothing is recorded                ━━━━━━━   through the moment, no bead
+the record says they were not      ━━╮ ╭━━   around the moment
+                                     ╰─╯
+```
+
+- After someone joins, their thread goes through every meetup by default. That says "in the
+  group then", and nothing more.
+- A bead on a thread inside a moment says the record vouches for that person being there.
+- A member's thread goes around a meetup only where the record says they were away. Someone who
+  has not joined yet is not in the ribbon at all: their thread, if it has started, passes the
+  meetups wherever the layout routes it. The two need no separate mark. The first is a thread
+  leaving the ribbon for one moment and coming straight back; the second is a line that has not
+  reached the ribbon yet.
+- At a moment that is not a meetup (a conference, a camp, a personal moment), everyone named was
+  there by definition, so every thread through it carries a bead.
+- At the meetup where someone joined, they were there by definition, so they carry a bead. It is
+  drawn larger, in their own colour, with a ring, because it also marks the join.
+
+A recorded absence is shown only by the thread going around the meetup. It is not listed on the
+meetup's card or in its screen reader label, by Daniel's decision. The page carries a short
+legend (see "Toggle and responsive behaviour"), because a thread without a bead has to be read as
+"in the group then" and not as "attended".
 
 ### The layout engine
 
 The engine is in two halves, and the seam between them is the most important line in it. The
-reasoning for what is drawn now is in `2026-11-22-origins-loom-design.md`; this is what is built.
+first half decides what the picture is made of; the second asks ELK where everything goes and
+draws it. The engine's package is still named for the braid it first drew
+(`overlays/topLevel/socal-nug-braid-js/`, bundled to `static/js/braid.js`), and so are some of
+the page's class names (`origins-braid`, `origins-oval`).
 
 **The story** (`src/story.ts`) reads the moments and decides what the picture is made of, with
 nothing positional in it beyond a person's slot across a moment:
 
 1. Moments are ordered by date, ties broken by id, so the same data always draws the same.
-1. A join comes only from a meetup naming you. Nothing is inferred from company kept.
-1. Every person is one thread from their first moment on, through every moment they are through.
-   At a meetup that is everyone who has joined by then, less anyone the record says was away. At
-   any other moment it is the people it names.
+1. A join comes only from a meetup naming you in `people`. Nothing is inferred from company
+   kept. The people in the group at a moment are everyone who has joined at or before it.
+1. Who is through each moment: at a meetup, everyone in the group then, less anyone the record
+   says was away; at any other moment, the people it names.
+1. Every person with at least one moment is one thread through the moments they are through, in
+   date order, from their first to their last. A meetup they are recorded away from is not on
+   it. Someone who never joins has a thread through the moments that name them and nothing else.
+1. Slot order is one order of people for the whole picture: by the meetup they joined at (people
+   who never join go last), then by their first moment, then by slug. Because it is ordered by
+   joining, the people in the group at any date are the first so many in it, and two threads keep
+   the same side of each other wherever they run together.
 1. A moment is on the ribbon when it is a meetup, or when everyone in the group at its date is
-   through it. On the ribbon a person keeps a fixed slot, their rank in join order, with a gap
-   where a member is absent. Off it the people named are packed.
+   through it. On the ribbon a member's slot is their place in the slot order, so their thread
+   stays in one slot from each such moment to the next, and a member recorded away leaves their
+   slot empty: a gap, not a closing of ranks. Anyone through it who has not joined yet takes the
+   slots after the members'. Off the ribbon the people through it are packed, in slot order.
 1. A passage through a moment is vouched for where the record says so: at any moment that is not
    a meetup, at the meetup a person joined at, and where a meetup's record lists them under
    `there`. Attendance is never inferred.
+1. Who is passing a moment off the ribbon: the members of the group at its date who are not
+   through it, each at their ribbon slot. A thread stops at its person's last moment, so a member
+   passes a side moment only if they are through a later one. Nobody passes a moment on the
+   ribbon, or a moment before there is a group.
 
 **The placement** (`src/loom-graph.ts`, `src/loom-place.ts`) hands that to the Eclipse Layout
-Kernel's layered algorithm and takes back coordinates:
+Kernel's layered algorithm and takes back coordinates.
+
+The graph:
 
 - Every moment is a node pinned to its own layer by date through ELK's partitioning, so the time
   axis is ours and not the layering's. ELK decides order within a layer and where lines go.
-- A moment is as wide across the time axis as its slots, with an in-port and an out-port for each
-  person through it at fixed positions. A person's thread is one edge per hop, from their face to
-  their first moment and then from moment to moment, by way of the pass-through of each side
-  moment they pass (below).
-- A hidden spine of edges through the ribbon's moments and the pass-throughs, which ELK is told to
-  keep straight, holds the ribbon to one column. It is never placed or drawn.
-- The ribbon's people pass a side moment through an unseen pass-through node in its layer, at
-  their ribbon slots, so only the people the moment names leave the column. Why and what it costs
-  are under "Holding the ribbon to one column" in `2026-11-22-origins-loom-design.md`.
-- Labels are handed to ELK as node labels, sized by their text. That is what makes it leave room
-  for them: they become part of the node's margin, nothing else is placed there, and edges route
-  around them.
+- A moment's size across the time axis is set by its slots, `max(18, (slots - 1) * 7 + 2 * 8)`
+  pixels: a slot every 7px with 8px at each end, a single slot centred. Along the time axis it is
+  14px.
+- Each person through a moment has two ports on it at their slot: one on the side time comes
+  from, one on the side it leaves by, with `elk.portConstraints = FIXED_POS`. That is what keeps
+  threads apart; without ports ELK attaches every edge at about the same point. Ports have no
+  size, because ELK attaches an edge to a sized port off its corner, a pixel across from the
+  slot.
+- Each person has a root node, 36px square, where their face goes, one layer ahead of their first
+  moment.
+- A person's thread is one edge from their root to their first stop and one from each stop's
+  outgoing port to the next stop's incoming port. A stop is a moment they are through or a
+  pass-through they are passing, in date order. A meetup someone is away from has no edge of
+  theirs into it, so their thread crosses that layer as a long edge and ELK routes it around.
+- A pass-through: a side moment that anyone is passing also has an unseen node in its layer,
+  `pass:<moment id>`, as wide as the group's slots, with no label, carrying a port pair at the
+  ribbon slot of each member passing it. Their threads run straight through it, so only the
+  people the moment names leave the ribbon. Without it ELK orders the side moment inside the
+  ribbon, next to its people's threads, and every thread beyond it steps out around it.
+- A hidden spine holds the ribbon to one column. Each moment on the ribbon and each pass-through
+  has one more port pair, half a slot before its first slot, and an edge runs from each of them to
+  the next in date order with `elk.layered.priority.straightness = 1000`. It is nobody's thread,
+  and it is never placed or drawn. Giving the threads a straightness priority as well takes the
+  spine's away, and the ribbon jogs again.
+- Labels are handed to ELK as node labels, sized by their text and cut with an ellipsis past
+  150px. That is what makes it leave room for them: they become part of the node's margin,
+  nothing else is placed there, and edges route around them.
 - River is direction DOWN with labels beside nodes; Subway is direction RIGHT with labels above.
   The same graph, laid out twice. Switching modes redraws the picture; nothing slides.
-- The layout is injected into `loom-place.ts`: the page gives the real ELK, the smoke check gives
-  the same vendored copy, and the unit tests give a fake shaped like a layout. None of them runs
-  ELK to test the engine around it.
+- The other options are layered layout with network simplex node placement and polyline routing,
+  30px between layers in River and 60px in Subway, node spacing 28, edge-to-node 20, edge-to-edge
+  7, label-to-node 12, padding 40 and thoroughness 20.
 
-**The drawing** (`src/loom-draw.ts`) draws the threads, then an oval per moment over them with a
-partly opaque fill so the threads show through, then a bead on a person's slot where the record
-vouches for them, then faces and labels. There is no trunk, and there are no halo rings.
+From ELK's output, `loom-place.ts` makes each moment's box and centre, the point of each person's
+slot inside it, each label's anchor, each pass-through's box (kept apart from the moments, with
+no centre or label), each face's centre, and a polyline per edge saying whose thread it is and
+which nodes it runs between. Each polyline is carried on from the port on a box's edge to the
+person's slot inside it, at both ends, so one person's edges meet inside the moment and the
+thread is unbroken. An edge ELK routed nowhere is left out. The canvas is then widened to the box
+it is shown in and the drawing centred, rather than stretched.
+
+The layout is injected into `loom-place.ts`: the page gives the real ELK, the smoke check gives
+the same vendored copy, and the unit tests give a fake shaped like a layout. None of them runs ELK
+to test the engine around it.
+
+**The drawing** (`src/loom-draw.ts`) draws, in order, so each sits on what came before:
+
+- Year markers: the opening year at the corner, then at each change of year a dashed line across
+  the picture, between the last moment of one year and the first of the next, with the year
+  beside it.
+- Threads: one path per person, in their palette colour, through all their edges joined end to
+  end. Each hop eases between its points with control points along the time axis, so a hop that
+  stays in its slot is straight and one that changes slot is an S-curve. One path per person
+  rather than per edge, because two round-capped paths meeting in open space leave a faint seam.
+  An edge left out starts a new subpath.
+- Moments: a pill sized to the moment's box, a rectangle with ends as round as half its shorter
+  side, filled with the page's colour partly opaque so the threads show through. Meetups are
+  outlined in the page's accent colour, other moments in a muted one. The pill is the click,
+  hover and focus target, with a hit area a few pixels larger.
+- Beads: a small filled circle in the person's colour at their slot, wherever the record vouches
+  for them. Where they joined, the join bead: larger, in their own colour, ringed in the page's
+  ink colour.
+- Faces: the person's avatar, or their initial when there is no image, in a circle ringed in their
+  thread colour.
+- Labels: each moment's title, where ELK left room for it.
+
+There is no trunk, and there are no halo rings.
 
 **Why a library, and why this one.** The engine before this was a hand-written lane allocator in
 the style of `git log --graph`, and it was fixed one overlap at a time: labels on faces, lines
@@ -334,7 +509,9 @@ column. ELK's partitioning is the feature itself.
 
 **What it cost.** A 1.6 MB script the page loads before the engine, vendored under
 `static/js/vendor/` with its EPL-2.0 licence rather than fetched from a CDN, because the site is
-heading for self-hosting. Layout is asynchronous, so the picture appears a beat after the page.
+heading for self-hosting. Layout is asynchronous, so the picture appears a beat after the page,
+and it takes longer as the history grows. Each mode is laid out once per visit: a window resize
+re-centres the layout already made, and a second visit to a mode is instant.
 
 **What stayed.** Everything either side of the seam: the data model and its validator, faces, the
 card and popup, the toggle, the checks. The old allocator, its projections and its label sweep
@@ -342,135 +519,221 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
 
 ### Toggle and responsive behaviour
 
-- Buttons in the page, choice persisted in `localStorage`, following the existing theme switcher
-  pattern in `partials/base.navigation.html`.
-- River is the default, and the default on narrow viewports.
-- The toggle stays visible at all widths.
-- Map lives in an `overflow-x: auto` container, which gives native momentum panning on touch with
-  no JavaScript. On desktop it needs a visible affordance; see "Left to the builder".
+- Buttons in the page, River and Subway, choice persisted in `localStorage`, following the
+  existing theme switcher pattern in `partials/base.navigation.html`. The selected button is
+  marked with the same Bulma classes the theme switcher uses, and with `aria-pressed`.
+- River is the default at every width.
+- The toggle and the legend are hidden until the first picture is drawn, so a reader whose layout
+  engine never arrived is not offered a control that does nothing or a key to marks that are not
+  there. Once shown, the toggle stays visible at all widths.
+- The legend is one line under the toggle with three marks drawn small: a thread with a bead
+  ("the record says they were there"), a thread with the ringed join bead ("joined here"), and a
+  bare thread ("in the group then"). A fourth, a thread stepping around a moment ("the record says
+  they were not there"), is shown only when the data records at least one absence.
+- The map is a box of its own, at most 85% of the viewport tall, that scrolls both ways. Subway's
+  canvas is wider than the page, and River's can be; on touch that is native momentum panning with
+  no JavaScript. Scrolling down chains to the page at the map's end, and sideways does not tip over
+  into the browser's back gesture. How Subway signals that it pans on desktop is still open.
+- River puts the roster in a column beside the map; Subway, and any viewport narrower than 1024px,
+  puts it underneath as a grid.
 - Switching modes redraws the picture and nothing animates. The slide between modes went with
-  the Loom: an oval that is wide in one mode and tall in the other has nowhere sensible to slide
-  from. The reasoning is under "Drawing" in the Loom design.
+  the Loom: a moment that is wide in one mode and tall in the other has nowhere sensible to slide
+  from.
+- If laying out the newly chosen mode fails, the picture already on screen stays, under the new
+  mode's name. This is left as it is on purpose; see "Still open".
+- If the first layout fails, the map says "The picture could not be drawn. Reloading the page may
+  bring it back." The roster is still there.
 
 ### Cards and the popup
 
 - Thread roots are the person's avatar, circular, ringed in their thread colour.
-- There is no rail beside the map. Clicking a face opens that person's card and clicking a
-  moment opens its card, both in one popup that is a child of the scrolling map. It is placed in
-  the map's own scroll coordinates beside what was clicked, to the right and flipping left when
-  there is no room, clamped to the slice of the map on screen so it never opens somewhere the
-  reader has to scroll to find, and it pans with the map once open.
+- Clicking a face opens that person's card and clicking a moment opens its card, both in one popup
+  that is a child of the scrolling map. It is placed in the map's own scroll coordinates beside
+  what was clicked, to the right and flipping left when there is no room, clamped to the slice of
+  the map on screen so it never opens somewhere the reader has to scroll to find, and it pans with
+  the map once open. A moment keeps a changed outline while its card is open.
 - The popup closes on its X, on Escape, and on any click that is not inside it. A click on
   another face or moment swaps the card rather than closing it first.
-- Hovering a face or a moment highlights the threads involved. Cards no longer take part in
-  highlighting.
-- A person's card carries avatar, name, alias, description, membership badge, profile link and
-  where they joined. A moment's card carries title, date, photo, blurb, who was there, and the
-  event page or outside link. A meetup's card says "Joined here:" and "Confirmed there:" in place
-  of who was there, because a thread through a meetup says only that its person was in the group
-  then.
+- The roster lists everyone as the same person cards, in thread order, without the X. It sits
+  beside River and under Subway (see "Toggle and responsive behaviour").
+- Hovering a face lights that person: their thread is drawn thicker, their face's ring too, and
+  their roster card is tinted. Hovering or focusing a roster card does the same. Hovering a moment
+  lights everyone through it. A touch does not light anything; a tap opens the card.
+- A person's card carries avatar, name, alias (linking to their profile), quote, description,
+  membership badge and where they joined, as "Joined at" with that meetup's title and date.
+- A moment's card carries title, date, photo, blurb, and the event page or outside links. Any
+  moment that is not a meetup lists the people it names. A meetup's card says "Joined here:" with
+  the names of who joined there, and "Confirmed there:" with anyone else the record vouches for,
+  in place of who was there, because a thread through a meetup says only that its person was in
+  the group then. It does not list who was away.
 - **Why the rail went.** Once the lanes were wide enough to read, River needed every pixel of its
-  width, and a 20rem column beside it was the first thing to give.
+  width, and a 20rem column beside it was the first thing to give. That was under the lane
+  allocator. ELK's River is much narrower, and the roster came back beside it in a different
+  shape: the same cards as the popup, with highlighting both ways.
 - **What it cost.** The rail was the keyboard route to a person's card, and removing it made
   person cards pointer-only for a while, as moment cards already were. The roving tabindex under
   Accessibility is what put a keyboard route back.
 
 ### Member and guest treatment
 
-Three signals, so it does not depend on colour alone:
+Several signals, so it does not depend on colour alone:
 
-|               | Member                         | Guest            |
-| ------------- | ------------------------------ | ---------------- |
-| Avatar ring   | Thread colour, full saturation | Grey             |
-| Card bar      | Solid                          | Dashed           |
-| Thread stroke | Solid                          | Dashed           |
-| Badge         | Filled, "Member"               | Outline, "Guest" |
+|               | Member                         | Guest                      |
+| ------------- | ------------------------------ | -------------------------- |
+| Avatar ring   | Thread colour, full saturation | Grey, dashed; image greyed |
+| Card bar      | Solid, thread colour           | Dashed, grey               |
+| Thread stroke | Solid                          | Dashed and thinner         |
+| Badge         | Filled, "Member"               | Dashed outline, "Guest"    |
 
-Colour identifies individual threads only while there are few enough to tell apart. Past roughly
-a dozen people, per-person hues stop being distinguishable and the anti-goal about degrading with
-growth bites. Beyond that threshold threads take a single muted colour and identity comes from
-the roster rail and from highlight-on-hover instead, with colour reserved for the highlighted
-thread. Member and guest remain distinguishable at any size, because that distinction rides on
-ring, stroke and badge rather than on hue. This is a call made in the absence of a preference and
-is worth revisiting once the real picture is on screen.
+Colour identifies individual threads only while there are few enough to tell apart. The palette
+has twelve hues, in light and dark versions; the first twelve threads in thread order each take
+one, and every thread after that takes a single muted colour. Past that point identity comes from
+the face, the roster card and highlight-on-hover, which thickens a thread rather than colouring
+it. Member and guest remain distinguishable at any size, because that distinction rides on ring,
+stroke, card and badge rather than on hue. This is a call made in the absence of a preference
+and is worth revisiting once the group passes a dozen.
 
 The badge carries no meeting number. The card instead shows where someone joined using the title
-and date of their first trunk moment, which the engine already computes. Parsing a number out of
+and date of the meetup they joined at, which the engine already computes. Parsing a number out of
 event titles was considered and rejected: the titles are not uniform (`NUG #1`,
-`NUG #14 @ Ten Mile Brewing`, `Mini NUG @ Legend Chicken Hawaiian Gardens`), two of twenty carry
-no number, and a person's first trunk moment need not be a meetup at all.
+`NUG #14 @ Ten Mile Brewing`, `Mini NUG @ Legend Chicken Hawaiian Gardens`), some carry no number,
+and a person's first meetup in the data need not be a numbered one.
 
 ### Accessibility
 
-The picture is the accessible version of itself. Its SVG is a named group, every moment's oval and
-face is a `role="button"` with a label, and the braid is one tab stop with a roving tabindex: the
-arrow keys move a cursor through the story, Enter or Space opens that card, Escape closes it.
-Forward is Down or Right in both modes. Forty-six separate tab stops in the middle of a page is a
-wall to anyone tabbing past, which is the reason for the roving pattern rather than plain
-focusable dots.
+The picture is the accessible version of itself. Its SVG is a named group, every moment's pill and
+every face is a `role="button"` with a label, and the picture is one tab stop with a roving
+tabindex: the arrow keys move a cursor through the story in the order it happened, faces a step
+ahead of their person's first moment, Home and End go to either end, Enter or Space opens that
+card with focus in it, and Escape closes it with focus back where it was. Forward is Down or Right
+in both modes. One tab stop for every moment and face, several dozen of them, in the middle of a
+page is a wall to anyone tabbing past, which is the reason for the roving pattern rather than plain
+focusable moments.
 
-Labels say how many people were at a moment, not who. Eight names read out on every arrow press
-is a wall of its own, and the card names them for anyone who opens it.
+A meetup's label gives its title, its date and how many are in the group by then, for example
+"NUG #6, 1 June 2024, 9 in the group". Another moment's says how many people it names. Labels say
+how many, not who: eight names read out on every arrow press is a wall of its own, and the card
+names them for anyone who opens it. A face's label is the person's name and "member" or "guest".
+Beads have no role and are not tab stops.
+
+The legend is hidden from assistive technology (`aria-hidden`), by Daniel's decision. A recorded
+absence is not in any card or label; it is shown only by the thread going around the meetup, also
+by Daniel's decision.
 
 **There was a rendered fallback list**, emitted by Tera beside the picture: the page without
 JavaScript, and the accessible version while the SVG was `aria-hidden` decoration. It is gone.
-Once the picture named its own dots and faces and its cards carried the blurbs and links, the
+Once the picture named its own moments and faces and its cards carried the blurbs and links, the
 list was a second copy of the same history to keep correct, and a second thing for a screen
-reader to read. What goes with it: a reader with JavaScript off, or one whose browser fails to
-fetch the 1.6 MB layout engine, gets an empty element instead of a list of moments, and the page
-source carries the history only as the JSON data block. That was an accepted trade, not an
-oversight.
+reader to read. What goes with it: a reader with JavaScript off gets an empty map and an empty
+roster, and the page source carries the history only as the JSON data block. A reader whose
+browser fails to fetch the 1.6 MB layout engine gets the roster and a sentence in the map saying
+the picture could not be drawn. That was an accepted trade, not an oversight.
 
 `test_site.py` asserts the list is absent and that the data block carries the history instead.
 
 ### Build and toolchain
 
-- New overlay package `socal-nug-braid-js`: runs esbuild over `src/`, emits a minified ESM bundle.
+- Overlay package `socal-nug-braid-js`: runs esbuild over `src/`, emits a minified ESM bundle.
   Source and `package.nix` live in the package directory, matching how `socal-nug-make-event-ical`
-  owns `make_event_ical.py`.
-- `socal-nug-site` takes it as an input and copies the bundle to `$out/js/braid.js` in its build
-  phase, alongside the existing calendar step.
+  owns `make_event_ical.py`. The same directory holds the unit tests (`test/`), the smoke check
+  (`smoke/`) and the on-demand browser check (`browser/`).
+- The site does not build the bundle. It is committed at `static/js/braid.js` and served from
+  `static/` like any other asset, so `nix build .#socal-nug-site` and Netlify ship the same file;
+  see "Netlify interim". `socal-nug-braid-js` is built to check that file and to regenerate it;
+  the unit tests, the smoke check and the browser check compile from its source.
 - The page loads it with `<script type="module" src="/js/braid.js">`, after a classic
   `<script src="/js/vendor/elk.bundled.js">` for the layout engine, so ELK's global is there before
   the module runs. The vendored file is elkjs 0.12.1's `lib/elk.bundled.js`, with its EPL-2.0
   licence beside it; it is not fetched from a CDN because the site is heading for self-hosting.
 - Moment and person data reach the script through a `<script type="application/json">` block
-  written by Tera with `| json_encode | safe`.
+  written by Tera with `| json_encode | safe`. Tera has no object literals and no `concat`, so the
+  block's structure is written out by hand in `templates/origins.html` and only the values are
+  encoded.
 
 ### Checks
 
-Added to `checks/default.nix`:
+In `checks/default.nix`:
 
-- `braid-engine`: esbuild-compiles the engine and its tests, runs `node --test`. Covers the story
-  half (order, joins, who is through each moment, slots, what the record vouches for), the graph
-  handed to ELK, the mapping of its output into positions, the drawing from those, cards, and
-  popup placement. None of it runs ELK; the placement tests use a fake shaped like a layout.
+- `braid-engine`: esbuild-compiles the engine's unit tests, runs `node --test`. Covers the story
+  half (order, joins, who is through each moment, slots, who is passing, what the record vouches
+  for), the graph handed to ELK (sizes, ports at slots, edges port to port, no edge into a meetup
+  someone is away from, pass-throughs, the spine), the mapping of its output into positions, the
+  drawing from those, cards, keyboard order, the toggle, popup placement, the made-up histories
+  and the smoke check's own measures. None of it runs ELK; the placement tests use a fake shaped
+  like a layout.
+
+- `braid-types`: `tsc --strict` over `src/`, `test/`, `smoke/` and `browser/`. esbuild strips
+  types without checking them, so without this the types would be documentation only.
+
+- `braid-bundle-fresh`: the committed `static/js/braid.js` is byte for byte a fresh build of
+  `socal-nug-braid-js`; see "Netlify interim".
+
 - `elk-vendored`: the committed `static/js/vendor/elk.bundled.js` is byte for byte the pinned
   upstream release, fetched by hash. The only way a vendored file stays honest about where it
   came from.
-- `braid-data`: validates `data/moments.toml`. Every `people` entry resolves to a profile slug in
-  `content/about/`, every `date` parses, every `id` is unique, and at least one moment has
-  `trunk = true`. An unresolved slug is the likely failure when someone adds themselves, so it
-  must fail the build with the offending slug in the message.
-- `frontmatter` extends to the new required `member` field through `profiles.json`.
-- `braid-smoke`: builds the story from the repository's own `data/moments.toml` and
-  `content/events/`, not from fixtures, lays it out through the vendored ELK in both modes, draws
-  it, and measures the SVG: everything on the canvas, every person with a moment has a drawn
-  thread and a placed face, no thread, sampled along its drawn curve, inside an oval or a face
-  that is not its own, no label on a face or an oval, off the canvas, wider than its room or
-  under a thread, every bead inside its own oval and exactly where the record vouches, no thread
-  through the oval of a meetup its person is recorded away from, and the ribbon within 1px of one
-  column. It does the same for nine made-up histories generated from fixed seeds
-  (`smoke/histories.ts`). Every other engine test runs on fixtures and fakes the layout, so
+
+- `braid-data`: validates `data/moments.toml` with `verify_moments.py`, then runs it over a
+  fixture for each way a moment can be malformed and checks each is rejected with the expected
+  words. It checks the shape of each moment (date or event, a title on a dated moment), that
+  every date parses and exists, that every `id` is unique, that every `people`, `there` and
+  `away` entry resolves to a profile slug in `content/about/`, that every `event` resolves to a
+  file in `content/events/`, that `links` are well formed, the attendance rules under "Moments",
+  and that at least one moment has `trunk = true`. It warns when nothing predates the first
+  `trunk` moment. Problems are reported a class at a time, every instance of the first class that
+  has any. An unresolved slug is the likely failure when someone adds themselves, so it fails the
+  build with the offending slug in the message.
+
+- `frontmatter` extends to the required `member` field through `profiles.json`.
+
+- `test-site` checks the built page: its data block parses and carries the history, the meetups
+  come from the events section and carry `there` and `away` lists, a record's attendance reaches
+  its meetup through the template's merge, the fallback list is absent, and the bundle, the
+  vendored layout engine (before the bundle), the toggle and the roster are in place. It also
+  proves the About filter with a guest probe.
+
+- `braid-smoke`: builds the story from the built site's own data block, which is the repository's
+  `data/moments.toml` and `content/events/` through the template's merge, not from fixtures. It
+  lays it out through the vendored ELK in both modes, draws it, and measures the result:
+
+  - every moment has a position, every person with a moment has a placed face, every side moment
+    with anyone passing it has a pass-through, and every person has one edge for each moment
+    they are through and each pass-through they are passing;
+  - the ribbon holds its column: the first slot of every moment on the ribbon and of every
+    pass-through is within 1px of the median of them, across the time axis, whether or not anyone
+    is in that slot;
+  - no hop from one stop on the ribbon to the next (a moment on the ribbon or a pass-through, with
+    no ribbon moment between them) has a point more than a slot outside its two ends, across the
+    time axis. A hop that skips a ribbon moment is someone going around a meetup they are away
+    from or not yet part of, and is not measured;
+  - no thread runs through a moment or a face that is not its own, sampled along ELK's polylines
+    and again along the drawn curve;
+  - every moment and face is on the canvas; no label sits on a face or a moment, runs off the
+    canvas or is wider than the 150px it may claim, and no thread runs under a label;
+  - every bead is inside its own moment, and a person has a bead exactly where the record vouches
+    for them and nowhere else;
+  - nobody recorded as away from a meetup has a thread through it.
+
+  It does the same for nine made-up histories generated from fixed seeds (`smoke/histories.ts`):
+  seeds 1 to 3, each at about today's size and one and two years on, twenty layouts in all with
+  the real data. They depend on nothing but their seeds, so a content change can never alter them
+  or turn them red. Every finding is fatal, and the check prints a line for every layout before
+  failing so one run shows them all. A finding about layout (an overlap, a label, the ribbon, a
+  thread stepping out) on the real data says that the picture came out wrong for the data as it
+  now stands, that nothing in the author's change is mistaken, and that it needs a maintainer who
+  knows the layout engine; on a made-up history it says only a change to the engine can have
+  caused it. The rest (a missing position, edge or pass-through, a bead with no record behind it,
+  a thread through a meetup its person is recorded away from) cannot be caused by data and say
+  they are a bug in the engine. Every other engine test runs on fixtures and fakes the layout, so
   without this a plausible typo in the real data, or a layout ELK is happy with that the renderer
-  is not, ships with the whole suite green. The reasoning is under "Checks" in the Loom design.
+  is not, ships with the whole suite green.
 
 **On demand, not a check:** `nix run .#socal-nug-braid-browser` loads the page in headless
 Chromium and behaves like a visitor: it wheels past the map, drags a finger through it on a
-phone-sized screen, clicks and tabs into cards, switches modes, blocks the layout engine, and
-asks for the dark theme. Twenty-five assertions, each named for what a visitor would notice. It
-lives in `socal-nug-braid-js/browser/` and is typechecked by `braid-types`, which is what stops it
-rotting between uses.
+phone-sized screen, clicks and tabs into cards, hovers moments, switches modes, blocks the layout
+engine, and asks for the dark theme. Twenty-five checks, each named for what a visitor would
+notice and none naming a moment or a person, so the data can change under it. It needs the
+network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
+and is typechecked by `braid-types`, which is what stops it rotting between uses.
 
 It is kept out of `nix flake check` on purpose. Everything it looks at is decided by `main.ts`,
 `origins.scss` and `origins.html`; no event, moment or profile can break any of it, so a
@@ -496,9 +759,12 @@ When self-hosting lands, the committed bundle and its check can both be deleted.
 
 ### Styles
 
-`sass/css/pages/origins.scss` plus whatever components it needs under
-`sass/css/components/`, imported from `style.scss` alongside the existing page styles. Colours are
-defined so that both themes work, following the dark mode work from #97.
+`sass/css/pages/origins.scss`, imported from `style.scss` alongside the existing page styles; the
+page needed no shared components. Colours are defined so that both themes work, following the
+dark mode work from #97: the twelve thread hues, the accent, muted, ink, surface and line colours
+each have a light and a dark set, applied to the map and to the legend, and the map tells the
+browser its content is dark so its scrollbars follow. A thread's colour is a palette slot set by
+a `data-hue` attribute, so adding a person needs no stylesheet edit.
 
 ## Settled since this was written
 
@@ -509,14 +775,27 @@ to the right in River and below in Subway. A freestanding moment may carry `link
 `{ title, url }`, because one moment can be two places at once; event-anchored moments take
 their permalink from the event and need nothing.
 
+Settled by the Loom: there is no trunk, and every person is one thread; the meaning of a thread
+through a meetup, and that attendance is recorded optionally with `there` and `away`; that a
+moment everyone in the group is at sits on the ribbon; that the ribbon is held to one column by
+the hidden spine and the pass-throughs, measured by the smoke check on the real data and on the
+made-up histories; that a layout fault on the real data fails the check, in words that say it is
+not the author's mistake; that switching modes does not animate; the meetup card's wording; and
+the legend.
+
+Also decided by Daniel: a recorded absence is shown only by the thread going around the meetup
+and is listed nowhere; the legend is hidden from assistive technology; a phone-sized screen is not
+a present concern.
+
 ## Still open
 
 - **The card.** The treatment was called out early as generic and never revisited beyond
   squaring the corners. There is one card surface now, used in the popup and the roster, so it
   is a single thing to design rather than two.
 - **Descriptions and quotes.** Connor Baker, Jared Baur, Kyle Risse and Morgan Jones have
-  neither. Mica has a quote, which rather shows up the gap. Rob Hernandez's "First contact" is
-  the one moment whose card has no description.
+  neither. Mica has a quote and no description, which rather shows up the gap. Rob Hernandez's
+  "First contact" has no blurb, though Daniel Baker's has one, and several conference and camp
+  moments have none.
 - **Seven `CONFIRM` markers** in `data/moments.toml`: two dates given as approximations, two
   meetups guessed at, and "I think everyone was there" on the three SCaLE moments.
 - **The README** names the Origins checks and the browser tool, but still says nothing about
@@ -524,23 +803,39 @@ their permalink from the event and need nothing.
   or that `zola serve` does not watch `data/`, which has twice made a change look like it had
   not landed.
 - **How Subway signals it pans** on desktop, where there is no touch affordance.
+- **An id rule in the validator.** Nothing stops a `|` in a moment id, or a person slugged
+  `spine`, and either would break placement: port ids are split on `|`, and the spine's edges
+  are named `spine:<n>`, as a person's edges are named `<slug>:<n>`.
+- **Safari** has not been tried. The page has been checked in Firefox and Chromium.
+- **A failed mode switch** leaves the old picture on screen under the new mode's name, and the
+  new mode remembered. Left alone on purpose, by Daniel's decision.
 - **Integration.** The branch is more than fifty commits and has never been reviewed as a whole.
 
 ## Verification
 
-- `nix flake check` passes, including the two new checks.
+- `nix flake check` passes, including the Origins checks: `braid-engine`, `braid-types`,
+  `braid-bundle-fresh`, `elk-vendored`, `braid-data`, `braid-smoke`, and the Origins parts of
+  `frontmatter` and `test-site`.
+- `nix run .#socal-nug-braid-browser` passes, after any change to `main.ts`, `origins.scss` or
+  `origins.html`.
 - Deliberately breaking a `people` slug in `data/moments.toml` fails `braid-data` with that slug
-  in the message.
-- Deliberately editing `static/js/braid.js` fails the bundle freshness check.
+  in the message, and each rejection listed under "Moments" fails it with the record named (the
+  check's fixtures do this every run).
+- Deliberately editing `static/js/braid.js` fails `braid-bundle-fresh`.
 - `nix build .#socal-nug-site` produces `js/braid.js` and an `/origins/` page, and the page
   built this way matches the one from `netlify.toml`'s command on the same source.
-- The page renders in light and dark themes, in both projections, at desktop and phone widths.
+- The page renders in light and dark themes, in both modes, at desktop width, in Firefox and
+  Chromium: every person has one unbroken thread, no trunk is drawn, each moment is a pill as wide
+  as the people through it, and a moment everyone was at sits on the ribbon.
+- With no `there` or `away` in the data, every meetup has a ringed join bead for whoever joined
+  there and no other bead. Adding `there` for someone at a meetup puts a bead on their thread
+  there and their name under "Confirmed there:" on its card. Adding `away` takes their thread
+  around that meetup and shows the legend's fourth mark.
 - With JavaScript disabled the page shows no picture, by the trade recorded under Accessibility.
-- The braid is reachable and operable by keyboard alone: one Tab into it, arrows through the
+- The picture is reachable and operable by keyboard alone: one Tab into it, arrows through the
   story, Enter to open a card, Escape to close, focus back where it started.
 - Adding a new profile with `member = true` and a moment referencing it makes a new thread appear
   with no other edit.
 - A moment that is not a meetup, dated after the group began, draws the threads of the people it
-  names through its own oval, off the ribbon unless everyone in the group is named. A participant
-  with no prior meetup has a thread that starts at their first moment and runs in toward the
-  ribbon.
+  names through it, off the ribbon unless everyone in the group is named. A participant with no
+  prior meetup has a thread that starts at their first moment and runs in toward the ribbon.
