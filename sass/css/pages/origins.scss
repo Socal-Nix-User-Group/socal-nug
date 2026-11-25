@@ -59,41 +59,105 @@ $origins-box-height: 85vh;
     }
 }
 
-// Beside the picture it is one column; under it, as many as fit. Driven by
-// the layout's mode rather than by width alone, because Subway is full width
-// at every size.
-.origins-roster {
+// The rail holds two panes, the people and the moments, each a heading over
+// a list. The list is what scrolls, so each pane keeps its heading in sight
+// and the wheel over one list does not move the other. Like the map, a list
+// lets the wheel carry on to the page once it reaches its end.
+.origins-pane {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+
+.origins-pane-title {
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.6;
+    font-weight: 700;
+    margin: 0 0 0.35rem;
+}
+
+.origins-roster,
+.origins-moments {
     list-style: none;
     margin: 0;
     padding: 0;
     display: grid;
     gap: 0.5rem;
+}
+
+.origins-roster {
     grid-template-columns: minmax(0, 1fr);
 }
 
-.origins-layout[data-mode="subway"] .origins-roster {
-    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
-}
-
-@media screen and (max-width: 1023px) {
-    .origins-roster {
-        grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
-    }
-}
-
-.origins-roster-item {
+.origins-roster-item,
+.origins-moments-item {
     display: grid;
     min-width: 0;
 }
 
-// Beside the map the roster is a box with the map's ceiling that scrolls on
-// its own, so the two end on one line however many people there are. Under
-// the map, in Subway and on a narrow screen, it is the whole list. Like the
-// map, it lets the wheel carry on to the page once it reaches its end.
+// Beside the map the rail has the map's ceiling, so the two end on one line,
+// and the panes share it equally. Under Subway the panes sit side by side,
+// the people given the wider one because their cards are the bigger. Driven
+// by the layout's mode rather than by width alone, because Subway is full
+// width at every size.
 @media screen and (min-width: 1024px) {
     .origins-layout:not([data-mode="subway"]) .origins-roster-rail {
-        max-height: $origins-box-height;
+        height: $origins-box-height;
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 0.9rem;
+    }
+
+    .origins-layout[data-mode="subway"] .origins-roster-rail {
+        display: grid;
+        grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+        gap: 1.5rem;
+    }
+
+    .origins-layout[data-mode="subway"] .origins-pane {
+        height: 46vh;
+    }
+
+    .origins-layout[data-mode="subway"] .origins-roster {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .origins-roster,
+    .origins-moments {
+        flex: 1;
+        min-height: 0;
         overflow-y: auto;
+        padding-right: 0.3rem;
+    }
+}
+
+// On a narrow screen the panes are stacked under the map and each list is
+// one row that scrolls sideways, the way the map does, so neither pushes the
+// rest of the page down by its length.
+@media screen and (max-width: 1023px) {
+    .origins-roster-rail {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.9rem;
+    }
+
+    .origins-roster,
+    .origins-moments {
+        display: flex;
+        gap: 0.5rem;
+        overflow-x: auto;
+        padding-bottom: 0.4rem;
+    }
+
+    .origins-roster-item {
+        flex: 0 0 19rem;
+    }
+
+    .origins-moments-item {
+        flex: 0 0 13rem;
     }
 }
 
@@ -105,6 +169,54 @@ $origins-box-height: 85vh;
     &.is-lit {
         background: color-mix(in srgb, var(--origins-trunk) 16%, transparent);
     }
+}
+
+// A moment in the list. Trunk moments carry the trunk's colour down their
+// edge, as their ovals do in the map.
+.origins-moment-card {
+    background: var(--origins-surface);
+    border-left: 4px solid var(--origins-muted);
+    padding: 0.45rem 0.6rem;
+    min-width: 0;
+    cursor: pointer;
+    transition: background 0.15s ease;
+
+    &.is-trunk {
+        border-left-color: var(--origins-trunk);
+    }
+
+    &.is-lit {
+        background: color-mix(in srgb, var(--origins-trunk) 16%, transparent);
+    }
+}
+
+.origins-moment-card-head {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.origins-moment-card-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.origins-moment-card-title {
+    font-weight: 700;
+    font-size: 0.78rem;
+    line-height: 1.25;
+}
+
+.origins-moment-card-date {
+    font-size: 0.62rem;
+    opacity: 0.7;
+}
+
+.origins-moment-card-people {
+    font-size: 0.62rem;
+    opacity: 0.7;
+    margin: 0.25rem 0 0;
 }
 
 // Zola compiles every file under sass/ on its own as well as through
@@ -286,7 +398,9 @@ html[data-theme=dark] .origins-legend {
     stroke: var(--origins-trunk);
 }
 
+// is-hot: its card in the list is under the pointer.
 .origins-node:hover .origins-oval,
+.origins-node.is-hot .origins-oval,
 .origins-node.is-open .origins-oval {
     stroke: var(--origins-ink);
     stroke-width: 3;

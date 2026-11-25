@@ -1,4 +1,4 @@
-import { detailFor, personCardFor, rosterFor } from "./cards.ts";
+import { detailFor, listsFor, personCardFor } from "./cards.ts";
 import type { ElkGraph, Mode } from "./elk.ts";
 import { focusOrder, nextIndex } from "./focus.ts";
 import { drawLoom, HIT } from "./loom-draw.ts";
@@ -280,7 +280,7 @@ function boot(): void {
   /**
    * Switch to `next` by moving everything from where it is in this mode to
    * where it will be in that one: inside the picture, the picture's size, the
-   * map's box and the roster's cards. Where there is nothing to move from, or
+   * map's box and the cards of both lists. Where there is nothing to move from, or
    * the reader asks for less motion, or the two layouts do not pair up, it is
    * the plain redraw.
    */
@@ -300,17 +300,31 @@ function boot(): void {
     }
     morphing = true;
     const layout = document.getElementById("origins-layout");
-    const list = roster?.querySelectorAll(".origins-roster")[0];
-    const items = roster === null
+    const lists = roster === null
       ? []
-      : [...roster.querySelectorAll(".origins-roster-item")];
+      : [...roster.querySelectorAll(".origins-roster, .origins-moments")];
+    // Both lists' cards and both headings, in the page's order.
+    const items = roster === null ? [] : [
+      ...roster.querySelectorAll(
+        ".origins-pane-title, .origins-roster-item, .origins-moments-item",
+      ),
+    ];
+    /**
+     * Where each list is scrolled to in the mode arrived at. Lifting its
+     * cards out empties a list, and an empty box scrolls back to its start.
+     */
+    let scrolled: { x: number; y: number }[] = [];
     /** Take off everything the journey set outside the picture. */
     const tidy = (): void => {
       mount!.classList.remove("is-morphing");
       mount!.removeAttribute("style");
       layout?.removeAttribute("style");
-      list?.removeAttribute("style");
+      for (const list of lists) list.removeAttribute("style");
       for (const item of items) item.removeAttribute("style");
+      scrolled.forEach((at, i) => {
+        lists[i].scrollLeft = at.x;
+        lists[i].scrollTop = at.y;
+      });
     };
     // Once the page says it is in the other mode, it has to end showing the
     // ordinary picture for that mode, however the journey ends.
@@ -332,7 +346,7 @@ function boot(): void {
       const scroll0 = { x: mount!.scrollLeft, y: mount!.scrollTop };
       const shares = sharesOf(from.mode, scroll0, reachOf(), carried);
       carried = shares;
-      const rail0 = roster === null ? box0 : rect(roster);
+      const lists0 = lists.map(rect);
       const cards0 = items.map(rect);
 
       // Where everything will be: the page in the other mode, with the other
@@ -360,9 +374,15 @@ function boot(): void {
       mount!.replaceChildren(target, popup);
       const box1 = rect(mount!);
       const scroll1 = scrollFor(next, shares, reachOf());
-      const rail1 = roster === null ? box1 : rect(roster);
+      const lists1 = lists.map(rect);
       const cards1 = items.map(rect);
-      const room = list === undefined ? 0 : rect(list).h;
+      scrolled = lists.map((list) => ({ x: list.scrollLeft, y: list.scrollTop }));
+      // The heading over a list is lifted out with its cards, so the list
+      // keeps the heading's room as well as its own: from the top of its
+      // pane to its own foot.
+      const rooms = lists.map((list, i) =>
+        lists1[i].y + lists1[i].h - rect(list.closest(".origins-pane")!).y
+      );
       const origin = layout === null ? { x: 0, y: 0 } : rect(layout);
       mount!.replaceChildren(svg, popup);
       mount!.scrollLeft = scroll0.x;
@@ -381,13 +401,20 @@ function boot(): void {
       // box; the plain redraw below replaces it.
       if (journey === null) return;
 
-      // A card the roster's own box hides in River fades in on the way to
-      // Subway and out on the way back, since under the map every card shows.
-      const river = from.mode === "river"
-        ? { rail: rail0, cards: cards0 }
-        : { rail: rail1, cards: cards1 };
-      const hiddenInRiver = river.cards.map((c) =>
-        c.y + c.h <= river.rail.y || c.y >= river.rail.y + river.rail.h
+      // A card is in sight in a mode where it overlaps its own list's box
+      // there. One out of sight at one end fades in or out on the way, and
+      // one out of sight at both is not shown at all. A heading is in no list
+      // and always shows.
+      const own = items.map((item) => lists.findIndex((list) => list.contains(item)));
+      const inSight = (
+        c: { x: number; y: number; w: number; h: number },
+        l: { x: number; y: number; w: number; h: number },
+      ) => c.x < l.x + l.w && l.x < c.x + c.w && c.y < l.y + l.h && l.y < c.y + c.h;
+      const seen0 = items.map((_, i) =>
+        own[i] < 0 || inSight(cards0[i], lists0[own[i]]) ? 1 : 0
+      );
+      const seen1 = items.map((_, i) =>
+        own[i] < 0 || inSight(cards1[i], lists1[own[i]]) ? 1 : 0
       );
 
       const threads = [...svg.querySelectorAll("path.origins-thread")];
@@ -402,13 +429,31 @@ function boot(): void {
       const ticks = [...svg.querySelectorAll("path.origins-year-tick")];
       const years = [...svg.querySelectorAll("text.origins-year")];
 
-      // For the journey the cards are lifted out of the roster and placed
-      // against the layout, which does not move, and the list keeps the room
-      // they will need so the page below does not jump.
+      // For the journey the cards are lifted out of their lists and placed
+      // against the layout, which does not move, and each list keeps the room
+      // it will need so the page below does not jump. Lifted, a card is no
+      // longer cut off by its list, and one standing past the edge of a list
+      // that scrolls sideways would widen the page, so the layout cuts it off
+      // instead.
       mount!.classList.add("is-morphing");
-      layout?.setAttribute("style", "position:relative");
-      list?.setAttribute("style", `min-height:${room}px`);
+      layout?.setAttribute("style", "position:relative;overflow-x:clip");
+      lists.forEach((list, i) => {
+        list.setAttribute("style", `min-height:${rooms[i]}px`);
+      });
       for (const text of texts) text.setAttribute("text-anchor", "start");
+      // A card shown at neither end is lifted once and left in its list's
+      // corner, where it cannot stretch the page as its own place far down
+      // or along its list would.
+      items.forEach((item, i) => {
+        if (seen0[i] + seen1[i] > 0) return;
+        const l = lists1[own[i]];
+        item.setAttribute(
+          "style",
+          `position:absolute;margin:0;opacity:0;` +
+            `left:${l.x - origin.x}px;top:${l.y - origin.y}px;` +
+            `width:${cards1[i].w}px`,
+        );
+      });
 
       const lerp = (a: number, b: number, t: number) => a * (1 - t) + b * t;
       const paint = (t: number): void => {
@@ -477,9 +522,10 @@ function boot(): void {
         // at least as tall as the journey says, and taller if its words need
         // it.
         items.forEach((item, i) => {
+          if (seen0[i] + seen1[i] === 0) return;
           const a = cards0[i];
           const b = cards1[i];
-          const seen = !hiddenInRiver[i] ? 1 : from.mode === "river" ? t : 1 - t;
+          const seen = lerp(seen0[i], seen1[i], t);
           item.setAttribute(
             "style",
             `position:absolute;margin:0;` +
@@ -753,12 +799,16 @@ function boot(): void {
       const gathering = story.moments.find((m) => m.moment.id === id);
       if (gathering === undefined) continue;
       const who = gathering.through.filter((p) => !p.away).map((p) => p.slug);
+      // Its card in the list, which is built once and outlives every redraw.
+      const card = roster?.querySelectorAll(`.origins-moment-card[data-moment="${id}"]`)[0];
       node.addEventListener("pointerenter", (e) => {
         if (!hovers(e)) return;
         for (const slug of who) highlight(slug, true);
+        card?.classList.add("is-lit");
       });
       node.addEventListener("pointerleave", () => {
         for (const slug of who) highlight(slug, false);
+        card?.classList.remove("is-lit");
       });
       // A moment's avatar carries its moment's id too, and a click on it is a
       // click on the moment: the card opens beside the oval either way, and
@@ -778,12 +828,14 @@ function boot(): void {
 
   // Anywhere that is not the card closes it. A click on a node or a face is
   // a request to swap the card, which its own handler does, and the card's
-  // own buttons and links handle themselves.
+  // own buttons and links handle themselves. Only in the map: a moment's
+  // card in the list carries its moment's id too, and closes the card as a
+  // person's card there does.
   document.addEventListener("click", (event) => {
     if (popup.hidden) return;
     const target = event.target;
     if (target === null || popup.contains(target)) return;
-    if (target.closest("[data-moment], .origins-root") !== null) return;
+    if (mount.contains(target.closest("[data-moment], .origins-root"))) return;
     closePopup();
   });
   document.addEventListener("keydown", (event) => {
@@ -791,7 +843,7 @@ function boot(): void {
   });
 
   if (roster !== null) {
-    roster.replaceChildren(rosterFor(story, document));
+    roster.replaceChildren(...listsFor(story, cast, document));
     for (const card of roster.querySelectorAll("[data-person]")) {
       for (
         const [type, on] of [
@@ -807,6 +859,30 @@ function boot(): void {
         });
       }
     }
+
+    // A moment's card lights what hovering its moment in the map lights, and
+    // outlines the moment there so the reader can find it. The cards are in
+    // the story's order, as momentsFor made them.
+    [...roster.querySelectorAll(".origins-moment-card")].forEach((card, i) => {
+      const gathering = story.moments[i];
+      const who = gathering.through.filter((p) => !p.away).map((p) => p.slug);
+      // Looked up each time: a redraw replaces the pill.
+      const outline = (on: boolean): void => {
+        const selector = `.origins-node[data-moment="${gathering.moment.id}"]`;
+        for (const pill of mount.querySelectorAll(selector)) {
+          pill.classList.toggle("is-hot", on);
+        }
+      };
+      card.addEventListener("pointerenter", (event) => {
+        if (!hovers(event)) return;
+        for (const slug of who) highlight(slug, true);
+        outline(true);
+      });
+      card.addEventListener("pointerleave", () => {
+        for (const slug of who) highlight(slug, false);
+        outline(false);
+      });
+    });
   }
 
   // --- zoom ---------------------------------------------------------------------

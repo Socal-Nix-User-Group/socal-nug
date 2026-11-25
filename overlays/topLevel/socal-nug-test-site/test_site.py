@@ -347,23 +347,33 @@ class SiteBuild(unittest.TestCase):
         self.assertIn('id="origins-roster"', page)
         self.assertIn('.origins-popup{position:absolute;', self.css)
 
-    def test_origins_roster_moves_below_the_map_in_subway(self):
-        # River's picture is tall and narrow so the roster sits beside it;
-        # Subway is full width, so a column beside it would squeeze the one
-        # axis that map needs
-        self.assertIn(
-            '.origins-layout[data-mode=subway] .origins-roster{', self.css)
-
-    def test_origins_roster_beside_the_map_scrolls_at_the_maps_height(self):
-        # beside the map only: under it, in Subway and on a narrow screen,
-        # the roster is the whole list. The two ceilings are one value, so
-        # the boxes end on one line.
+    def test_origins_rail_beside_the_map_is_the_maps_height(self):
+        # the people and the moments share the column beside River, one above
+        # the other. The two ceilings are one value, so the boxes end on one
+        # line.
         ceiling = self.css.split('.origins-braid{')[1].split('max-height:')[1].split(';')[0]
         self.assertIn(
             '@media screen and (min-width: 1024px){'
             '.origins-layout:not([data-mode=subway]) .origins-roster-rail{'
-            f'max-height:{ceiling};overflow-y:auto}}}}',
+            f'height:{ceiling};',
             self.css)
+
+    def test_origins_lists_sit_side_by_side_under_subway(self):
+        # Subway is full width, so a column beside it would squeeze the one
+        # axis that map needs; under it the two lists share the width
+        self.assertRegex(
+            self.css,
+            r'\.origins-layout\[data-mode=subway\] \.origins-roster-rail\{[^}]*'
+            r'grid-template-columns:minmax\(0, 3fr\) minmax\(0, 2fr\)')
+
+    def test_origins_lists_are_rows_on_a_narrow_screen(self):
+        self.assertRegex(
+            self.css,
+            r'@media screen and \(max-width: 1023px\)\{[^@]*'
+            r'\.origins-roster,\.origins-moments\{[^}]*overflow-x:auto')
+
+    def test_origins_pill_outlines_while_its_card_in_the_list_is_hovered(self):
+        self.assertIn('.origins-node.is-hot .origins-oval', self.css)
 
     def test_origins_toggle_is_hidden_until_the_script_reveals_it(self):
         page = (self.out / 'origins' / 'index.html').read_text()

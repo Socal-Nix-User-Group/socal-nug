@@ -1,4 +1,6 @@
 import { LABEL_MAX } from "../src/elk.ts";
+import { parseData } from "../src/parse.ts";
+import { buildStory } from "../src/story.ts";
 import { launch, sleep } from "./cdp.ts";
 import { serve } from "./serve.ts";
 
@@ -58,6 +60,8 @@ interface Point {
 
 const MAP = `document.getElementById("origins-braid")`;
 const ROSTER = `document.getElementById("origins-roster")`;
+const PEOPLE = `${ROSTER}.querySelector(".origins-roster")`;
+const MOMENTS = `${ROSTER}.querySelector(".origins-moments")`;
 const POPUP = `document.querySelector(".origins-popup")`;
 /** A dot off the spine: a personal moment, a conference, a camp. */
 const SIDE_DOT = ".origins-node.is-side";
@@ -104,8 +108,8 @@ const scrolled = (): Promise<{ page: number; map: number }> =>
     `({ page: Math.round(scrollY), map: Math.round(${MAP}.scrollTop) })`,
   );
 
-/** Where the page, the map and the roster are scrolled to, unrounded, as one string. */
-const scrollState = `(scrollY + "," + ${MAP}.scrollTop + "," + ${ROSTER}.scrollTop)`;
+/** Where the page, the map and the list of people are scrolled to, unrounded, as one string. */
+const scrollState = `(scrollY + "," + ${MAP}.scrollTop + "," + ${PEOPLE}.scrollTop)`;
 
 /**
  * Repeat a gesture inside the map or the roster, as a visitor would, until
@@ -241,33 +245,53 @@ const reach = (): Promise<Point> =>
   })()`);
 
 /**
- * Whatever a switch has left set on the box, the layout, the roster list or
- * its cards, and any card that is not back in its place in the roster.
+ * Whatever a switch has left set on the box, the layout, either list, their
+ * headings or their cards, and any card that is not back in its own list.
  */
 const leftBehind = (): Promise<string[]> =>
   tab.evaluate(`(() => {
     const out = [];
     const layout = document.getElementById("origins-layout");
-    const list = ${ROSTER}.querySelector(".origins-roster");
-    for (const [name, e] of [["box", ${MAP}], ["layout", layout], ["list", list]]) {
-      if (e.hasAttribute("style")) out.push(name + " has a style");
+    const lists = [
+      ["people", ${PEOPLE}, ".origins-roster-item", ".origins-card"],
+      ["moments", ${MOMENTS}, ".origins-moments-item", ".origins-moment-card"],
+    ];
+    for (const [name, e] of [["box", ${MAP}], ["layout", layout], ...lists]) {
+      if (e === null) out.push(name + " is missing");
+      else if (e.hasAttribute("style")) out.push(name + " has a style");
     }
-    const rail = ${ROSTER}.getBoundingClientRect();
-    [...${ROSTER}.querySelectorAll(".origins-roster-item")].forEach((item, i) => {
-      const card = item.querySelector(".origins-card");
-      const b = item.getBoundingClientRect();
-      if (item.hasAttribute("style") || (card !== null && card.hasAttribute("style"))) {
-        out.push("card " + i + " has a style");
-      }
-      if (getComputedStyle(item).position !== "static" || item.parentElement !== list) {
-        out.push("card " + i + " is out of the list");
-      }
-      if (b.left < rail.left - 1 || b.right > rail.right + 1) {
-        out.push("card " + i + " is outside the roster");
-      }
+    const headings = [...${ROSTER}.querySelectorAll(".origins-pane-title")];
+    if (headings.length !== 2) out.push(headings.length + " headings");
+    headings.forEach((h, i) => {
+      if (h.hasAttribute("style")) out.push("heading " + i + " has a style");
     });
+    for (const [name, list, items, cards] of lists) {
+      if (list === null) continue;
+      const box = list.getBoundingClientRect();
+      [...${ROSTER}.querySelectorAll(items)].forEach((item, i) => {
+        const card = item.querySelector(cards);
+        const b = item.getBoundingClientRect();
+        if (item.hasAttribute("style") || (card !== null && card.hasAttribute("style"))) {
+          out.push(name + " card " + i + " has a style");
+        }
+        if (getComputedStyle(item).position !== "static" || item.parentElement !== list) {
+          out.push(name + " card " + i + " is out of its list");
+        }
+        if (b.left < box.left - 1 || b.right > box.right + 1) {
+          out.push(name + " card " + i + " is outside its list");
+        }
+      });
+    }
     return out;
   })()`);
+
+/** Who is in the list of people and what is in the list of moments, in order. */
+const listOrder = (): Promise<string> =>
+  tab.evaluate(`[
+    ...[...${ROSTER}.querySelectorAll(".origins-card")].map((c) => c.dataset.person),
+    "|",
+    ...[...${ROSTER}.querySelectorAll(".origins-moment-card")].map((c) => c.dataset.moment),
+  ].join(" ")`);
 
 /** Every check, in the order a failure is easiest to read. */
 async function run(): Promise<void> {
@@ -334,36 +358,164 @@ async function run(): Promise<void> {
       sizes,
     );
 
-    await tab.evaluate(`${ROSTER}.scrollIntoView({ block: "center" })`);
+    const lists = await tab.evaluate<Record<string, unknown> | null>(`(() => {
+      const people = ${PEOPLE};
+      const moments = ${MOMENTS};
+      if (people === null || moments === null) return null;
+      const rail = ${ROSTER}.getBoundingClientRect();
+      const p = people.getBoundingClientRect();
+      const m = moments.getBoundingClientRect();
+      return {
+        below: m.top >= p.bottom,
+        inside: m.top >= rail.top - 1 && m.bottom <= rail.bottom + 1 &&
+          m.left >= rail.left - 1 && m.right <= rail.right + 1,
+        overflow: [getComputedStyle(people).overflowY, getComputedStyle(moments).overflowY],
+        more: moments.scrollHeight > moments.clientHeight,
+        cards: moments.querySelectorAll(".origins-moment-card").length,
+        nodes: ${MAP}.querySelectorAll(".origins-node").length,
+      };
+    })()`);
+    check(
+      lists !== null && lists.below === true && lists.inside === true &&
+        JSON.stringify(lists.overflow) === `["auto","auto"]` && lists.more === true &&
+        typeof lists.cards === "number" && lists.cards > 0 && lists.cards === lists.nodes,
+      "River: people and moments are two lists, one above the other, each scrolling in its own box",
+      lists ?? { moments: "missing" },
+    );
+
+    const people = await tab.evaluate<{ content: number; box: number }>(
+      `({ content: ${PEOPLE}.scrollHeight, box: ${PEOPLE}.clientHeight })`,
+    );
+    const crowded = people.content > people.box;
+    await tab.evaluate(`${PEOPLE}.scrollIntoView({ block: "center" })`);
     const at = await tab.evaluate<Point>(`(() => {
-      const b = ${ROSTER}.getBoundingClientRect();
+      const b = ${PEOPLE}.getBoundingClientRect();
       return { x: b.left + b.width / 2, y: b.top + b.height / 2 };
     })()`);
-    const { ok, detail } = more
+    const { ok, detail } = crowded
       ? await untilThePageMoves(() => tab.wheel(at.x, at.y, 300))
       : { ok: true, detail: { nothingToScroll: true } };
-    const moved = await tab.evaluate<number>(`${ROSTER}.scrollTop`);
+    const moved = await tab.evaluate<number>(`${PEOPLE}.scrollTop`);
     check(
-      ok && (!more || moved > 0),
+      ok && (!crowded || moved > 0),
       "River: the wheel over the roster scrolls the roster, and carries on down the page at its end",
-      { ...detail, roster: moved },
+      { ...detail, people: moved },
     );
   }
 
-  const whole = `getComputedStyle(${ROSTER}).overflowY === "visible" && ${ROSTER}.scrollHeight <= ${ROSTER}.clientHeight`;
-  const rosterBox = `({ overflowY: getComputedStyle(${ROSTER}).overflowY, content: ${ROSTER}.scrollHeight, box: ${ROSTER}.clientHeight })`;
   await load("subway");
-  check(
-    await tab.evaluate<boolean>(whole),
-    "Subway: the roster under the map is the whole list, with nothing to scroll inside it",
-    await tab.evaluate(rosterBox),
-  );
+  {
+    const sides = await tab.evaluate<Record<string, unknown> | null>(`(() => {
+      const people = ${PEOPLE};
+      const moments = ${MOMENTS};
+      const left = ${ROSTER}.querySelector(".origins-pane.is-people");
+      const right = ${ROSTER}.querySelector(".origins-pane.is-moments");
+      if (people === null || moments === null || left === null || right === null) return null;
+      const l = left.getBoundingClientRect();
+      const r = right.getBoundingClientRect();
+      return {
+        under: ${ROSTER}.getBoundingClientRect().top >= ${MAP}.getBoundingClientRect().bottom,
+        beside: l.right <= r.left && Math.abs(l.top - r.top) <= 1,
+        overflow: [getComputedStyle(people).overflowY, getComputedStyle(moments).overflowY],
+        more: moments.scrollHeight > moments.clientHeight,
+        page: [document.documentElement.scrollWidth, document.documentElement.clientWidth],
+      };
+    })()`);
+    const page = sides?.page as number[] | undefined;
+    check(
+      sides !== null && sides.under === true && sides.beside === true &&
+        JSON.stringify(sides.overflow) === `["auto","auto"]` && sides.more === true &&
+        page !== undefined && page[0] <= page[1],
+      "Subway: people and moments are side by side under the map, each scrolling down in its own box",
+      sides ?? { moments: "missing" },
+    );
+  }
+
   await load("river", 900, 900);
-  check(
-    await tab.evaluate<boolean>(whole),
-    "a narrow window: the roster under the map is the whole list in River too",
-    await tab.evaluate(rosterBox),
-  );
+  {
+    const rows = await tab.evaluate<Record<string, unknown> | null>(`(() => {
+      const lists = [${PEOPLE}, ${MOMENTS}];
+      if (lists.includes(null)) return null;
+      return {
+        under: ${ROSTER}.getBoundingClientRect().top >= ${MAP}.getBoundingClientRect().bottom,
+        lists: lists.map((list) => {
+          const tops = [...list.querySelectorAll(".origins-card, .origins-moment-card")]
+            .map((c) => c.getBoundingClientRect().top);
+          return {
+            row: tops.length > 0 && tops.every((t) => Math.abs(t - tops[0]) <= 1),
+            sideways: list.scrollWidth > list.clientWidth,
+            down: list.scrollHeight > list.clientHeight,
+          };
+        }),
+        page: [document.documentElement.scrollWidth, document.documentElement.clientWidth],
+      };
+    })()`);
+    const each = (rows?.lists ?? []) as Array<{ row: boolean; sideways: boolean; down: boolean }>;
+    const page = rows?.page as number[] | undefined;
+    check(
+      rows !== null && rows.under === true && each.length === 2 &&
+        each.every((l) => l.row && l.sideways && !l.down) &&
+        page !== undefined && page[0] <= page[1],
+      "a narrow window: people and moments are two rows that scroll sideways",
+      rows ?? { moments: "missing" },
+    );
+  }
+
+  // --- a moment's card and its pill ------------------------------------------------
+  // Hovering either lights the other, and the people through the moment.
+
+  await load("river");
+  {
+    const data = parseData(JSON.parse(
+      await tab.evaluate<string>(`document.getElementById("origins-data").textContent`),
+    ));
+    const gathering = buildStory(data.moments, data.people).moments
+      .find((g) => g.through.some((p) => !p.away));
+    const id = gathering?.moment.id ?? "";
+    const want = [...new Set((gathering?.through ?? []).filter((p) => !p.away).map((p) => p.slug))]
+      .sort();
+    const card = `#origins-roster .origins-moment-card[data-moment="${id}"]`;
+    const oval = `#origins-braid .origins-node[data-moment="${id}"] .origins-oval`;
+    const stroke = `getComputedStyle(document.querySelector(${JSON.stringify(oval)})).stroke`;
+    const lit = `[...new Set([...${MAP}.querySelectorAll("path.origins-thread.is-lit")].map((p) => p.dataset.person))].sort()`;
+    const there = await tab.evaluate<boolean>(`document.querySelector(${JSON.stringify(card)}) !== null`);
+    await tab.move(5, 5);
+    await sleep(200);
+    const rest = await tab.evaluate<string>(stroke);
+    let over: { lit: string[]; stroke: string } = { lit: [], stroke: rest };
+    if (there) {
+      const at = await centreOf(card);
+      await tab.move(at.x, at.y);
+      await tab.waitFor(`${lit}.length > 0 && ${stroke} !== ${JSON.stringify(rest)}`);
+      over = await tab.evaluate<{ lit: string[]; stroke: string }>(
+        `({ lit: ${lit}, stroke: ${stroke} })`,
+      );
+    }
+    await tab.move(5, 5);
+    const dark = await tab.waitFor(`${MAP}.querySelectorAll(".is-lit, .is-hot").length === 0`);
+    check(
+      there && want.length > 0 && JSON.stringify(over.lit) === JSON.stringify(want) &&
+        over.stroke !== rest && dark,
+      "mouse: hovering a moment's card lights the people who were there and outlines its pill",
+      { moment: id, there, want, lit: over.lit, rest, stroke: over.stroke, dark },
+    );
+
+    const tint = `(() => {
+      const c = document.querySelector(${JSON.stringify(card)});
+      return c === null ? null : getComputedStyle(c).backgroundColor;
+    })()`;
+    await sleep(300);
+    const away = await tab.evaluate<string | null>(tint);
+    const pill = await centreOf(oval);
+    await tab.move(pill.x, pill.y);
+    const tinted = away !== null && (await tab.waitFor(`${tint} !== ${JSON.stringify(away)}`));
+    check(
+      tinted,
+      "mouse: hovering a moment in the map tints its card in the list",
+      { moment: id, away, over: await tab.evaluate(tint) },
+    );
+    await tab.move(5, 5);
+  }
 
   // --- the first draw measured the box it ends up in ---------------------------
   // Sized to a box that then changes, the picture is wrong until the next
@@ -504,12 +656,14 @@ async function run(): Promise<void> {
 
   await load("river");
   {
+    const order = await listOrder();
     await watchForMorph();
     await pressMode("subway");
     const landed = await landedIn("subway");
     const moved = await morphed();
     const after = await shape();
     const left = await leftBehind();
+    if ((await listOrder()) !== order) left.push("the cards are out of order in Subway");
     await load("subway");
     const fresh = await shape();
     check(
@@ -524,6 +678,7 @@ async function run(): Promise<void> {
     const movedBack = await morphed();
     const back = await shape();
     left.push(...(await leftBehind()));
+    if ((await listOrder()) !== order) left.push("the cards are out of order in River");
     await load("river");
     const freshRiver = await shape();
     check(
@@ -535,6 +690,54 @@ async function run(): Promise<void> {
       moved && movedBack && left.length === 0,
       "switching modes leaves nothing set on the map, the layout or the roster, and every card back in the roster",
       { moved, movedBack, left },
+    );
+  }
+
+  await load("river");
+  {
+    // Where the first moment's card is on the page, not on screen, in case the
+    // page scrolls while it moves.
+    const first = `(() => {
+      const e = ${MOMENTS}?.querySelector(".origins-moments-item");
+      if (!e) return null;
+      const b = e.getBoundingClientRect();
+      return { x: b.left + scrollX, y: b.top + scrollY, position: getComputedStyle(e).position };
+    })()`;
+    type Place = { x: number; y: number; position: string } | null;
+    const river = await tab.evaluate<Place>(first);
+    await pressMode("subway");
+    const moving = await tab.waitFor(MORPHING, 15_000);
+    await sleep(500);
+    const between = await tab.evaluate<Place>(first);
+    const landed = await landedIn("subway");
+    const subway = await tab.evaluate<Place>(first);
+    const apart = (a: Place, b: Place) =>
+      a !== null && b !== null && Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y)) > 1;
+    check(
+      moving && landed && between?.position === "absolute" && apart(between, river) &&
+        apart(between, subway),
+      "switching modes: a moment's card travels from its place in one arrangement to its place in the other",
+      { moving, landed, river, between, subway },
+    );
+  }
+
+  await load("river");
+  {
+    const was = await tab.evaluate<number | null>(`(() => {
+      const list = ${MOMENTS};
+      if (list === null) return null;
+      list.scrollTop = 200;
+      return list.scrollTop;
+    })()`);
+    await watchForMorph();
+    await pressMode("subway");
+    const landed = await landedIn("subway");
+    const moved = await morphed();
+    const is = await tab.evaluate<number | null>(`${MOMENTS}?.scrollTop ?? null`);
+    check(
+      landed && moved && was === 200 && is !== null && Math.abs(is - 200) <= 1,
+      "switching modes: a list scrolled part way down is where it was after the switch",
+      { landed, moved, was, is },
     );
   }
 
@@ -766,6 +969,29 @@ async function run(): Promise<void> {
     );
   }
 
+  // A click on a person's card in the list closes it already. A moment's card
+  // carries its moment's id as the map's pills do, and a click on a pill swaps
+  // the card rather than closing it.
+  await load("river");
+  {
+    const dot = await centreOf(SIDE_DOT);
+    await tab.click(dot.x, dot.y);
+    const opened = await tab.waitFor(popupOpen);
+    const card = "#origins-roster .origins-moment-card";
+    const there = await tab.evaluate<boolean>(`document.querySelector(${JSON.stringify(card)}) !== null`);
+    let closed = false;
+    if (there) {
+      const at = await centreOf(card);
+      await tab.click(at.x, at.y);
+      closed = await tab.waitFor(popupShut);
+    }
+    check(
+      opened && there && closed,
+      "a click on a moment's card in the list closes a card open in the map",
+      { opened, there, closed },
+    );
+  }
+
   await load("river");
   {
     let inBraid = false;
@@ -982,18 +1208,21 @@ async function run(): Promise<void> {
 
   {
     await load("river");
-    const cards = `document.querySelectorAll("#origins-roster .origins-card").length`;
-    const everyone = await tab.evaluate<number>(cards);
+    const cards = `[
+      document.querySelectorAll("#origins-roster .origins-roster .origins-card").length,
+      document.querySelectorAll("#origins-roster .origins-moments .origins-moment-card").length,
+    ]`;
+    const everyone = await tab.evaluate<number[]>(cards);
     await tab.send("Network.setCacheDisabled", { cacheDisabled: true });
     await tab.send("Network.setBlockedURLs", { urls: ["*elk.bundled.js*"] });
     await tab.goto(page);
     const said = await tab.waitFor(
       `${MAP}.innerText.trim().length > 0 && document.querySelector("#origins-braid svg") === null`,
     );
-    const roster = await tab.evaluate<number>(cards);
+    const roster = await tab.evaluate<number[]>(cards);
     check(
-      everyone > 0 && roster === everyone,
-      "without the layout engine, the roster is still there",
+      everyone.every((n) => n > 0) && JSON.stringify(roster) === JSON.stringify(everyone),
+      "without the layout engine, the people and the moments are still listed",
       { withIt: everyone, withoutIt: roster },
     );
     check(said, "without the layout engine, the empty map says so");
