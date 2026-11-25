@@ -162,12 +162,19 @@ $origins-box-height: 85vh;
 }
 
 // In the roster a card is a tile among many, so it carries the hover
-// treatment the popup does not need.
+// treatment the popup does not need. A click on it picks the person.
 .origins-roster .origins-card {
+    cursor: pointer;
     transition: background 0.15s ease;
 
     &.is-lit {
         background: color-mix(in srgb, var(--origins-trunk) 16%, transparent);
+    }
+
+    &.is-picked {
+        background: color-mix(in srgb, var(--origins-trunk) 22%, transparent);
+        outline: 2px solid var(--origins-trunk);
+        outline-offset: -2px;
     }
 }
 
@@ -187,6 +194,12 @@ $origins-box-height: 85vh;
 
     &.is-lit {
         background: color-mix(in srgb, var(--origins-trunk) 16%, transparent);
+    }
+
+    &.is-picked {
+        background: color-mix(in srgb, var(--origins-trunk) 22%, transparent);
+        outline: 2px solid var(--origins-trunk);
+        outline-offset: -2px;
     }
 }
 
@@ -398,10 +411,12 @@ html[data-theme=dark] .origins-legend {
     stroke: var(--origins-trunk);
 }
 
-// is-hot: its card in the list is under the pointer.
+// is-hot: its card in the list is under the pointer. is-picked: it is the
+// moment picked, from its card or in the map.
 .origins-node:hover .origins-oval,
 .origins-node.is-hot .origins-oval,
-.origins-node.is-open .origins-oval {
+.origins-node.is-open .origins-oval,
+.origins-node.is-picked .origins-oval {
     stroke: var(--origins-ink);
     stroke-width: 3;
 }

@@ -7,6 +7,8 @@ import type { LoomPlaced } from "./loom-place.ts";
 import { ease, frameAt, MORPH_MS, morphBetween, OPENING, scrollFor, sharesOf } from "./morph.ts";
 import type { Shares } from "./morph.ts";
 import { parseData } from "./parse.ts";
+import { centred, litBy, reveal, toggled } from "./pick.ts";
+import type { Pick } from "./pick.ts";
 import { placePopup } from "./popup.ts";
 import type { DocumentLike, ElementLike } from "./render.ts";
 import { buildStory } from "./story.ts";
@@ -28,6 +30,7 @@ interface PageElement extends ElementLike {
   readonly clientHeight: number;
   scrollLeft: number;
   scrollTop: number;
+  scrollTo(to: { left: number; top: number; behavior: "smooth" | "auto" }): void;
   readonly offsetWidth: number;
   readonly offsetHeight: number;
   hidden: boolean;
@@ -275,6 +278,11 @@ function boot(): void {
     closePopup();
     wireHover();
     wireKeyboard();
+    // What would have said the pointer left went with the old picture, and
+    // the new one is lit by nothing yet. The pick outlives it.
+    hovered.clear();
+    over = null;
+    relight();
   }
 
   /**
@@ -443,13 +451,15 @@ function boot(): void {
       for (const text of texts) text.setAttribute("text-anchor", "start");
       // A card shown at neither end is lifted once and left in its list's
       // corner, where it cannot stretch the page as its own place far down
-      // or along its list would.
+      // or along its list would. A lifted card answers no pointer, here or
+      // on its way: one resting where cards pass would light and pick
+      // whoever went by.
       items.forEach((item, i) => {
         if (seen0[i] + seen1[i] > 0) return;
         const l = lists1[own[i]];
         item.setAttribute(
           "style",
-          `position:absolute;margin:0;opacity:0;` +
+          `position:absolute;margin:0;opacity:0;pointer-events:none;` +
             `left:${l.x - origin.x}px;top:${l.y - origin.y}px;` +
             `width:${cards1[i].w}px`,
         );
@@ -528,7 +538,7 @@ function boot(): void {
           const seen = lerp(seen0[i], seen1[i], t);
           item.setAttribute(
             "style",
-            `position:absolute;margin:0;` +
+            `position:absolute;margin:0;pointer-events:none;` +
               `left:${lerp(a.x, b.x, t) - origin.x}px;` +
               `top:${lerp(a.y, b.y, t) - origin.y}px;` +
               `width:${lerp(a.w, b.w, t)}px;` +
@@ -575,6 +585,9 @@ function boot(): void {
       closePopup();
       wireHover();
       wireKeyboard();
+      hovered.clear();
+      over = null;
+      relight();
       landed = true;
     } catch (error) {
       // Before the page changed mode nothing has moved, and the caller says
@@ -601,15 +614,104 @@ function boot(): void {
   // picture, and their card in the roster, in both directions.
   const roster = document.getElementById("origins-roster");
 
-  function highlight(slug: string | undefined, on: boolean): void {
-    if (slug === undefined) return;
-    for (const node of mount!.querySelectorAll(`[data-person="${slug}"]`)) {
-      node.classList.toggle("is-lit", on);
+  /** What a click on a card or in the map picked, lit until it is let go. */
+  let picked: Pick | null = null;
+  /** Everyone lit by hover or focus. */
+  const hovered = new Set<string>();
+  /** The moment whose card in the list is under the pointer. */
+  let hot: string | null = null;
+  /** The moment under the pointer in the map. */
+  let over: string | null = null;
+
+  /**
+   * Set what is lit, outlined and picked, in the map and in the lists, from
+   * the four above. The only place those classes are set: hover and a pick
+   * light the same people, and either ending must leave what the other lit.
+   */
+  function relight(): void {
+    const lit = new Set([...hovered, ...litBy(story, picked)]);
+    const person = picked?.kind === "person" ? picked.id : undefined;
+    const moment = picked?.kind === "moment" ? picked.id : undefined;
+    for (const node of mount!.querySelectorAll("[data-person]")) {
+      node.classList.toggle("is-lit", lit.has(node.dataset.person ?? ""));
+    }
+    for (const pill of mount!.querySelectorAll(".origins-node")) {
+      pill.classList.toggle("is-hot", pill.dataset.moment === hot);
+      pill.classList.toggle("is-picked", pill.dataset.moment === moment);
     }
     if (roster === null) return;
-    for (const card of roster.querySelectorAll(`[data-person="${slug}"]`)) {
-      card.classList.toggle("is-lit", on);
+    for (const card of roster.querySelectorAll("[data-person]")) {
+      card.classList.toggle("is-lit", lit.has(card.dataset.person ?? ""));
+      card.classList.toggle("is-picked", card.dataset.person === person);
     }
+    for (const card of roster.querySelectorAll(".origins-moment-card")) {
+      const id = card.dataset.moment;
+      card.classList.toggle("is-lit", id === over || id === hot);
+      card.classList.toggle("is-picked", id === moment);
+    }
+  }
+
+  function highlight(slug: string | undefined, on: boolean): void {
+    if (slug === undefined) return;
+    if (on) hovered.add(slug);
+    else hovered.delete(slug);
+    relight();
+  }
+
+  /**
+   * Scroll the map so what a card in a list picked is in its middle, or as
+   * near as the map goes. With no picture there is nothing to scroll to, and
+   * the card is picked all the same.
+   */
+  function centreOn(pick: Pick): void {
+    const thing = mount!.querySelectorAll(
+      pick.kind === "person"
+        ? `.origins-root[data-person="${pick.id}"]`
+        : `.origins-node[data-moment="${pick.id}"] .origins-oval`,
+    )[0];
+    if (thing === undefined) return;
+    // First: finding the reach puts the map back where it was, which stops
+    // a smooth scroll that is under way, and the boxes below are read from
+    // where it stopped.
+    const reach = reachOf();
+    const map = mount!.getBoundingClientRect();
+    const at = thing.getBoundingClientRect();
+    const to = centred(
+      {
+        x: at.left - map.left + mount!.scrollLeft + at.width / 2,
+        y: at.top - map.top + mount!.scrollTop + at.height / 2,
+      },
+      { width: mount!.clientWidth, height: mount!.clientHeight },
+      reach,
+    );
+    mount!.scrollTo({
+      left: to.x,
+      top: to.y,
+      behavior: window!.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+    });
+  }
+
+  /**
+   * Pick what was clicked in the map and bring its card into view in its
+   * list. The list's own scroll position, not scrollIntoView, which would
+   * scroll the page and the map as well.
+   */
+  function pickInMap(pick: Pick): void {
+    picked = pick;
+    relight();
+    const card = roster?.querySelectorAll(
+      pick.kind === "person"
+        ? `.origins-card[data-person="${pick.id}"]`
+        : `.origins-moment-card[data-moment="${pick.id}"]`,
+    )[0];
+    if (card === undefined) return;
+    const list = card.closest(".origins-roster, .origins-moments")!;
+    const c = card.getBoundingClientRect();
+    const l = list.getBoundingClientRect();
+    list.scrollTop += reveal(c.top, c.top + c.height, l.top, l.top + l.height);
+    list.scrollLeft += reveal(c.left, c.left + c.width, l.left, l.left + l.width);
   }
 
   function markOpen(id: string | undefined): void {
@@ -696,6 +798,7 @@ function boot(): void {
     if (gathering === undefined) return;
     openPopup(anchor, detailFor(gathering, cast, document), byKeyboard);
     markOpen(id);
+    pickInMap({ kind: "moment", id });
   }
 
   function showPerson(
@@ -708,6 +811,7 @@ function boot(): void {
     if (thread === undefined) return;
     openPopup(anchor, personCardFor(thread, story, document), byKeyboard);
     markOpen(undefined);
+    pickInMap({ kind: "person", id: slug });
   }
 
   // --- the roving tabindex ---------------------------------------------------
@@ -799,16 +903,16 @@ function boot(): void {
       const gathering = story.moments.find((m) => m.moment.id === id);
       if (gathering === undefined) continue;
       const who = gathering.through.filter((p) => !p.away).map((p) => p.slug);
-      // Its card in the list, which is built once and outlives every redraw.
-      const card = roster?.querySelectorAll(`.origins-moment-card[data-moment="${id}"]`)[0];
       node.addEventListener("pointerenter", (e) => {
         if (!hovers(e)) return;
-        for (const slug of who) highlight(slug, true);
-        card?.classList.add("is-lit");
+        for (const slug of who) hovered.add(slug);
+        over = gathering.moment.id;
+        relight();
       });
       node.addEventListener("pointerleave", () => {
-        for (const slug of who) highlight(slug, false);
-        card?.classList.remove("is-lit");
+        for (const slug of who) hovered.delete(slug);
+        over = null;
+        relight();
       });
       // A moment's avatar carries its moment's id too, and a click on it is a
       // click on the moment: the card opens beside the oval either way, and
@@ -831,15 +935,29 @@ function boot(): void {
   // own buttons and links handle themselves. Only in the map: a moment's
   // card in the list carries its moment's id too, and closes the card as a
   // person's card there does.
+  //
+  // A click on empty map lets go of the pick, whether or not a card is open.
+  // The click that ends a drag of the map never gets here, so a drag lets go
+  // of nothing.
   document.addEventListener("click", (event) => {
-    if (popup.hidden) return;
     const target = event.target;
+    if (
+      target !== null && mount.contains(target) && !popup.contains(target) &&
+      target.closest("[data-moment], .origins-root") === null
+    ) {
+      picked = null;
+      relight();
+    }
+    if (popup.hidden) return;
     if (target === null || popup.contains(target)) return;
     if (mount.contains(target.closest("[data-moment], .origins-root"))) return;
     closePopup();
   });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") closePopup();
+    if (event.key !== "Escape") return;
+    closePopup();
+    picked = null;
+    relight();
   });
 
   if (roster !== null) {
@@ -858,31 +976,42 @@ function boot(): void {
           highlight(event.currentTarget.dataset.person, on);
         });
       }
+      // A click picks the person, or lets go of them if they were picked
+      // already. Not a click on one of the card's links, which is for the
+      // link.
+      card.addEventListener("click", (event) => {
+        if (morphing || event.target!.closest("a") !== null) return;
+        picked = toggled(picked, { kind: "person", id: card.dataset.person ?? "" });
+        relight();
+        if (picked !== null) centreOn(picked);
+      });
     }
 
     // A moment's card lights what hovering its moment in the map lights, and
-    // outlines the moment there so the reader can find it. The cards are in
-    // the story's order, as momentsFor made them.
-    [...roster.querySelectorAll(".origins-moment-card")].forEach((card, i) => {
-      const gathering = story.moments[i];
+    // outlines the moment there so the reader can find it. Found by its own
+    // id, as the map's moments are.
+    for (const card of roster.querySelectorAll(".origins-moment-card")) {
+      const gathering = story.moments.find((m) => m.moment.id === card.dataset.moment)!;
+      const id = gathering.moment.id;
       const who = gathering.through.filter((p) => !p.away).map((p) => p.slug);
-      // Looked up each time: a redraw replaces the pill.
-      const outline = (on: boolean): void => {
-        const selector = `.origins-node[data-moment="${gathering.moment.id}"]`;
-        for (const pill of mount.querySelectorAll(selector)) {
-          pill.classList.toggle("is-hot", on);
-        }
-      };
       card.addEventListener("pointerenter", (event) => {
         if (!hovers(event)) return;
-        for (const slug of who) highlight(slug, true);
-        outline(true);
+        for (const slug of who) hovered.add(slug);
+        hot = id;
+        relight();
       });
       card.addEventListener("pointerleave", () => {
-        for (const slug of who) highlight(slug, false);
-        outline(false);
+        for (const slug of who) hovered.delete(slug);
+        hot = null;
+        relight();
       });
-    });
+      card.addEventListener("click", () => {
+        if (morphing) return;
+        picked = toggled(picked, { kind: "moment", id });
+        relight();
+        if (picked !== null) centreOn(picked);
+      });
+    }
   }
 
   // --- zoom ---------------------------------------------------------------------

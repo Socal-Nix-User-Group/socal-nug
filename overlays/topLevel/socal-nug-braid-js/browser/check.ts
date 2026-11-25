@@ -1,6 +1,7 @@
 import { LABEL_MAX } from "../src/elk.ts";
 import { parseData } from "../src/parse.ts";
 import { buildStory } from "../src/story.ts";
+import type { Story } from "../src/story.ts";
 import { launch, sleep } from "./cdp.ts";
 import { serve } from "./serve.ts";
 
@@ -293,6 +294,131 @@ const listOrder = (): Promise<string> =>
     ...[...${ROSTER}.querySelectorAll(".origins-moment-card")].map((c) => c.dataset.moment),
   ].join(" ")`);
 
+/** The story the page tells, from the data in the page. */
+async function storyOf(): Promise<Story> {
+  const data = parseData(JSON.parse(
+    await tab.evaluate<string>(`document.getElementById("origins-data").textContent`),
+  ));
+  return buildStory(data.moments, data.people);
+}
+
+/** Everyone who was at a moment and not away, by slug, in order. */
+const cameTo = (story: Story, id: string): string[] =>
+  [
+    ...new Set(
+      (story.moments.find((g) => g.moment.id === id)?.through ?? [])
+        .filter((p) => !p.away)
+        .map((p) => p.slug),
+    ),
+  ].sort();
+
+/** The moments someone was at and not away. */
+const peopled = (story: Story): string[] =>
+  story.moments.filter((g) => g.through.some((p) => !p.away)).map((g) => g.moment.id);
+
+const FACE = (slug: string) => `#origins-braid .origins-root[data-person="${slug}"]`;
+const OVAL = (id: string) => `#origins-braid .origins-node[data-moment="${id}"] .origins-oval`;
+const PILL = (id: string) => `#origins-braid .origins-node[data-moment="${id}"]`;
+const PERSON_CARD = (slug: string) => `#origins-roster .origins-card[data-person="${slug}"]`;
+const MOMENT_CARD = (id: string) => `#origins-roster .origins-moment-card[data-moment="${id}"]`;
+
+/** Whose threads are lit in the map, in order. */
+const LIT_PEOPLE =
+  `[...new Set([...${MAP}.querySelectorAll("path.origins-thread.is-lit")].map((p) => p.dataset.person))].sort()`;
+
+/** Whether the first element matching has a class. */
+const has = (selector: string, name: string): string =>
+  `(document.querySelector(${JSON.stringify(selector)})?.classList.contains(${
+    JSON.stringify(name)
+  }) ?? false)`;
+
+/**
+ * A point on a card in the lists that is not on a link, with the card
+ * scrolled into view first.
+ */
+const onCard = (selector: string): Promise<Point | null> =>
+  tab.evaluate(`(() => {
+    const c = document.querySelector(${JSON.stringify(selector)});
+    if (c === null) return null;
+    c.scrollIntoView({ block: "center", inline: "center" });
+    const b = c.getBoundingClientRect();
+    for (let y = b.top + 4; y < b.bottom - 2; y += 4) {
+      for (let x = b.left + 4; x < b.right - 2; x += 4) {
+        const e = document.elementFromPoint(x, y);
+        if (e !== null && c.contains(e) && e.closest("a") === null) return { x, y };
+      }
+    }
+    return null;
+  })()`);
+
+/** Click a card in the lists somewhere that is not a link. Whether there was such a place. */
+async function clickCard(selector: string): Promise<boolean> {
+  const at = await onCard(selector);
+  if (at === null) return false;
+  await tab.click(at.x, at.y);
+  return true;
+}
+
+/**
+ * Of these things in the map, keyed by id, the one whose middle is furthest
+ * from the middle of the map's box, and how far that is.
+ */
+const furthest = (selectors: Record<string, string>): Promise<{ id: string; off: number } | null> =>
+  tab.evaluate(`(() => {
+    const m = ${MAP};
+    const b = m.getBoundingClientRect();
+    let best = null;
+    for (const [id, selector] of Object.entries(${JSON.stringify(selectors)})) {
+      const e = document.querySelector(selector);
+      if (e === null) continue;
+      const c = e.getBoundingClientRect();
+      const off = Math.hypot(
+        c.left + c.width / 2 - b.left - m.clientWidth / 2,
+        c.top + c.height / 2 - b.top - m.clientHeight / 2,
+      );
+      if (best === null || off > best.off) best = { id, off };
+    }
+    return best;
+  })()`);
+
+/** Wait for a smooth scroll of the map to end: the same place 200ms apart. */
+async function mapSettles(): Promise<void> {
+  let was = await mapAt();
+  for (let waited = 0; waited < 5000; waited += 200) {
+    await sleep(200);
+    const is = await mapAt();
+    if (is.left === was.left && is.top === was.top) return;
+    was = is;
+  }
+}
+
+/**
+ * Whether the middle of the first element matching is in the middle of the
+ * map's box, within 2px, on each axis, or the map has gone as far towards it
+ * as it can on that axis.
+ */
+const centredIn = (selector: string): Promise<{ ok: boolean } & Record<string, unknown>> =>
+  tab.evaluate(`(() => {
+    const m = ${MAP};
+    const e = document.querySelector(${JSON.stringify(selector)});
+    if (e === null) return { ok: false, missing: true };
+    const b = m.getBoundingClientRect();
+    const c = e.getBoundingClientRect();
+    const off = {
+      x: c.left + c.width / 2 - b.left - m.clientWidth / 2,
+      y: c.top + c.height / 2 - b.top - m.clientHeight / 2,
+    };
+    const at = { x: m.scrollLeft, y: m.scrollTop };
+    m.scrollLeft = 1e7;
+    m.scrollTop = 1e7;
+    const reach = { x: m.scrollLeft, y: m.scrollTop };
+    m.scrollLeft = at.x;
+    m.scrollTop = at.y;
+    const there = (o, now, most) =>
+      Math.abs(o) <= 2 || (o < 0 && now <= 1) || (o > 0 && now >= most - 1);
+    return { ok: there(off.x, at.x, reach.x) && there(off.y, at.y, reach.y), off, at, reach };
+  })()`);
+
 /** Every check, in the order a failure is easiest to read. */
 async function run(): Promise<void> {
   // --- scrolling past the map ---------------------------------------------------
@@ -517,6 +643,300 @@ async function run(): Promise<void> {
     await tab.move(5, 5);
   }
 
+  await load("river");
+  {
+    const story = await storyOf();
+    const card = MOMENT_CARD(peopled(story)[0] ?? "");
+    const tint = `(() => {
+      const c = document.querySelector(${JSON.stringify(card)});
+      return c === null ? null : getComputedStyle(c).backgroundColor;
+    })()`;
+    await tab.move(5, 5);
+    await sleep(300);
+    const away = await tab.evaluate<string | null>(tint);
+    const at = await onCard(card);
+    if (at !== null) await tab.move(at.x, at.y);
+    const tinted = away !== null && at !== null &&
+      (await tab.waitFor(`${tint} !== ${JSON.stringify(away)}`));
+    const over = await tab.evaluate<string | null>(tint);
+    await tab.move(5, 5);
+    const back = await tab.waitFor(`${tint} === ${JSON.stringify(away)}`);
+    check(
+      tinted && back,
+      "mouse: a moment's card is tinted while the pointer is on it",
+      { away, over, back },
+    );
+  }
+
+  // --- a pick --------------------------------------------------------------------------
+  // A click on a card in either list picks it: the map goes to it, and it
+  // stays lit until it is let go. A click on a moment or a face in the map
+  // picks too, and marks the card in the list.
+
+  // Whether the map's own card was shut after each click on a card in a
+  // list, and the click picked the card.
+  const shutAfter: Array<{ shut: boolean; picked: boolean }> = [];
+
+  await load("river");
+  {
+    const story = await storyOf();
+    const far = await furthest(
+      Object.fromEntries(story.threads.map((t) => [t.person.slug, FACE(t.person.slug)])),
+    );
+    const id = far?.id ?? "";
+    const clicked = await clickCard(PERSON_CARD(id));
+    await mapSettles();
+    const where = await centredIn(FACE(id));
+    shutAfter.push({
+      shut: await tab.evaluate<boolean>(popupShut),
+      picked: await tab.evaluate<boolean>(has(PERSON_CARD(id), "is-picked")),
+    });
+    await tab.move(5, 5);
+    await sleep(300);
+    const after = await tab.evaluate<{ threads: string[]; face: boolean; card: boolean; picked: boolean }>(
+      `({
+        threads: ${LIT_PEOPLE},
+        face: ${has(FACE(id), "is-lit")},
+        card: ${has(PERSON_CARD(id), "is-lit")},
+        picked: ${has(PERSON_CARD(id), "is-picked")},
+      })`,
+    );
+    check(
+      far !== null && far.off > 50 && clicked && where.ok &&
+        JSON.stringify(after.threads) === JSON.stringify([id]) && after.face && after.card &&
+        after.picked,
+      "a click on a person's card brings their face to the middle of the map and leaves them lit",
+      { person: id, off: far?.off, clicked, where, ...after },
+    );
+  }
+
+  await load("river");
+  {
+    const story = await storyOf();
+    const far = await furthest(Object.fromEntries(peopled(story).map((id) => [id, OVAL(id)])));
+    const id = far?.id ?? "";
+    const want = cameTo(story, id);
+    const clicked = await clickCard(MOMENT_CARD(id));
+    await mapSettles();
+    const where = await centredIn(OVAL(id));
+    shutAfter.push({
+      shut: await tab.evaluate<boolean>(popupShut),
+      picked: await tab.evaluate<boolean>(has(MOMENT_CARD(id), "is-picked")),
+    });
+    await tab.move(5, 5);
+    await sleep(300);
+    const after = await tab.evaluate<{ threads: string[]; pill: boolean; card: boolean }>(
+      `({
+        threads: ${LIT_PEOPLE},
+        pill: ${has(PILL(id), "is-picked")},
+        card: ${has(MOMENT_CARD(id), "is-picked")},
+      })`,
+    );
+    check(
+      far !== null && far.off > 50 && want.length > 0 && clicked && where.ok &&
+        JSON.stringify(after.threads) === JSON.stringify(want) && after.pill && after.card,
+      "a click on a moment's card brings its pill to the middle of the map and leaves everyone who was there lit",
+      { moment: id, off: far?.off, want, clicked, where, ...after },
+    );
+    check(
+      shutAfter.length === 2 && shutAfter.every((s) => s.shut && s.picked),
+      "a click on a card in a list opens no card in the map",
+      { shutAfter },
+    );
+  }
+
+  await load("river");
+  {
+    const story = await storyOf();
+    const card = MOMENT_CARD(peopled(story)[0] ?? "");
+    const ways: Array<[string, () => Promise<unknown>]> = [
+      ["a second click", () => clickCard(card)],
+      ["a click on empty map", async () => {
+        await tab.evaluate(`${MAP}.scrollIntoView({ block: "start" })`);
+        const at = await emptyMap(20);
+        if (at === null) return false;
+        await tab.click(at.x, at.y);
+        return true;
+      }],
+      ["Escape", () => tab.key("Escape")],
+    ];
+    const seen: Record<string, unknown> = {};
+    let all = true;
+    for (const [way, letGo] of ways) {
+      const clicked = await clickCard(card);
+      await mapSettles();
+      const held = await tab.evaluate<number>(`document.querySelectorAll(".is-picked").length`);
+      const did = await letGo();
+      await tab.move(5, 5);
+      await sleep(300);
+      const left = await tab.evaluate<{ picked: number; lit: number }>(`({
+        picked: document.querySelectorAll(".is-picked").length,
+        lit: ${MAP}.querySelectorAll("path.origins-thread.is-lit").length,
+      })`);
+      seen[way] = { clicked, held, did, ...left };
+      all &&= clicked && held > 0 && did !== false && left.picked === 0 && left.lit === 0;
+    }
+    check(
+      all,
+      "a second click on the picked card, a click on empty map, and Escape each let go of it",
+      seen,
+    );
+  }
+
+  await load("river");
+  {
+    const story = await storyOf();
+    const [a, b] = story.threads.map((t) => t.person.slug);
+    const clicked = await clickCard(PERSON_CARD(a));
+    await mapSettles();
+    const over = await onCard(PERSON_CARD(b));
+    if (over !== null) await tab.move(over.x, over.y);
+    const want = [a, b].sort();
+    await tab.waitFor(`${LIT_PEOPLE}.length === 2`);
+    const both = await tab.evaluate<string[]>(LIT_PEOPLE);
+    await tab.move(5, 5);
+    await sleep(300);
+    const after = await tab.evaluate<string[]>(LIT_PEOPLE);
+    check(
+      clicked && over !== null && JSON.stringify(both) === JSON.stringify(want) &&
+        JSON.stringify(after) === JSON.stringify([a]),
+      "hovering another card while one is picked lights both, and leaving it leaves the pick lit",
+      { picked: a, hovered: b, both, after },
+    );
+  }
+
+  await load("subway");
+  {
+    // A moment whose card is past the end of its list's box once the list
+    // is back at its start.
+    const id = await tab.evaluate<string | null>(`(() => {
+      const list = ${MOMENTS};
+      list.scrollTop = 0;
+      list.scrollLeft = 0;
+      const l = list.getBoundingClientRect();
+      const out = [...list.querySelectorAll(".origins-moment-card")]
+        .find((c) => c.getBoundingClientRect().top >= l.bottom);
+      return out?.dataset.moment ?? null;
+    })()`);
+    const where = `({ page: scrollY, left: ${MAP}.scrollLeft, top: ${MAP}.scrollTop })`;
+    let before: unknown = null;
+    let after: unknown = null;
+    let opened = false;
+    let shown: Record<string, unknown> | null = null;
+    if (id !== null) {
+      const at = await centreOf(OVAL(id));
+      before = await tab.evaluate(where);
+      await tab.click(at.x, at.y);
+      opened = await tab.waitFor(popupOpen);
+      await sleep(300);
+      after = await tab.evaluate(where);
+      shown = await tab.evaluate(`(() => {
+        const c = document.querySelector(${JSON.stringify(MOMENT_CARD(id))});
+        const b = c.getBoundingClientRect();
+        const l = ${MOMENTS}.getBoundingClientRect();
+        return {
+          picked: c.classList.contains("is-picked"),
+          inside: b.top >= l.top - 1 && b.bottom <= l.bottom + 1 &&
+            b.left >= l.left - 1 && b.right <= l.right + 1,
+        };
+      })()`);
+    }
+    check(
+      id !== null && opened && shown?.picked === true && shown?.inside === true &&
+        JSON.stringify(after) === JSON.stringify(before),
+      "a click on a moment in the map marks its card and scrolls its list to show it, without moving the page or the map",
+      { moment: id, opened, shown, before, after },
+    );
+  }
+
+  await load("river");
+  {
+    const story = await storyOf();
+    const id = peopled(story)[0] ?? "";
+    const want = cameTo(story, id);
+    const clicked = await clickCard(MOMENT_CARD(id));
+    await mapSettles();
+    const width = await tab.evaluate<number>(pictureWidth);
+    const plus = await zoomButton("in");
+    await tab.click(plus.x, plus.y);
+    const grew = await tab.waitFor(`${pictureWidth} > ${width} * 1.2`);
+    await tab.evaluate(`${MAP}.scrollIntoView({ block: "start" })`);
+    const empty = await emptyMap(250);
+    let dragged = false;
+    if (empty !== null) {
+      const start = await mapAt();
+      await tab.pull(empty.x, empty.y, empty.x, empty.y - 100);
+      dragged = await tab.waitFor(`${MAP}.scrollTop >= ${start.top + 90}`);
+    }
+    await tab.move(5, 5);
+    await sleep(300);
+    const after = await tab.evaluate<{ card: boolean; threads: string[] }>(
+      `({ card: ${has(MOMENT_CARD(id), "is-picked")}, threads: ${LIT_PEOPLE} })`,
+    );
+    check(
+      clicked && grew && dragged && want.length > 0 && after.card &&
+        JSON.stringify(after.threads) === JSON.stringify(want),
+      "zooming the map and dragging it leave the pick as it is",
+      { moment: id, clicked, grew, dragged, want, ...after },
+    );
+  }
+
+  await load("river");
+  {
+    const story = await storyOf();
+    const id = peopled(story)[0] ?? "";
+    const want = cameTo(story, id);
+    const clicked = await clickCard(MOMENT_CARD(id));
+    await mapSettles();
+    await watchForMorph();
+    await pressMode("subway");
+    const landed = await landedIn("subway");
+    const moved = await morphed();
+    await tab.move(5, 5);
+    await sleep(300);
+    const after = await tab.evaluate<{ card: boolean; pill: boolean; threads: string[] }>(
+      `({
+        card: ${has(MOMENT_CARD(id), "is-picked")},
+        pill: ${has(PILL(id), "is-picked")},
+        threads: ${LIT_PEOPLE},
+      })`,
+    );
+    check(
+      clicked && landed && moved && want.length > 0 && after.card && after.pill &&
+        JSON.stringify(after.threads) === JSON.stringify(want),
+      "a pick is still marked and lit after the mode is switched",
+      { moment: id, clicked, landed, moved, want, ...after },
+    );
+  }
+
+  // A narrower window redraws the picture somewhere else. From 1000px to
+  // 960px the old picture stays where it was until the redraw, so the pill
+  // is still under the pointer when it is replaced. From 1500px to 1400px
+  // the page above the map moved first, and the pointer was told it left
+  // before the picture it left was replaced.
+  await load("river", 1000, 1000);
+  {
+    const story = await storyOf();
+    const id = peopled(story)[0] ?? "";
+    const pill = await centreOf(OVAL(id));
+    await tab.move(pill.x, pill.y);
+    const lit = await tab.waitFor(`${LIT_PEOPLE}.length > 0 && ${has(MOMENT_CARD(id), "is-lit")}`);
+    await tab.evaluate(`(window.__originsOld = ${PICTURE}, true)`);
+    await tab.size(960, 1000);
+    const redrawn = await tab.waitFor(`${PICTURE} !== window.__originsOld`);
+    await sleep(300);
+    await tab.move(5, 5);
+    await sleep(300);
+    const left = await tab.evaluate<string[]>(
+      `[...document.querySelectorAll(".is-lit")].map((e) => e.getAttribute("class"))`,
+    );
+    check(
+      lit && redrawn && left.length === 0,
+      "a picture redrawn under a resting pointer leaves nobody lit",
+      { moment: id, lit, redrawn, left },
+    );
+  }
+
   // --- the first draw measured the box it ends up in ---------------------------
   // Sized to a box that then changes, the picture is wrong until the next
   // resize redraws it. So a resize straight after loading should find nothing
@@ -718,6 +1138,51 @@ async function run(): Promise<void> {
         apart(between, subway),
       "switching modes: a moment's card travels from its place in one arrangement to its place in the other",
       { moving, landed, river, between, subway },
+    );
+  }
+
+  await load("river");
+  {
+    await pressMode("subway");
+    const moving = await tab.waitFor(MORPHING, 15_000);
+    await sleep(400);
+    // A person's card on its way and in sight, somewhere off the map's box,
+    // so what the click goes through to is not a moment or a face.
+    const passing = await tab.evaluate<{ slug: string; x: number; y: number } | null>(`(() => {
+      const m = ${MAP}.getBoundingClientRect();
+      for (const item of ${ROSTER}.querySelectorAll(".origins-roster-item")) {
+        if (getComputedStyle(item).position !== "absolute") continue;
+        if (Number(getComputedStyle(item).opacity) < 0.5) continue;
+        const b = item.getBoundingClientRect();
+        const x = b.left + b.width / 2;
+        const y = b.top + b.height / 2;
+        if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) continue;
+        if (x >= m.left && x <= m.right && y >= m.top && y <= m.bottom) continue;
+        return { slug: item.querySelector(".origins-card").dataset.person, x, y };
+      }
+      return null;
+    })()`);
+    let during = false;
+    if (passing !== null) {
+      await tab.click(passing.x, passing.y);
+      during = await tab.evaluate<boolean>(MORPHING);
+    }
+    const landed = await landedIn("subway");
+    await tab.move(5, 5);
+    await sleep(300);
+    const left = await tab.evaluate<{ picked: number; lit: number }>(`({
+      picked: document.querySelectorAll(".is-picked").length,
+      lit: document.querySelectorAll(".is-lit").length,
+    })`);
+    // The same card, clicked once it is still, does pick: the click on the
+    // way was not refused only because there is nothing to pick.
+    const still = passing !== null && (await clickCard(PERSON_CARD(passing.slug))) &&
+      (await tab.evaluate<boolean>(has(PERSON_CARD(passing.slug), "is-picked")));
+    check(
+      moving && passing !== null && during && landed && left.picked === 0 && left.lit === 0 &&
+        still,
+      "switching modes: a click where a card is passing picks nothing",
+      { moving, passing, during, landed, ...left, still },
     );
   }
 
@@ -930,6 +1395,20 @@ async function run(): Promise<void> {
       arrived && from.y > 0 && to.x > 0 && Math.abs(is.left - want) <= 1,
       "with reduced motion asked for, a switch lands the same share of the way along the other map",
       { from, was, to, is, want },
+    );
+  }
+  await load("river");
+  {
+    const story = await storyOf();
+    const far = await furthest(Object.fromEntries(peopled(story).map((id) => [id, OVAL(id)])));
+    const id = far?.id ?? "";
+    const clicked = await clickCard(MOMENT_CARD(id));
+    // No wait: the map is to be there already.
+    const where = await centredIn(OVAL(id));
+    check(
+      far !== null && far.off > 50 && clicked && where.ok,
+      "with reduced motion asked for, a click on a card puts the map there at once",
+      { moment: id, off: far?.off, clicked, where },
     );
   }
   await tab.send("Emulation.setEmulatedMedia", { features: [] });
@@ -1418,17 +1897,32 @@ async function run(): Promise<void> {
 
   await load("river", 390, 844, true);
   {
+    const story = await storyOf();
+    const id = await tab.evaluate<string>(
+      `document.querySelector(${JSON.stringify(SIDE_DOT)}).dataset.moment`,
+    );
+    const want = cameTo(story, id);
     const dot = await centreOf(SIDE_DOT);
     await tab.tap(dot.x, dot.y);
     const opened = await tab.waitFor(popupOpen);
     await sleep(300);
-    const lit = await tab.evaluate<number>(
-      `document.querySelectorAll(".is-lit").length`,
+    const picked = await tab.evaluate<boolean>(has(PILL(id), "is-picked"));
+    // Everything lit is someone who was there and not away.
+    const lit = await tab.evaluate<Array<string | null>>(
+      `[...document.querySelectorAll(".is-lit")].map((e) => e.getAttribute("data-person"))`,
+    );
+    const strays = lit.filter((slug) => slug === null || !want.includes(slug));
+    await tab.evaluate(`${MAP}.scrollIntoView({ block: "start" })`);
+    const empty = await emptyMap(20);
+    if (empty !== null) await tab.tap(empty.x, empty.y);
+    await sleep(300);
+    const left = await tab.evaluate<number>(
+      `document.querySelectorAll(".is-lit, .is-picked").length`,
     );
     check(
-      opened && lit === 0,
-      "touch: a tap opens the card and leaves nothing stuck highlighted",
-      { opened, lit },
+      opened && picked && strays.length === 0 && empty !== null && left === 0,
+      "touch: a tap opens the card and picks the moment, and nothing is left lit once it is let go",
+      { moment: id, opened, picked, want, strays, tappedEmpty: empty !== null, left },
     );
   }
 
