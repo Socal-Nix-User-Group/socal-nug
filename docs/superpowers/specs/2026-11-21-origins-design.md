@@ -828,7 +828,9 @@ right.
   heading over a list that scrolls in its own box.
   - River, in a window 1024px or wider: the rail is beside the map and as tall as the map's
     ceiling. The panes are stacked, each half of it, and each list scrolls down, as the map
-    does.
+    does. A rail with nothing in it has no height: the template starts every page in River, so
+    without that a reader with JavaScript off, or one whose remembered mode is Subway in the
+    moment before the script runs, would have an empty block most of a screen tall.
   - Subway, 1024px or wider: the rail is under the map. The panes are side by side, People
     three parts to Moments' two, each 46vh tall, with the people's cards two across. Each list
     scrolls down. The other arrangement mocked up was two rows scrolling sideways; Daniel chose
@@ -836,7 +838,11 @@ right.
   - Narrower than 1024px, in both modes: the rail is under the map with the panes stacked, and
     each list is one row that scrolls sideways, a person's card 19rem wide and a moment's
     13rem. Before the moments' list the roster on a narrow screen was the whole list of
-    people; with forty-four moments under it the page would be very long.
+    people; with forty-four moments under it the page would be very long. Like the map, a row
+    keeps a sideways overscroll to itself, so a swipe at its end does not take the browser back
+    a page. The rule holds up to 1023.98px and not 1023px: a zoomed browser can make a window a
+    fraction of a pixel under 1024px, where neither arrangement would apply and both lists
+    would run at full length.
 - **Hover** pairs both ways, as it has for people. Over a moment's card: the card is tinted,
   whoever was at the moment and not away is lit, and the moment's pill takes its hover outline.
   Over a moment in the map: its card is tinted. That the card under the pointer is tinted was
@@ -849,7 +855,8 @@ right.
   moment, everyone who was there, its pill outlined as it is while its card is open, and its
   card. One thing is picked at a time. A click on another card picks that instead; a click on
   the card already picked, a click on empty map, or Escape picks nothing. Hovering other cards
-  still lights them on top of the pick.
+  still lights them on top of the pick. A double click counts as one click: taken as two, it
+  would send the map to the card and leave nothing lit when it got there.
 - A click on a card in a list opens no popup: the card already says what the popup would, and
   the popup would cover what was just centred. A popup that is open closes. A click on a link
   inside a person's card follows the link and picks nothing.
@@ -1047,8 +1054,9 @@ In `checks/default.nix`:
   vendored layout engine (before the bundle), the toggle, the zoom's four labelled buttons and
   the rail are in place. It reads the stylesheet for the rules behind the legend's tooltip,
   the hand over the map, the dimming of whoever is not lit, the rail taking the map's ceiling
-  beside it, the two lists side by side under Subway and as rows on a narrow screen, and a
-  moment's outline while its card in the list is under the pointer. It checks that the guest in the data is on the Origins page and not in the
+  beside it when it has anything in it, the two lists side by side under Subway and as rows
+  that keep their overscroll on a narrow screen, and a moment's outline while its card in the
+  list is under the pointer. It checks that the guest in the data is on the Origins page and not in the
   About grid, and proves the About filter with a guest probe as well. It checks that every
   member's own links are in the data block and on the About grid, and that every member's quote
   is on the About grid as a quotation. It checks that every moment's avatar in the data block is
@@ -1133,19 +1141,20 @@ two lists one above the other there and side by side under Subway, each scrollin
 box; two rows that scroll sideways in a narrow window; the wheel over a list scrolling that
 list and then the page; both lists there when the layout engine is blocked; and hover, a
 moment's card lighting its people and outlining its pill, a moment in the map tinting its card,
-and the card under the pointer tinted. Fourteen are about a pick: a click on a person's card
+and the card under the pointer tinted. Seventeen are about a pick: a click on a person's card
 and on a moment's card bringing the face or the pill to the middle of the map, or the map to
-the end of its reach, and leaving the right people lit; no popup opening for it, and one that
-is open closing; each of the three ways of letting go; a hover on another card adding to the
-pick and leaving it standing when it ends; a click on a moment in the map, and the keyboard's
-Enter there, marking its card, the click scrolling its list to show it without moving the page
-or the map; a click on a link in a person's card picking nobody; the zoom and a drag leaving
-the pick; the pick still there after a switch; a picture redrawn under a resting pointer
-leaving nobody lit; the map put there at once under reduced motion; and a tap picking the
-moment, with nothing left lit once it is let go. Each check that could pass for want of
-anything to click also asserts that the pick it depends on happened.
+the end of its reach, and leaving the right people lit; a double click leaving the card
+picked; no popup opening for it, and one that is open closing; each of the three ways of
+letting go; a hover on another card adding to the pick and leaving it standing when it ends; a
+click on a moment or a face in the map, and the keyboard's Enter there, marking its card, a
+click scrolling its list to show it without moving the page or the map; a click on a link in a
+person's card picking nobody; the zoom and a drag leaving the pick; the pick still there after
+a switch and after a resize; a picture redrawn under a resting pointer leaving nobody lit; the
+map put there at once under reduced motion; and a tap picking the moment, with nothing left
+lit once it is let go. Each check that could pass for want of anything to click also asserts
+that the pick it depends on happened.
 
-Eighty-one checks, each named for what a visitor would
+Eighty-four checks, each named for what a visitor would
 notice and none naming a moment or a person, so the data can change under it as long as the
 picture stays about the size it is (see below). It needs the
 network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
@@ -1313,7 +1322,26 @@ be reasonable if layout moved to build time.
   closing its popup with the X leaves the people lit and everyone else faint until Escape, a
   click on empty map or a click on its card. That is the rule as agreed, and it is one rule for
   every pick. On a phone the card that shows what is picked is under the map and out of sight,
-  so the lit threads have nothing beside them to say why. Daniel has not tried it.
+  so the lit threads have nothing beside them to say why. From the keyboard, a card opened
+  with Enter puts focus on its X, so Enter again closes the card and leaves the pick, where
+  Escape lets go of it. Daniel has not tried either.
+- **A picked card out of sight after a switch.** Each list comes out of a switch scrolled as
+  far as it was. The people are one across beside River and two across under Subway, so the
+  same distance shows other people, and someone picked from the middle of the list in River
+  can be above what shows in Subway. The same goes for a window resized across 1024px, where
+  the lists change from scrolling down to scrolling sideways. Whether a switch should bring the
+  picked card back into view is a question for Daniel.
+- **A card clicked before the first picture.** The lists are there as soon as the script
+  runs and the picture only once the layout engine has laid it out. A card clicked in between
+  is picked, and lit when the picture arrives, but the map opens where it always opens and
+  does not go to it.
+- **A press on the map's scrollbar.** In headless Chromium it sends no click, so it lets go of
+  nothing, which was tried. Firefox and Safari were not. A browser that sends the box a click
+  for it would let go of the pick, which scrolling the map is not meant to do.
+- **Checks that keep time.** Three of the new browser checks read the page inside the 1.2
+  seconds of a switch, or look for a scroll to have begun shortly after a click. On a machine
+  slow enough they would fail with the page right; none can pass with it wrong. One older
+  check is the same.
 - **Two lists crossing in the switch.** Between River and Subway the people's cards travel
   across the moments' cards, and the cards are see-through enough for the words of one to show
   through another for part of the 1.2 seconds. Daniel accepted cards crossing the picture when
