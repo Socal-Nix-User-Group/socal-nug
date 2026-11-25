@@ -692,23 +692,25 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   middle of it. A box whose picture is shorter than its ceiling is as short as the picture, so
   zooming out can shrink the box and bring up what is under it. The zoom is kept across a change
   of mode and a resize, and is not remembered between visits.
-- River puts the roster in a column beside the map; Subway, and any viewport narrower than 1024px,
-  puts it underneath as a grid.
-- Beside the map the roster is a box of its own with the map's ceiling, 85% of the viewport, and
-  scrolls inside it, so the two end on one line however many people there are. The ceiling is
-  one value in the stylesheet, used by both. Like the map, the roster lets the wheel carry on to
-  the page once it reaches its end. Under the map it is the whole list with nothing to scroll.
-  The roster keeps that ceiling when the map is zoomed out until it is shorter than its own: a
-  roster that shrank with the map would be no use at the small zooms.
+- River puts the rail in a column beside the map; Subway, and any viewport narrower than 1024px,
+  puts it underneath. The rail holds the people and the moments, each in a list that scrolls in
+  its own box; how the two are arranged in each case is under "The two lists".
+- Beside the map the rail is as tall as the map's ceiling, 85% of the viewport, so the two end
+  on one line however many people and moments there are. The ceiling is one value in the
+  stylesheet, used by both. Like the map, a list lets the wheel carry on to the page once it
+  reaches its end. The rail keeps that height when the map is zoomed out until it is shorter
+  than its ceiling: a rail that shrank with the map would be no use at the small zooms.
 - Switching modes morphs. Pressing the other mode's button moves everything from where it is to
   where it will be, over 1.2 seconds with a cubic ease in and out:
   - inside the picture, each face, each moment's pill, each bead, each label, each year line and
     year label, and each thread, bent from one shape to the other;
   - the canvas, from one mode's size to the other's;
-  - the map's box, from the tall box beside the roster to the wide one above it;
-  - each roster card, from the column into the grid or back. A card really is the width it
-    appears to be on the way, so its text wraps as it travels and is never stretched. Cards
-    cross over the picture on their way, which Daniel does not mind.
+  - the map's box, from the tall box beside the rail to the wide one above it;
+  - each card of both lists, and the two headings, from one arrangement to the other. A card
+    really is the width it appears to be on the way, so its text wraps as it travels and is
+    never stretched. Cards cross over the picture on their way, which Daniel does not mind;
+    with two lists the people's cards also cross the moments' (see "The two lists" for which
+    cards are shown on the way, and "Still open").
 - The first Loom dropped the slide the page had before it, because a moment that is wide in one
   mode and tall in the other had nowhere sensible to slide from. The pill now changes shape as
   it moves, through a circle half way. Threads were the hard part: the two modes give one edge
@@ -742,8 +744,8 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   is Daniel's choice. A window resized while it runs is dealt with when it lands: if the box is
   not the width the landing was drawn for, the picture is redrawn for the width it is.
 - When it lands, the picture in the box is the ordinary drawing for that mode, the one a fresh
-  visit draws, and nothing the morph set on the box, the layout, the roster or the cards is
-  left behind.
+  visit draws, and nothing the morph set on the box, the layout, the lists, the headings or the
+  cards is left behind.
 - A reader whose system asks for reduced motion gets the instant switch. So does anyone whose
   two layouts do not pair up, an edge or a face in only one of them, which a layout that passed
   the smoke check cannot be. The instant switch lands the view the same share of the way along
@@ -761,7 +763,7 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
 - If laying out the newly chosen mode fails, the picture already on screen stays, under the new
   mode's name. This is left as it is on purpose; see "Still open".
 - If the first layout fails, the map says "The picture could not be drawn. Reloading the page may
-  bring it back." The roster is still there.
+  bring it back." Both lists are still there.
 
 ### Cards and the popup
 
@@ -777,17 +779,20 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
 - The roster lists everyone as the same person cards, without the X, in thread order: the order
   of the profiles in the About section (sorted by `weight`), as the template writes them into the
   data block, leaving out anyone with no moment. Thread order is also the palette's order. It is
-  not the slot order the engine uses across a moment (see "The layout engine"). The roster sits
-  beside River and under Subway (see "Toggle and responsive behaviour").
+  not the slot order the engine uses across a moment (see "The layout engine"). The roster is
+  one of two lists in the rail beside River and under Subway; the other lists the moments (see
+  "The two lists").
 - Hovering a face lights that person: their thread is drawn thicker, their face's ring too, and
   their roster card is tinted. Hovering or focusing a roster card does the same. Hovering a moment
-  lights everyone through it who was not away from it. A touch does not light anything; a tap
-  opens the card.
-- While anyone is lit, everyone who is not steps back: their thread, their beads and their face
-  are drawn at a quarter strength, in the picture only. Moments and labels are not dimmed, since
-  a moment belongs to everyone through it, and neither is the roster, which is a list being read
-  and whose tinted card already says who. Hovering a meetup therefore dims only the people
-  recorded away from it and those who had not joined yet.
+  lights everyone through it who was not away from it and tints its card in the list of
+  moments; hovering that card does the same and outlines the moment in the map. A touch lights
+  nothing by hovering; a tap opens the card and picks what was tapped, which lights it as any
+  pick does (see "The two lists").
+- While anyone is lit, by hover or by a pick, everyone who is not steps back: their thread,
+  their beads and their face are drawn at a quarter strength, in the picture only. Moments and
+  labels are not dimmed, since a moment belongs to everyone through it, and neither are the
+  lists, which are being read and whose tinted cards already say who. Hovering a meetup
+  therefore dims only the people recorded away from it and those who had not joined yet.
 - A person's card carries avatar, name, alias (linking to their profile), quote, description,
   their own links on one line that wraps, membership badge and where they joined, as "Joined at"
   with that meetup's title and date.
@@ -832,9 +837,11 @@ right.
     each list is one row that scrolls sideways, a person's card 19rem wide and a moment's
     13rem. Before the moments' list the roster on a narrow screen was the whole list of
     people; with forty-four moments under it the page would be very long.
-- **Hover** pairs both ways, as it has for people. Over a moment's card: whoever was at the
-  moment and not away is lit, and the moment's pill takes its hover outline. Over a moment in
-  the map: its card is tinted.
+- **Hover** pairs both ways, as it has for people. Over a moment's card: the card is tinted,
+  whoever was at the moment and not away is lit, and the moment's pill takes its hover outline.
+  Over a moment in the map: its card is tinted. That the card under the pointer is tinted was
+  not asked for; a person's card already was, and the two lists should answer the pointer
+  alike.
 - **Picking.** A click on a card picks it. The map scrolls to put the thing picked in the
   middle of its box, as near as the box can scroll: a person's face, where their thread starts,
   or a moment's pill. The scroll is smooth unless the reader asks for reduced motion. What is
@@ -844,21 +851,44 @@ right.
   the card already picked, a click on empty map, or Escape picks nothing. Hovering other cards
   still lights them on top of the pick.
 - A click on a card in a list opens no popup: the card already says what the popup would, and
-  the popup would cover what was just centred. A click on a link inside a person's card
-  follows the link and picks nothing.
+  the popup would cover what was just centred. A popup that is open closes. A click on a link
+  inside a person's card follows the link and picks nothing.
 - **From the map.** A click on a face or a moment in the map opens its popup as before and
   also picks it: its card in the list is marked and its list scrolls, inside its own box, to
   show it. The page does not scroll and the map does not move, since the reader is already
-  looking at the thing. Opening a card from the keyboard does the same.
+  looking at the thing. Opening a card from the keyboard does the same. The pick is not tied to
+  the popup: closing the popup with its X leaves the pick, which is let go the same three ways
+  as any other. A tap is a click, so on a touch screen a tap on a moment picks it and lights
+  the people who were there; before this a tap lit nothing.
 - **Keyboard.** The cards in the lists are not tab stops. Fifty-seven more would bury the rest
   of the page, which is what the one tab stop for the map was for. A keyboard reaches every
   person and moment through the map, where Enter opens the card and picks it.
 - **What a pick outlasts.** A redraw for a resized window and a switch of mode: the new
-  picture is lit and marked the same. Zooming does not touch it.
+  picture is lit and marked the same. Zooming and dragging the map do not touch it, and nor
+  does a click anywhere outside the map and the lists.
 - **Switching modes.** Every card of both lists, and the two headings, travel from their place
-  in one arrangement to their place in the other, as the people's cards did. A card out of
-  sight in its list's box in one mode and in sight in the other fades in or out on the way;
-  one out of sight in both is not shown on the way.
+  in one arrangement to their place in the other, as the people's cards did. On the way a card
+  is lifted out of its list and is no longer cut off by the list's box, so which cards show is
+  decided: one in sight in its list at both ends shows all the way; one in sight at one end
+  only fades in or out; one out of sight at both is not shown. In sight means any part of it
+  is inside its list's box, so a card half hidden at the edge of its list shows whole while it
+  travels. Each list comes out scrolled where it was, and keeps its room on the page while its
+  cards are out of it, so nothing under it jumps. The layout cuts off anything past its sides
+  for the length of the switch, because a card past the end of a sideways row would otherwise
+  widen the page. Cards on their way answer no pointer.
+- **How it is built.** The cards and the two panes are made by `momentCardFor`, `momentsFor`
+  and `listsFor` in `src/cards.ts`. The arithmetic of a pick is in `src/pick.ts` and touches no
+  page: what a click leaves picked, who a pick lights, where the map must scroll to put a point
+  in its middle, and how far a list must scroll to show a card. The page script keeps four
+  things, the pick, the people lit by hover or focus, the moment whose card is under the
+  pointer and the moment under the pointer in the map, and one function sets every lit, outlined
+  and picked mark from them, in the map and in the lists. Nothing else sets those marks, which
+  is what lets a hover end without unlighting a pick and a pick be let go without unlighting a
+  hover. Every draw forgets what hover lit, since the elements that would have said the pointer
+  left went with the old picture, and lights the new one from the pick. The point to centre on
+  is read from where the face or the pill is on screen, the way the popup finds its anchor. A
+  list is scrolled by setting its own scroll position; `scrollIntoView` is not used, because it
+  scrolls the page and the map as well.
 
 The mock-ups are in `.superpowers/sdd/origins-loom-pictures/moment-list.html`, outside the
 repository's history.
@@ -920,11 +950,19 @@ JavaScript, and the accessible version while the SVG was `aria-hidden` decoratio
 Once the picture named its own moments and faces and its cards carried the blurbs and links, the
 list was a second copy of the same history to keep correct, and a second thing for a screen
 reader to read. What goes with it: a reader with JavaScript off gets an empty map and an empty
-roster, and the page source carries the history only as the JSON data block. A reader whose
-browser fails to fetch the 1.6 MB layout engine gets the roster and a sentence in the map saying
+rail, and the page source carries the history only as the JSON data block. A reader whose
+browser fails to fetch the 1.6 MB layout engine gets both lists and a sentence in the map saying
 the picture could not be drawn. That was an accepted trade, not an oversight.
 
 `test_site.py` asserts the list is absent and that the data block carries the history instead.
+
+The list of moments in the rail (see "The two lists") is not that list come back. The script
+builds it from the same data block the picture is drawn from, so there is no second copy to
+keep correct, and with JavaScript off it is not there. A screen reader does now meet each
+moment twice, as a button in the picture and as a list item under a "Moments" heading with its
+title, date and names. The cards in both lists answer a click and are not buttons or tab stops:
+picking is a pointer's convenience, as taking hold of the map is, and the keyboard's way to a
+person or a moment stays the picture, where Enter opens the card and picks it.
 
 ### Build and toolchain
 
@@ -957,7 +995,8 @@ In `checks/default.nix`:
   is away from among them), the drawing from those (the hollow bead, the thread's new subpath),
   a moment's avatar (the room asked for it, where it is placed, how it is drawn, and its place
   on the way between modes),
-  cards, keyboard order, the toggle, the zoom's arithmetic (a button's step,
+  cards (a moment's card in the list and the two panes among them), the arithmetic of a pick,
+  keyboard order, the toggle, the zoom's arithmetic (a button's step,
   what a wheel event counts for, the zoom that fits, the limits), the morph's arithmetic (where
   everything is at the start, half way and the end; a thread cut to match and still tracing its
   line; a broken thread kept in its stretches; two layouts that do not pair up; a scroll
@@ -1006,9 +1045,10 @@ In `checks/default.nix`:
   come from the events section and carry `there` and `away` lists, a record's attendance reaches
   its meetup through the template's merge, the fallback list is absent, and the bundle, the
   vendored layout engine (before the bundle), the toggle, the zoom's four labelled buttons and
-  the roster are in place. It reads the stylesheet for the rules behind the legend's tooltip,
-  the hand over the map, the dimming of whoever is not lit, and the roster taking the map's
-  ceiling beside it. It checks that the guest in the data is on the Origins page and not in the
+  the rail are in place. It reads the stylesheet for the rules behind the legend's tooltip,
+  the hand over the map, the dimming of whoever is not lit, the rail taking the map's ceiling
+  beside it, the two lists side by side under Subway and as rows on a narrow screen, and a
+  moment's outline while its card in the list is under the pointer. It checks that the guest in the data is on the Origins page and not in the
   About grid, and proves the About filter with a guest probe as well. It checks that every
   member's own links are in the data block and on the About grid, and that every member's quote
   is on the About grid as a quotation. It checks that every moment's avatar in the data block is
@@ -1067,24 +1107,45 @@ In `checks/default.nix`:
   is not, ships with the whole suite green.
 
 **On demand, not a check:** `nix run .#socal-nug-braid-browser` loads the page in headless
-Chromium and behaves like a visitor: it wheels past the map and past the roster beside it, drags
-a finger through the map on a phone-sized screen, clicks and tabs into cards, hovers moments,
-switches modes and watches the picture travel, zooms with the buttons and with Ctrl and the
-wheel, takes hold of the map with a pressed mouse and drags it, blocks the layout engine, and
-asks for the dark theme and for reduced motion. Thirteen of its checks are about the morph: that
-it takes time, passes through pictures that are neither mode's, and stops; that it lands on the
-picture a fresh visit draws, both ways and after the window is narrowed part way; that nothing
-is left set on the box, the layout or the cards; that the view lands the same share of the way
-along and a round trip returns; that a fitted view arrives fitted; that the mode and zoom
-buttons do nothing while it moves; that reduced motion makes it instant; and that a switch made
-to fail, in a frame and before the first one, still ends in the ordinary picture with the next
-switch working. Two more are about where the view is put without a morph: a River wider than
-its box opens centred, and the instant switch lands the same share of the way along. Three are
-about a moment's avatar: a click on it opens its moment's card in the place a click on the pill
-opens it, it is part way between its two places while the mode changes, and in River every one
-stands the same distance from its label's text, which only a browser can say, since only a
-browser knows how wide the text came out.
-Sixty-one checks, each named for what a visitor would
+Chromium and behaves like a visitor: it wheels past the map and past the lists beside it, drags
+a finger through the map on a phone-sized screen, clicks and tabs into cards, hovers moments
+and their cards in the list, clicks cards in both lists, switches modes and watches the picture
+travel, zooms with the buttons and with Ctrl and the wheel, takes hold of the map with a pressed
+mouse and drags it, blocks the layout engine, and asks for the dark theme and for reduced
+motion. Sixteen of its checks are about the morph: that it takes time, passes through pictures
+that are neither mode's, and stops; that it lands on the picture a fresh visit draws, both ways
+and after the window is narrowed part way; that nothing is left set on the box, the layout, the
+lists, the headings or the cards, with every card back in its own list and in order; that a
+moment's card is part way between its two places on the way; that a list scrolled part way
+down comes out scrolled where it was; that a click where a card is passing picks nothing; that
+the view lands the same share of the way along and a round trip returns; that a fitted view
+arrives fitted; that the mode and zoom buttons do nothing while it moves; that reduced motion
+makes it instant; and that a switch made to fail, in a frame and before the first one, still
+ends in the ordinary picture with the next switch working. Two more are about where the view is
+put without a morph: a River wider than its box opens centred, and the instant switch lands the
+same share of the way along. Three are about a moment's avatar: a click on it opens its
+moment's card in the place a click on the pill opens it, it is part way between its two places
+while the mode changes, and in River every one stands the same distance from its label's text,
+which only a browser can say, since only a browser knows how wide the text came out.
+
+Nine are about the two lists as they stand: the rail no taller than the map beside River; the
+two lists one above the other there and side by side under Subway, each scrolling in its own
+box; two rows that scroll sideways in a narrow window; the wheel over a list scrolling that
+list and then the page; both lists there when the layout engine is blocked; and hover, a
+moment's card lighting its people and outlining its pill, a moment in the map tinting its card,
+and the card under the pointer tinted. Fourteen are about a pick: a click on a person's card
+and on a moment's card bringing the face or the pill to the middle of the map, or the map to
+the end of its reach, and leaving the right people lit; no popup opening for it, and one that
+is open closing; each of the three ways of letting go; a hover on another card adding to the
+pick and leaving it standing when it ends; a click on a moment in the map, and the keyboard's
+Enter there, marking its card, the click scrolling its list to show it without moving the page
+or the map; a click on a link in a person's card picking nobody; the zoom and a drag leaving
+the pick; the pick still there after a switch; a picture redrawn under a resting pointer
+leaving nobody lit; the map put there at once under reduced motion; and a tap picking the
+moment, with nothing left lit once it is let go. Each check that could pass for want of
+anything to click also asserts that the pick it depends on happened.
+
+Eighty-one checks, each named for what a visitor would
 notice and none naming a moment or a person, so the data can change under it as long as the
 picture stays about the size it is (see below). It needs the
 network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
@@ -1137,8 +1198,9 @@ a `data-hue` attribute, so adding a person needs no stylesheet edit.
 
 Most of what this section once left open was decided by moving to ELK, and the reasoning lives
 under "The layout engine" rather than here: lane spacing, label collision, and whether thread
-colour comes from the data (it does not; it is a palette slot by thread index). The roster sits
-to the right in River and below in Subway. A freestanding moment may carry `links`, a list of
+colour comes from the data (it does not; it is a palette slot by thread index). The rail, with
+the roster and since 2026-11-24 the list of moments, sits to the right in River and below in
+Subway. A freestanding moment may carry `links`, a list of
 `{ title, url }`, because one moment can be two places at once; event-anchored moments take
 their permalink from the event and need nothing.
 
@@ -1234,7 +1296,7 @@ be reasonable if layout moved to build time.
   and a mouse already holding the map when a keyboard press switches modes is meant to be let
   go.
 - **River wider than its box.** River is 764px wide, 23px of that the room for the moments'
-  avatars. Beside the roster its box is 859px in a
+  avatars. Beside the rail its box is 859px in a
   window of 1408px or more, 667px from 1216px and 475px from 1024px, all measured, so in a
   window from 1024px to 1407px, and on a phone, River scrolls sideways. It opens centred (see
   "Toggle and responsive behaviour"). The cost is the year numbers: they are drawn 6px in from
@@ -1243,6 +1305,30 @@ be reasonable if layout moved to build time.
   the box's edge as the map scrolls has not been tried. Before the commit that added Nix Camp
   2026 and NixCon 2024 River was 658px and fitted from 1216px up. It did not fit the 475px box
   then either.
+- **Picking on a narrow screen.** Under 1024px the lists are under the map, which is most of a
+  screen tall, so a card is usually clicked with the map out of sight above it. The map centres
+  and the people light, but what the reader sees is the card marked. Scrolling the page up to
+  the map on a pick was not asked for and has not been tried.
+- **A pick that outlives its popup.** A click or a tap on a moment in the map picks it, and
+  closing its popup with the X leaves the people lit and everyone else faint until Escape, a
+  click on empty map or a click on its card. That is the rule as agreed, and it is one rule for
+  every pick. On a phone the card that shows what is picked is under the map and out of sight,
+  so the lit threads have nothing beside them to say why. Daniel has not tried it.
+- **Two lists crossing in the switch.** Between River and Subway the people's cards travel
+  across the moments' cards, and the cards are see-through enough for the words of one to show
+  through another for part of the 1.2 seconds. Daniel accepted cards crossing the picture when
+  there was one list and has not seen this.
+- **Hover across a redraw.** A draw forgets who hover lit. With the pointer resting on a card
+  in a list while the picture is redrawn (a resize, a switch), the card stays tinted and a
+  moment's pill stays outlined, but the people it lit go unlit until the pointer moves off and
+  back. Someone lit from two places at once, say a focused link in their card and a hovered
+  moment they were at, is unlit when either ends, as before this work.
+- **The lists and picks beyond what was tried.** Headless Chromium only: the browser check,
+  and pictures of the three arrangements, a hovered card, a picked card and a switch part way.
+  Not Firefox, not Safari. The switch uses `overflow-x: clip` and the centring a smooth
+  `scrollTo`, and neither has been seen in any other browser. A card
+  clicked with the layout engine blocked was read and not tried: it is picked and has nowhere
+  to scroll to.
 - **An id rule in the validator.** Nothing stops a `|` in a moment id, or a person slugged
   `spine`, and either would break placement: port ids are split on `|`, and the spine's edges
   are named `spine:<n>`, as a person's edges are named `<slug>:<n>`.
@@ -1287,8 +1373,15 @@ be reasonable if layout moved to build time.
 - The map can be dragged with a pressed mouse in both modes, and a click on a moment still opens
   its card. `+`, `-`, Fit and 100% do what they say, and Ctrl with the wheel zooms about the
   pointer while the plain wheel still scrolls.
-- Pressing the other mode's button moves the picture, the box and the roster's cards to their
-  places in the other mode in a little over a second, in Chromium and in Firefox. From the top
+- The rail lists the people and the moments: one list above the other beside River, side by
+  side under Subway, and two rows that scroll sideways in a window narrower than 1024px, in
+  Chromium. A click on a card in either list brings its face or its pill to the middle of the
+  map and leaves it lit until the same card is clicked again, empty map is clicked, or Escape
+  is pressed. A click on a moment in the map marks its card in the list.
+- Pressing the other mode's button moves the picture, the box and the cards of both lists to
+  their places in the other mode in a little over a second. The picture and the box were seen
+  to in Chromium and in Firefox; the lists, since the moments' list was added, in Chromium
+  only. From the top
   of River it lands at the start of Subway and from the bottom at the end. After Fit it lands
   fitted. With the system asking for reduced motion it switches at once.
 - Adding a new profile with `member = true` and a moment referencing it makes a new thread appear
