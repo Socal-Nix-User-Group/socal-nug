@@ -1930,10 +1930,38 @@ async function run(): Promise<void> {
       await tab.key("Escape");
       await sleep(300);
       const stayed = await tab.evaluate<boolean>(`document.activeElement === window.__elsewhere`);
-      after = { want, ...marked, ...released, stayed };
+      // Away from the card and back into it, on a link of its own, is a
+      // place the reader chose too.
+      const linked = await tab.evaluate<string | null>(`(() => {
+        const c = [...document.querySelectorAll("#origins-roster .origins-detail-card")].find((c) =>
+          c.querySelector("a") !== null &&
+          document.querySelector('#origins-braid .origins-node[data-moment="' + c.dataset.moment + '"]') !== null
+        );
+        return c?.dataset.moment ?? null;
+      })()`);
+      let returned: Record<string, unknown> = { linked };
+      if (linked !== null) {
+        await tab.evaluate(`(document.querySelector(${JSON.stringify(PILL(linked))}).focus(), true)`);
+        await tab.key("Enter");
+        await sleep(300);
+        const sent = await tab.evaluate<boolean>(
+          `document.activeElement === document.querySelector(${JSON.stringify(MOMENT_CARD(linked))})`,
+        );
+        await tab.evaluate(`(document.querySelector("[data-origins-zoom]").focus(), true)`);
+        await tab.evaluate(`(window.__link = document.querySelector(${JSON.stringify(`${MOMENT_CARD(linked)} a`)}), window.__link.focus(), true)`);
+        await tab.key("Escape");
+        await sleep(300);
+        returned = {
+          linked,
+          sent,
+          onLink: await tab.evaluate<boolean>(`document.activeElement === window.__link`),
+        };
+      }
+      after = { want, ...marked, ...released, stayed, ...returned };
       ok = !marked.opened && marked.pill && marked.card && want.length > 0 &&
         JSON.stringify(marked.threads) === JSON.stringify(want) && marked.onCard &&
-        released.picked === 0 && released.back && stayed;
+        released.picked === 0 && released.back && stayed &&
+        linked !== null && returned.sent === true && returned.onLink === true;
     }
     check(
       inBraid && id !== null && ok,

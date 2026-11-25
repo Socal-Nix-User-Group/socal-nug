@@ -1028,6 +1028,12 @@ function boot(): void {
     }
     sentTo = null;
   });
+  // Focus that has left the card the keyboard sent it to went where the
+  // reader chose, and coming back into the card later does not make it
+  // Enter's again.
+  document.addEventListener("focusin", (event) => {
+    if (sentTo !== null && !sentTo.contains(event.target)) sentTo = null;
+  });
 
   if (roster !== null) {
     roster.replaceChildren(...listsFor(story, cast, document));
