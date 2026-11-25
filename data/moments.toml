@@ -21,6 +21,10 @@
 # `date` accepts YYYY, YYYY-MM or YYYY-MM-DD. Write the precision you actually
 # have; it is never padded, and the page displays what is written here.
 #
+# A dated moment may carry `avatar`, the event's own mark: a site path to a
+# square image under static/images/moments/ made to sit in a circle. An event
+# that changes its mark each year has a file for each.
+#
 # Lines marked CONFIRM are best guesses awaiting a better source. Grep for
 # them when backfilling.
 
@@ -90,6 +94,7 @@ links = [
 id = "nix-camp-2022"
 date = "2022-09-12"
 title = "Nix Camp"
+avatar = "/images/moments/nix-camp.png"
 # Matthew Croughan organizes Nix Camp and is at every one.
 people = ["rob-hernandez", "matthew-croughan", "joshua-campbell"]
 links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
@@ -98,6 +103,7 @@ links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
 id = "nixcon-2022"
 date = "2022-10-20"
 title = "NixCon"
+avatar = "/images/moments/nixcon-2022.png"
 people = ["daniel-baker", "connor-baker"]
 links = [{ title = "NixCon 2022", url = "https://2022.nixcon.org/" }]
 
@@ -107,6 +113,7 @@ links = [{ title = "NixCon 2022", url = "https://2022.nixcon.org/" }]
 id = "scale-20x"
 date = "2023-03-09" # SCaLE 20x ran 9 to 12 March
 title = "SCaLE 20x"
+avatar = "/images/moments/scale.png"
 # The whole conference, not only the Nix booth, so that everyone who was at
 # SCaLE that year is through it. Who met whom there belongs in the blurb.
 people = [
@@ -194,6 +201,7 @@ blurb = "Daniel Baker and Morgan Jones met on Discord."
 id = "nix-camp-2023"
 date = "2023-09-24"
 title = "Nix Camp"
+avatar = "/images/moments/nix-camp.png"
 people = [
   "daniel-baker",
   "rob-hernandez",
@@ -209,6 +217,7 @@ links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
 id = "scale-21x"
 date = "2024-03-14"
 title = "SCaLE 21x / NixCon NA"
+avatar = "/images/moments/scale.png"
 # CONFIRM: "I think everyone was there". Morgan is left off: the record says
 # Daniel met Morgan on 2024-05-06, two months after this.
 people = [
@@ -235,6 +244,7 @@ links = [
 id = "nix-camp-2024"
 date = "2024-09-02"
 title = "Nix Camp"
+avatar = "/images/moments/nix-camp.png"
 people = ["daniel-baker", "david-nuon", "matthew-croughan"]
 links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
 
@@ -244,6 +254,7 @@ links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
 id = "nixcon-2024"
 date = "2024-10-25" # ran 25 to 27 October
 title = "NixCon"
+avatar = "/images/moments/nixcon-2024.png"
 people = ["matthew-croughan"]
 links = [{ title = "NixCon 2024", url = "https://2024.nixcon.org/" }]
 
@@ -251,6 +262,7 @@ links = [{ title = "NixCon 2024", url = "https://2024.nixcon.org/" }]
 id = "scale-22x"
 date = "2025-03-06"
 title = "SCaLE 22x / PlanetNix"
+avatar = "/images/moments/scale.png"
 # CONFIRM: "I think everyone was there"
 people = [
   "daniel-baker",
@@ -276,6 +288,7 @@ links = [
 id = "nix-vegas-2025"
 date = "2025-08-07"
 title = "Nix Vegas"
+avatar = "/images/moments/nix-vegas-2025.png"
 people = ["morgan-jones", "tristan-ross", "rob-hernandez", "kyle-risse"]
 links = [{ title = "Nix Vegas 2025", url = "https://nix.vegas/2025/" }]
 
@@ -283,6 +296,7 @@ links = [{ title = "Nix Vegas 2025", url = "https://nix.vegas/2025/" }]
 id = "nix-camp-2025"
 date = "2025-08-27"
 title = "Nix Camp"
+avatar = "/images/moments/nix-camp.png"
 people = [
   "daniel-baker",
   "rob-hernandez",
@@ -296,6 +310,7 @@ links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
 id = "nixcon-2025"
 date = "2025-09-05"
 title = "NixCon"
+avatar = "/images/moments/nixcon-2025.png"
 people = [
   "daniel-baker",
   "rob-hernandez",
@@ -309,6 +324,7 @@ links = [{ title = "NixCon 2025", url = "https://2025.nixcon.org/" }]
 id = "scale-23x"
 date = "2026-03-05"
 title = "SCaLE 23x / PlanetNix"
+avatar = "/images/moments/scale.png"
 # CONFIRM: "I think everyone was there"
 people = [
   "daniel-baker",
@@ -334,6 +350,7 @@ links = [
 id = "nix-vegas-2026"
 date = "2026-08-06"
 title = "Nix Vegas"
+avatar = "/images/moments/nix-vegas-2026.png"
 people = ["morgan-jones", "tristan-ross", "rob-hernandez", "daniel-baker"]
 links = [{ title = "Nix Vegas 2026", url = "https://nix.vegas/2026/" }]
 
@@ -341,6 +358,7 @@ links = [{ title = "Nix Vegas 2026", url = "https://nix.vegas/2026/" }]
 id = "nixcon-2026"
 date = "2026-09-25"
 title = "NixCon"
+avatar = "/images/moments/nixcon-2026.png"
 people = [
   "daniel-baker",
   "connor-baker",
@@ -355,6 +373,7 @@ links = [{ title = "NixCon 2026", url = "https://2026.nixcon.org/" }]
 id = "nix-camp-2026"
 date = "2026-10-01" # ran 1 to 7 October
 title = "Nix Camp"
+avatar = "/images/moments/nix-camp.png"
 people = ["tristan-ross", "matthew-croughan"]
 links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
 

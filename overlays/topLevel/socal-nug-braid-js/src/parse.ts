@@ -121,6 +121,7 @@ function toMoment(raw: unknown, index: number): Moment {
     trunk: record.trunk === true,
     blurb: optionalString(record.blurb, `moment ${id}: blurb`),
     photo: optionalString(record.photo, `moment ${id}: photo`),
+    avatar: optionalString(record.avatar, `moment ${id}: avatar`),
     permalink: optionalString(record.permalink, `moment ${id}: permalink`),
     links: toLinks(record.links, `moment ${id}`),
     there: toSlugs(record.there, id, "there"),

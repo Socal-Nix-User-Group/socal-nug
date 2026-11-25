@@ -182,6 +182,36 @@ test("a detail card shows a photo only when the moment has one", () => {
   assert.equal(without.made.some((n) => n.tag === "img"), false);
 });
 
+// An event's own mark, beside the card's title as a person's face is beside
+// their name.
+test("a detail card shows the moment's avatar in its head, and none when the moment has none", () => {
+  const withOne = stubDocument();
+  detailFor(
+    {
+      ...placed("founded"),
+      moment: { ...placed("founded").moment, avatar: "/images/moments/camp.png" },
+    },
+    CAST,
+    withOne.doc,
+  );
+  const head = withOne.made.find((n) =>
+    (n.attrs.class ?? "").split(" ").includes("origins-detail-head")
+  )!;
+  assert.ok(head.attrs.class.split(" ").includes("has-avatar"));
+  const avatar = head.children[0];
+  assert.deepEqual(
+    [avatar.tag, avatar.attrs.class, avatar.attrs.src, avatar.attrs.alt],
+    ["img", "origins-detail-avatar", "/images/moments/camp.png", ""],
+  );
+
+  const without = stubDocument();
+  detailFor(placed("founded"), CAST, without.doc);
+  assert.equal(
+    without.made.some((n) => (n.attrs.class ?? "").includes("avatar")),
+    false,
+  );
+});
+
 test("a detail card links to the event page when there is one", () => {
   const { doc, made } = stubDocument();
   detailFor(

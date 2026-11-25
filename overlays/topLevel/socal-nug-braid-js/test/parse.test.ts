@@ -66,6 +66,19 @@ test("optional fields stay undefined rather than empty", () => {
   assert.equal(moments[1].permalink, "/events/2023-05-30/");
 });
 
+test("a moment's avatar comes through, and a moment with none has none", () => {
+  const { moments } = parseData({
+    ...PAYLOAD,
+    moments: [
+      { ...PAYLOAD.moments[0], avatar: "/images/moments/camp.png" },
+      // what the template writes for a moment with no avatar
+      { ...PAYLOAD.moments[1], avatar: "" },
+    ],
+  });
+  assert.equal(moments[0].avatar, "/images/moments/camp.png");
+  assert.equal(moments[1].avatar, undefined);
+});
+
 test("rejects a payload that is not an object", () => {
   assert.throws(() => parseData(null), TypeError);
   assert.throws(() => parseData("nope"), TypeError);

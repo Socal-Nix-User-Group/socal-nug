@@ -233,6 +233,15 @@ class SiteBuild(unittest.TestCase):
         self.assertGreaterEqual(len(data['moments']), 20)
         self.assertGreaterEqual(len(data['people']), 6)
 
+    def test_a_moments_avatar_is_a_file_this_site_serves(self):
+        # vendored like the people's pictures, so the page asks nobody else for it
+        _, data = self.origins_data()
+        avatars = [m['avatar'] for m in data['moments'] if m.get('avatar')]
+        self.assertTrue(avatars, 'no moment carries an avatar')
+        for src in avatars:
+            self.assertTrue(src.startswith('/'), f'external avatar: {src}')
+            self.assertTrue((self.out / src.lstrip('/')).is_file(), src)
+
     def test_origins_spine_comes_from_the_events_section(self):
         _, data = self.origins_data()
         spine = {m['id'] for m in data['moments'] if m['trunk']}

@@ -38,6 +38,12 @@ export interface Moment {
   readonly trunk: boolean;
   readonly blurb?: string;
   readonly photo?: string;
+  /**
+   * The event's own mark, a site path to a square image meant to be shown in
+   * a circle: what a face is to a person. A photo is of the day; this is the
+   * same for every year an event keeps its mark.
+   */
+  readonly avatar?: string;
   /** This site's page for the moment, for meetups that have one. */
   readonly permalink?: string;
   /**

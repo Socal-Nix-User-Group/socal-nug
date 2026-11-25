@@ -291,6 +291,7 @@ title = "Started at Tweag"
 people = ["daniel-baker"]
 blurb = "..."                                  # optional
 photo = "/blog/one-year-snug/..."              # optional
+avatar = "/images/moments/nix-camp.png"        # optional; the event's own mark
 links = [{ title = "...", url = "https://..." }]  # optional; one moment can be two places at once
 
 # A moment anchored to an event resolves date and title from the event page.
@@ -375,6 +376,10 @@ not resolve to a file in `content/events/`.
   was added.
 - `links` on a freestanding moment is a list of `{ title, url }`; `braid-data` rejects an entry
   without both.
+- `avatar` on a freestanding moment is the event's own mark: what a face is to a person. It is a
+  site path to a square image under `static/images/moments/` made to sit in a circle (see
+  "Event marks" below). `photo` is of the day; the avatar is the same for every year an event
+  keeps its mark. Like `photo`, it is not shown on a record anchored to an event.
 - Every shared moment is stated exactly once, in one place, chronologically readable.
 
 One file rather than per-person files because `load_data` takes a single literal path and Tera has
@@ -383,6 +388,39 @@ a missing-file case to handle. The merge-conflict cost of a single append-only f
 group this size.
 
 `data/` is in the `lib.fileset` in `overlays/topLevel/socal-nug-site/package.nix`.
+
+### Event marks
+
+Daniel asked for conferences and camps to carry their own marks, as people carry faces. The
+fifteen conference and camp moments have one. Eight images are vendored in
+`static/images/moments/`, each a 256px PNG, so the page asks no other site for them:
+
+| File                 | Moments               | Made from                                         | Treatment            |
+| -------------------- | --------------------- | ------------------------------------------------- | -------------------- |
+| `nix-camp.png`       | Nix Camp 2022 to 2026 | `nix.ug/assets/nix.camp/logo.png`                 | cut to a circle      |
+| `nix-vegas-2025.png` | Nix Vegas 2025        | `nix.vegas/img/2025/favicon.png`                  | on a dark disc       |
+| `nix-vegas-2026.png` | Nix Vegas 2026        | `nix.vegas/img/2026/favicon.png`                  | on a dark disc       |
+| `nixcon-2022.png`    | NixCon 2022           | `2022.nixcon.org/images/nixcon2022.svg`           | on a white disc      |
+| `nixcon-2024.png`    | NixCon 2024           | `2024.nixcon.org/logo.svg`                        | on a white disc      |
+| `nixcon-2025.png`    | NixCon 2025           | `2025.nixcon.org/favicon.svg`                     | cut to a circle      |
+| `nixcon-2026.png`    | NixCon 2026           | `2026.nixcon.org/static/icon.svg`                 | as it is, on nothing |
+| `scale.png`          | SCaLE 20x to 23x      | `socallinuxexpo.org/themes/custom/scale/logo.svg` | as it is, on nothing |
+
+- Each was fetched on 2026-11-24 and drawn onto a 256px canvas in headless Chromium by a script
+  that is not in the repository. The ground is part of the image, so the page draws every mark
+  the same way and cuts nothing: a mark that is one colour on nothing (Nix Vegas's gold, NixCon
+  2024's black line work) would vanish in one theme or the other without it.
+- NixCon and Nix Vegas change their mark each year, so each year has its own file. NixCon 2025's
+  wordmark is white on nothing, so its site's icon, a sun, stands for it.
+- The two moments SCaLE shared with PlanetNix, and the one it shared with NixCon NA, carry
+  SCaLE's mark. A moment has one avatar.
+- Nix Camp's own page shows a unicorn; the tents are the logo Daniel found on nix.ug.
+- **Permission.** These are other people's artwork and none of it is licensed to this site. The
+  repositories the files come from carry licences, software licences mostly (MIT, GPL, EUPL) and
+  Creative Commons for three sites' content, but none says anything about its logo. Daniel's
+  point was that those are licences for software and the art is under copyright. On 2026-11-24
+  Daniel made the call to use the marks, not having asked every organiser. An organiser who
+  objects gets theirs taken out: delete the file and the `avatar` lines that name it.
 
 ### What a thread through a meetup means
 
@@ -714,7 +752,8 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
 - A person's card carries avatar, name, alias (linking to their profile), quote, description,
   their own links on one line that wraps, membership badge and where they joined, as "Joined at"
   with that meetup's title and date.
-- A moment's card carries title, date, photo, blurb, and the event page or outside links. Any
+- A moment's card carries title, date, photo, blurb, and the event page or outside links, and
+  the moment's avatar, when it has one, beside the title, as a person's face is in theirs. Any
   moment that is not a meetup lists the people it names. A meetup's card says "Joined here:" with
   the names of who joined there, and "Confirmed there:" with anyone else the record vouches for,
   in place of who was there, because a thread through a meetup says only that its person was in
@@ -873,7 +912,8 @@ In `checks/default.nix`:
   ceiling beside it. It checks that the guest in the data is on the Origins page and not in the
   About grid, and proves the About filter with a guest probe as well. It checks that every
   member's own links are in the data block and on the About grid, and that every member's quote
-  is on the About grid as a quotation.
+  is on the About grid as a quotation. It checks that every moment's avatar in the data block is
+  a file the built site serves.
 
 - `braid-smoke`: builds the story from the built site's own data block, which is the repository's
   `data/moments.toml` and `content/events/` through the template's merge, not from fixtures. It

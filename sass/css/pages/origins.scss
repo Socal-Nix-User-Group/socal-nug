@@ -617,6 +617,29 @@ html[data-theme=dark] .origins-legend {
     grid-row: 1 / span 2;
 }
 
+// An event's own mark, beside the title and the date. The image is made to
+// sit in a circle, so it needs no cutting here.
+.origins-detail-head.has-avatar {
+    grid-template-columns: auto 1fr auto;
+    column-gap: 0.6rem;
+
+    > .origins-detail-avatar {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        width: 44px;
+        height: 44px;
+    }
+
+    > .origins-detail-title,
+    > .origins-detail-date {
+        grid-column: 2;
+    }
+
+    > .origins-dismiss {
+        grid-column: 3;
+    }
+}
+
 .origins-detail-photo {
     width: 100%;
     height: auto;

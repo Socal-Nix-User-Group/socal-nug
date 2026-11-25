@@ -68,7 +68,23 @@ export function detailFor(
     "data-moment": moment.id,
   });
 
-  const head = el(doc, "div", { class: "origins-detail-head" });
+  const marked = moment.avatar !== undefined && moment.avatar !== "";
+  const head = el(doc, "div", {
+    class: marked ? "origins-detail-head has-avatar" : "origins-detail-head",
+  });
+  if (marked) {
+    // The event's own mark beside its name, as a person's face is beside
+    // theirs. The title says which event, so the picture says nothing more.
+    head.appendChild(
+      el(doc, "img", {
+        class: "origins-detail-avatar",
+        src: moment.avatar!,
+        alt: "",
+        width: "44",
+        height: "44",
+      }),
+    );
+  }
   head.appendChild(
     el(doc, "span", { class: "origins-detail-title" }, moment.title),
   );
