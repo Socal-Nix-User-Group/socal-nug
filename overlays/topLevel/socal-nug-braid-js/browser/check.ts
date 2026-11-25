@@ -879,6 +879,53 @@ async function run(): Promise<void> {
     );
   }
 
+  // The card is a click target too, so a link reaching across it would take
+  // a click meant for the card off the page.
+  await load("river");
+  {
+    const story = await storyOf();
+    const id = story.moments.map((g) => g.moment).find((m) =>
+      (m.links ?? []).length > 0 || (m.permalink ?? "") !== ""
+    )?.id ?? "";
+    const card = MOMENT_CARD(id);
+    await tab.evaluate(`(document.addEventListener("click", (e) => {
+      if (e.target.closest("a") !== null) e.preventDefault();
+    }, true), true)`);
+    const beside = await tab.evaluate<
+      { x: number; y: number; past: boolean; inCard: boolean; onLink: boolean } | null
+    >(`(() => {
+      const c = document.querySelector(${JSON.stringify(card)});
+      const a = c?.querySelector("a.origins-detail-link");
+      if (!a) return null;
+      c.scrollIntoView({ block: "center", inline: "center" });
+      const b = c.getBoundingClientRect();
+      const l = a.getBoundingClientRect();
+      // Halfway between the end of the link's words and the inside of the
+      // card's right padding: past the words, and where a link stretched
+      // across the card would be.
+      const words = document.createRange();
+      words.selectNodeContents(a);
+      const end = words.getBoundingClientRect().right;
+      const s = getComputedStyle(c);
+      const inside = b.right - parseFloat(s.paddingRight) - parseFloat(s.borderRightWidth);
+      const at = { x: (end + inside) / 2, y: l.top + l.height / 2 };
+      const e = document.elementFromPoint(at.x, at.y);
+      return { ...at, past: at.x > end + 2, inCard: c.contains(e), onLink: a.contains(e) };
+    })()`);
+    if (beside !== null) await tab.click(beside.x, beside.y);
+    await sleep(300);
+    const after = await tab.evaluate<{ picked: boolean; stayed: boolean }>(`({
+      picked: ${has(card, "is-picked")},
+      stayed: location.pathname === "/origins/",
+    })`);
+    check(
+      beside !== null && beside.past && beside.inCard && !beside.onLink && after.picked &&
+        after.stayed,
+      "a click beside a link in a moment's card picks the card and goes nowhere",
+      { moment: id, beside, ...after },
+    );
+  }
+
   await load("river");
   {
     const story = await storyOf();
@@ -1207,12 +1254,13 @@ async function run(): Promise<void> {
         open: ${MAP}.querySelectorAll(".is-open").length,
         pill: ${has(PILL(id), "is-picked")},
         card: ${has(MOMENT_CARD(id), "is-picked")},
+        inRail: ${ROSTER}.contains(document.activeElement),
       })`);
       middle = await midList(MOMENT_CARD(id), MOMENTS);
     }
     check(
       id !== null && shown.opened === false && shown.open === 0 && shown.pill === true &&
-        shown.card === true && middle?.ok === true &&
+        shown.card === true && shown.inRail === false && middle?.ok === true &&
         JSON.stringify(after) === JSON.stringify(before),
       "beside the map, a click on a moment opens no card, marks its card in the list and glides the list to it",
       { moment: id, ...shown, middle, before, after },
@@ -1951,17 +1999,49 @@ async function run(): Promise<void> {
         await tab.evaluate(`(window.__link = document.querySelector(${JSON.stringify(`${MOMENT_CARD(linked)} a`)}), window.__link.focus(), true)`);
         await tab.key("Escape");
         await sleep(300);
+        const onLink = await tab.evaluate<boolean>(`document.activeElement === window.__link`);
+
+        // A click on the page that takes no focus is leaving the card too.
+        await tab.evaluate(`(document.querySelector(${JSON.stringify(PILL(linked))}).focus(), true)`);
+        await tab.key("Enter");
+        await sleep(300);
+        const sentAgain = await tab.evaluate<boolean>(
+          `document.activeElement === document.querySelector(${JSON.stringify(MOMENT_CARD(linked))})`,
+        );
+        const blank = await tab.evaluate<Point | null>(`(() => {
+          window.scrollTo(0, document.documentElement.scrollHeight);
+          for (let y = innerHeight - 10; y > 10; y -= 20) {
+            for (let x = 10; x < innerWidth - 20; x += 20) {
+              const e = document.elementFromPoint(x, y);
+              if (e && !e.closest("a, button, input, [role=button], [tabindex], .origins-popup, #origins-braid, #origins-roster")) return { x, y };
+            }
+          }
+          return null;
+        })()`);
+        if (blank !== null) await tab.click(blank.x, blank.y);
+        const leftCard = await tab.evaluate<boolean>(
+          `!document.querySelector(${JSON.stringify(MOMENT_CARD(linked))}).contains(document.activeElement)`,
+        );
+        await tab.evaluate(`(window.__link.focus({ preventScroll: true }), true)`);
+        await tab.key("Escape");
+        await sleep(300);
         returned = {
           linked,
           sent,
-          onLink: await tab.evaluate<boolean>(`document.activeElement === window.__link`),
+          onLink,
+          sentAgain,
+          blank,
+          leftCard,
+          onLinkAfterBlank: await tab.evaluate<boolean>(`document.activeElement === window.__link`),
         };
       }
       after = { want, ...marked, ...released, stayed, ...returned };
       ok = !marked.opened && marked.pill && marked.card && want.length > 0 &&
         JSON.stringify(marked.threads) === JSON.stringify(want) && marked.onCard &&
         released.picked === 0 && released.back && stayed &&
-        linked !== null && returned.sent === true && returned.onLink === true;
+        linked !== null && returned.sent === true && returned.onLink === true &&
+        returned.sentAgain === true && returned.blank !== null && returned.leftCard === true &&
+        returned.onLinkAfterBlank === true;
     }
     check(
       inBraid && id !== null && ok,

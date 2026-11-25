@@ -957,8 +957,9 @@ function boot(): void {
     }
 
     // Hovering a moment lights the threads of everyone through it who was not
-    // away; clicking it opens the card. Hover is for "who was in this", click
-    // is for "tell me about it", which is the part worth dwelling on.
+    // away; clicking it picks it, and opens its card where the lists are
+    // under the map. Hover is for "who was in this", click is for "tell me
+    // about it", which is the part worth dwelling on.
     for (const node of mount!.querySelectorAll("[data-moment]")) {
       const id = node.dataset.moment;
       const gathering = story.moments.find((m) => m.moment.id === id);
@@ -976,14 +977,16 @@ function boot(): void {
         relight();
       });
       // A moment's avatar carries its moment's id too, and a click on it is a
-      // click on the moment: the card opens beside the oval either way, and
-      // not on top of the moment's own name.
+      // click on the moment: it picks the moment, and where the lists are
+      // under the map the card opens beside the oval either way, not on top
+      // of the moment's own name.
       const oval = mount!.querySelectorAll(`.origins-node[data-moment="${id}"]`)[0] ?? node;
       node.addEventListener("click", () => showMoment(id, oval));
     }
 
-    // A face opens its person's card. This replaced the roster rail, which
-    // was the only other place a person's card could be reached.
+    // A face picks its person, and opens their card where the lists are
+    // under the map; beside the map the person's card in the list is the
+    // one it shows.
     for (const root of mount!.querySelectorAll(".origins-root")) {
       root.addEventListener("click", (e) => {
         showPerson(e.currentTarget.dataset.person, e.currentTarget);
@@ -1032,6 +1035,11 @@ function boot(): void {
   // reader chose, and coming back into the card later does not make it
   // Enter's again.
   document.addEventListener("focusin", (event) => {
+    if (sentTo !== null && !sentTo.contains(event.target)) sentTo = null;
+  });
+  // A press somewhere else is leaving too, even where it takes no focus and
+  // so fires no focusin. A press on the card itself is not.
+  document.addEventListener("pointerdown", (event) => {
     if (sentTo !== null && !sentTo.contains(event.target)) sentTo = null;
   });
 

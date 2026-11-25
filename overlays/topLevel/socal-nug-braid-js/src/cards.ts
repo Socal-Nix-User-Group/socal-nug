@@ -50,7 +50,8 @@ function el(
 }
 
 /**
- * The card for one moment, shown when its node is clicked.
+ * The card for one moment: in the list of moments, and in the popup a click
+ * on its node opens where that list is under the map.
  *
  * Click rather than hover, because these carry a photo and a paragraph and a
  * link: things a reader wants to dwell on and click into, which a card that

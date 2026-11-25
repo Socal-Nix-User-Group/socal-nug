@@ -783,7 +783,10 @@ html[data-theme=dark] .origins-legend {
     opacity: 0.65;
 }
 
+// Only as wide as its words. Stretched across the column, a click beside it
+// that was meant for the card in the list followed the link instead.
 .origins-detail-link {
+    align-self: flex-start;
     font-size: 0.64rem;
     font-weight: 700;
 }
