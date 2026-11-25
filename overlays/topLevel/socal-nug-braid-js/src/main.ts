@@ -978,9 +978,10 @@ function boot(): void {
       }
       // A click picks the person, or lets go of them if they were picked
       // already. Not a click on one of the card's links, which is for the
-      // link.
+      // link. The second click of a double click is not one either: it let
+      // go of what the first had just picked.
       card.addEventListener("click", (event) => {
-        if (morphing || event.target!.closest("a") !== null) return;
+        if (morphing || (event.detail ?? 0) > 1 || event.target!.closest("a") !== null) return;
         picked = toggled(picked, { kind: "person", id: card.dataset.person ?? "" });
         relight();
         if (picked !== null) centreOn(picked);
@@ -1005,8 +1006,9 @@ function boot(): void {
         hot = null;
         relight();
       });
-      card.addEventListener("click", () => {
-        if (morphing) return;
+      card.addEventListener("click", (event) => {
+        // As a person's card: a double click is one click.
+        if (morphing || (event.detail ?? 0) > 1) return;
         picked = toggled(picked, { kind: "moment", id });
         relight();
         if (picked !== null) centreOn(picked);

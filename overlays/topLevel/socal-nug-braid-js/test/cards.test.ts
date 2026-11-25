@@ -444,6 +444,21 @@ test("a meetup names who joined there and then who the record confirms, and nobo
   assert.deepEqual(said(momentCard(story, "nug3"), "origins-moment-card-people"), ["DANIEL"]);
 });
 
+test("a meetup with someone who joined there and someone the record confirms names the joiner first", () => {
+  const both = buildStory(
+    [...MOMENTS, at("nug5", "2024-08", ["morgan"], true, { there: ["daniel"] })],
+    PEOPLE,
+  );
+  assert.deepEqual(said(momentCard(both, "nug5"), "origins-moment-card-people"), ["MORGAN, DANIEL"]);
+});
+
+test("a moment with exactly four names spells out all four and says nothing of more", () => {
+  assert.deepEqual(
+    said(momentCard(story, "booth"), "origins-moment-card-people"),
+    ["DANIEL, ROB, DAVID, MICA"],
+  );
+});
+
 test("a meetup with nobody to name has no line of names", () => {
   const quiet = buildStory([...MOMENTS, at("nug5", "2024-08", [], true)], PEOPLE);
   assert.deepEqual(byClass(momentCard(quiet, "nug5"), "origins-moment-card-people"), []);

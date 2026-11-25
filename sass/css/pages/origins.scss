@@ -102,9 +102,12 @@ $origins-box-height: 85vh;
 // and the panes share it equally. Under Subway the panes sit side by side,
 // the people given the wider one because their cards are the bigger. Driven
 // by the layout's mode rather than by width alone, because Subway is full
-// width at every size.
+// width at every size. Only a rail with the lists in it: the page starts in
+// River and the script fills the rail, so without the script, or before it
+// runs for a reader who left in Subway, the rail is empty and would be a
+// blank block as tall as the map.
 @media screen and (min-width: 1024px) {
-    .origins-layout:not([data-mode="subway"]) .origins-roster-rail {
+    .origins-layout:not([data-mode="subway"]) .origins-roster-rail:not(:empty) {
         height: $origins-box-height;
         display: grid;
         grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
@@ -136,19 +139,24 @@ $origins-box-height: 85vh;
 
 // On a narrow screen the panes are stacked under the map and each list is
 // one row that scrolls sideways, the way the map does, so neither pushes the
-// rest of the page down by its length.
-@media screen and (max-width: 1023px) {
+// rest of the page down by its length. Not 1023px: a zoomed browser can give
+// a window a width between 1023px and 1024px, where neither that nor the
+// 1024px query above holds and both lists run their whole length.
+@media screen and (max-width: 1023.98px) {
     .origins-roster-rail {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
         gap: 0.9rem;
     }
 
+    // A row keeps its overscroll to itself, as the map does: a swipe past
+    // its end should not tip over into the browser's swipe back a page.
     .origins-roster,
     .origins-moments {
         display: flex;
         gap: 0.5rem;
         overflow-x: auto;
+        overscroll-behavior-x: contain;
         padding-bottom: 0.4rem;
     }
 

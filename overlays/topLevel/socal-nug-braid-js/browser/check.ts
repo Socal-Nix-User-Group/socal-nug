@@ -730,6 +730,10 @@ async function run(): Promise<void> {
     })()`);
     if (link !== null) await tab.click(link.x, link.y);
     await tab.move(5, 5);
+    // The click leaves focus on the link, and focus in a card lights its
+    // person as hover does. That light is not a pick; take focus away so
+    // only a pick could leave anyone lit.
+    await tab.evaluate(`(document.activeElement?.blur(), true)`);
     await sleep(300);
     const after = await tab.evaluate<{ picked: number; lit: number; stayed: boolean }>(`({
       picked: document.querySelectorAll(".is-picked").length,
@@ -842,6 +846,43 @@ async function run(): Promise<void> {
     );
   }
 
+  await load("river");
+  {
+    const story = await storyOf();
+    const id = peopled(story)[0] ?? "";
+    const want = cameTo(story, id);
+    const at = await onCard(MOMENT_CARD(id));
+    if (at !== null) {
+      // Two presses at one place, the second counted as the second click,
+      // as a mouse sends a double click.
+      await tab.move(at.x, at.y);
+      for (const count of [1, 2]) {
+        for (const type of ["mousePressed", "mouseReleased"]) {
+          await tab.send("Input.dispatchMouseEvent", {
+            type,
+            x: at.x,
+            y: at.y,
+            button: "left",
+            buttons: type === "mousePressed" ? 1 : 0,
+            clickCount: count,
+          });
+        }
+      }
+    }
+    await mapSettles();
+    await tab.move(5, 5);
+    await sleep(300);
+    const after = await tab.evaluate<{ card: boolean; threads: string[] }>(
+      `({ card: ${has(MOMENT_CARD(id), "is-picked")}, threads: ${LIT_PEOPLE} })`,
+    );
+    check(
+      at !== null && want.length > 0 && after.card &&
+        JSON.stringify(after.threads) === JSON.stringify(want),
+      "a double click on a card leaves it picked",
+      { moment: id, at, want, ...after },
+    );
+  }
+
   await load("subway");
   {
     // A moment whose card is past the end of its list's box once the list
@@ -943,6 +984,81 @@ async function run(): Promise<void> {
         JSON.stringify(after.threads) === JSON.stringify(want),
       "a pick is still marked and lit after the mode is switched",
       { moment: id, clicked, landed, moved, want, ...after },
+    );
+  }
+
+  // The window narrowed from 1000px to 960px, which redraws the picture, as
+  // the check of a redraw under a resting pointer below shows.
+  await load("river", 1000, 1000);
+  {
+    const story = await storyOf();
+    const id = peopled(story)[0] ?? "";
+    const want = cameTo(story, id);
+    const clicked = await clickCard(MOMENT_CARD(id));
+    await mapSettles();
+    await tab.move(5, 5);
+    await tab.evaluate(`(window.__originsOld = ${PICTURE}, true)`);
+    await tab.size(960, 1000);
+    const redrawn = await tab.waitFor(`${PICTURE} !== window.__originsOld`);
+    await sleep(300);
+    const after = await tab.evaluate<{ card: boolean; pill: boolean; threads: string[] }>(
+      `({
+        card: ${has(MOMENT_CARD(id), "is-picked")},
+        pill: ${has(PILL(id), "is-picked")},
+        threads: ${LIT_PEOPLE},
+      })`,
+    );
+    check(
+      clicked && redrawn && want.length > 0 && after.card && after.pill &&
+        JSON.stringify(after.threads) === JSON.stringify(want),
+      "a pick is still marked and lit after the window is resized",
+      { moment: id, clicked, redrawn, want, ...after },
+    );
+  }
+
+  await load("river");
+  {
+    // Someone whose card is past the end of the people's list once the list
+    // is back at its start, and whose face is in the picture.
+    const slug = await tab.evaluate<string | null>(`(() => {
+      const list = ${PEOPLE};
+      list.scrollTop = 0;
+      list.scrollLeft = 0;
+      const l = list.getBoundingClientRect();
+      const out = [...list.querySelectorAll(".origins-card")].find((c) =>
+        c.getBoundingClientRect().top >= l.bottom &&
+        ${MAP}.querySelector('.origins-root[data-person="' + c.dataset.person + '"]') !== null
+      );
+      return out?.dataset.person ?? null;
+    })()`);
+    const where = `({ page: scrollY, left: ${MAP}.scrollLeft, top: ${MAP}.scrollTop })`;
+    let before: unknown = null;
+    let after: unknown = null;
+    let opened = false;
+    let shown: Record<string, unknown> | null = null;
+    if (slug !== null) {
+      const at = await centreOf(FACE(slug));
+      before = await tab.evaluate(where);
+      await tab.click(at.x, at.y);
+      opened = await tab.waitFor(popupOpen);
+      await sleep(300);
+      after = await tab.evaluate(where);
+      shown = await tab.evaluate(`(() => {
+        const c = document.querySelector(${JSON.stringify(PERSON_CARD(slug))});
+        const b = c.getBoundingClientRect();
+        const l = ${PEOPLE}.getBoundingClientRect();
+        return {
+          picked: c.classList.contains("is-picked"),
+          inside: b.top >= l.top - 1 && b.bottom <= l.bottom + 1 &&
+            b.left >= l.left - 1 && b.right <= l.right + 1,
+        };
+      })()`);
+    }
+    check(
+      slug !== null && opened && shown?.picked === true && shown?.inside === true &&
+        JSON.stringify(after) === JSON.stringify(before),
+      "a click on a face in the map marks that person's card and scrolls the people's list to show it",
+      { person: slug, opened, shown, before, after },
     );
   }
 

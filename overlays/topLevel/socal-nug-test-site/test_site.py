@@ -350,11 +350,12 @@ class SiteBuild(unittest.TestCase):
     def test_origins_rail_beside_the_map_is_the_maps_height(self):
         # the people and the moments share the column beside River, one above
         # the other. The two ceilings are one value, so the boxes end on one
-        # line.
+        # line. Only once the script has filled it: an empty rail that tall
+        # is a blank block beside the map.
         ceiling = self.css.split('.origins-braid{')[1].split('max-height:')[1].split(';')[0]
         self.assertIn(
             '@media screen and (min-width: 1024px){'
-            '.origins-layout:not([data-mode=subway]) .origins-roster-rail{'
+            '.origins-layout:not([data-mode=subway]) .origins-roster-rail:not(:empty){'
             f'height:{ceiling};',
             self.css)
 
@@ -367,10 +368,13 @@ class SiteBuild(unittest.TestCase):
             r'grid-template-columns:minmax\(0, 3fr\) minmax\(0, 2fr\)')
 
     def test_origins_lists_are_rows_on_a_narrow_screen(self):
-        self.assertRegex(
-            self.css,
-            r'@media screen and \(max-width: 1023px\)\{[^@]*'
-            r'\.origins-roster,\.origins-moments\{[^}]*overflow-x:auto')
+        # a row that scrolls sideways keeps its overscroll to itself, as the
+        # map does, or a swipe past its end turns into the browser's back
+        rule = (
+            r'@media screen and \(max-width: 1023\.98px\)\{[^@]*'
+            r'\.origins-roster,\.origins-moments\{[^}]*')
+        self.assertRegex(self.css, rule + r'overflow-x:auto')
+        self.assertRegex(self.css, rule + r'overscroll-behavior-x:contain')
 
     def test_origins_pill_outlines_while_its_card_in_the_list_is_hovered(self):
         self.assertIn('.origins-node.is-hot .origins-oval', self.css)

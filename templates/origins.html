@@ -56,11 +56,11 @@
   <span class="origins-legend-item" data-tip="The record says they were not there"><svg class="origins-legend-mark" data-hue="0" viewBox="0 0 36 16" width="36" height="16" aria-hidden="true" focusable="false"><path class="origins-legend-thread" d="M2,8 H8 M28,8 H34"/><rect class="origins-legend-oval" x="11" y="3.5" width="14" height="9" rx="4.5" ry="4.5"/><circle class="origins-bead is-away" cx="18" cy="8" r="2.6"/></svg>cache miss</span>
 </p>
 
-{#- The wrapper carries the palette; the map fills it. Cards for people and
-    moments open inside the map itself, beside whatever was clicked, so there
-    is no rail beside it any more. -#}
+{#- The wrapper carries the palette. The map is on one side and the rail on
+    the other: beside the map in River on a wide screen, under it otherwise. -#}
 <div class="origins-layout" id="origins-layout" data-mode="river">
-  {# The script fills these with the drawing and the roster. #}
+  {# The script draws the map, and fills the rail with the list of people and
+     the list of moments. #}
   <div id="origins-braid" class="origins-braid"></div>
   <div id="origins-roster" class="origins-roster-rail"></div>
 </div>
