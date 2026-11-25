@@ -227,6 +227,11 @@ function boot(): void {
   popup.hidden = true;
   /** What opened the card, so focus can go back to it when the card closes. */
   let openedBy: PageElement | null = null;
+  /**
+   * The card in a list the keyboard last sent focus to, beside the map, so
+   * Escape can send it back to the map while it is still there.
+   */
+  let sentTo: PageElement | null = null;
 
   /**
    * How far the box can scroll, found by asking it to go too far. The sizes
@@ -702,7 +707,7 @@ function boot(): void {
    * own scrollTo, not scrollIntoView, which would scroll the page and the
    * map as well. At once for a reader who asks for less motion.
    */
-  function pickInMap(pick: Pick): void {
+  function pickInMap(pick: Pick): PageElement | undefined {
     picked = pick;
     relight();
     const card = roster?.querySelectorAll(
@@ -710,7 +715,7 @@ function boot(): void {
         ? `.origins-card[data-person="${pick.id}"]`
         : `.origins-detail-card[data-moment="${pick.id}"]`,
     )[0];
-    if (card === undefined) return;
+    if (card === undefined) return undefined;
     const list = card.closest(".origins-roster, .origins-moments")!;
     const c = card.getBoundingClientRect();
     const l = list.getBoundingClientRect();
@@ -734,6 +739,32 @@ function boot(): void {
         ? "auto"
         : "smooth",
     });
+    return card;
+  }
+
+  /**
+   * The lists are beside the map rather than under it. Read from where they
+   * are each time it is asked: the window can be resized and the mode
+   * switched between one click and the next.
+   */
+  function beside(): boolean {
+    if (roster === null) return false;
+    const map = mount!.getBoundingClientRect();
+    return roster.getBoundingClientRect().left >= map.left + map.width;
+  }
+
+  /**
+   * Beside the map the list's card says all the popup would, so what was
+   * clicked is picked and its list glides to it, and nothing opens. From
+   * the keyboard focus goes on to the card, as it would have gone into the
+   * popup, without scrolling anything: the list is already gliding there.
+   */
+  function showInList(pick: Pick, byKeyboard: boolean): void {
+    const card = pickInMap(pick);
+    if (!byKeyboard || card === undefined) return;
+    card.setAttribute("tabindex", "-1");
+    card.focus({ preventScroll: true });
+    sentTo = card;
   }
 
   function markOpen(id: string | undefined): void {
@@ -818,6 +849,10 @@ function boot(): void {
     if (id === undefined) return;
     const gathering = story.moments.find((m) => m.moment.id === id);
     if (gathering === undefined) return;
+    if (beside()) {
+      showInList({ kind: "moment", id }, byKeyboard);
+      return;
+    }
     openPopup(anchor, detailFor(gathering, cast, document), byKeyboard);
     markOpen(id);
     pickInMap({ kind: "moment", id });
@@ -831,6 +866,10 @@ function boot(): void {
     if (slug === undefined) return;
     const thread = story.threads.find((t) => t.person.slug === slug);
     if (thread === undefined) return;
+    if (beside()) {
+      showInList({ kind: "person", id: slug }, byKeyboard);
+      return;
+    }
     openPopup(anchor, personCardFor(thread, story, document), byKeyboard);
     markOpen(undefined);
     pickInMap({ kind: "person", id: slug });
@@ -980,6 +1019,14 @@ function boot(): void {
     closePopup();
     picked = null;
     relight();
+    // Back to the map from the card the keyboard sent focus to, to the target
+    // the map's cursor is on, which is the one Enter was pressed on or what a
+    // redraw put in its place. Only while focus is still on that card: a
+    // reader who has gone somewhere else since keeps the place they chose.
+    if (sentTo !== null && sentTo.contains(document.activeElement)) {
+      elementAt(cursor)?.focus({ preventScroll: true });
+    }
+    sentTo = null;
   });
 
   if (roster !== null) {

@@ -184,6 +184,12 @@ $origins-box-height: 85vh;
         outline: 2px solid var(--origins-trunk);
         outline-offset: -2px;
     }
+
+    // Beside the map, Enter on a face sends focus here instead of a popup.
+    &:focus-visible {
+        outline: 3px solid var(--origins-ink);
+        outline-offset: -3px;
+    }
 }
 
 // The same treatment for a moment's card in its list, which is the card its
@@ -202,6 +208,12 @@ $origins-box-height: 85vh;
         background: color-mix(in srgb, var(--origins-trunk) 22%, transparent);
         outline: 2px solid var(--origins-trunk);
         outline-offset: -2px;
+    }
+
+    // Beside the map, Enter on a moment sends focus here instead of a popup.
+    &:focus-visible {
+        outline: 3px solid var(--origins-ink);
+        outline-offset: -3px;
     }
 }
 

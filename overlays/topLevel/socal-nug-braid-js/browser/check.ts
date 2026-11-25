@@ -730,8 +730,9 @@ async function run(): Promise<void> {
     );
   }
 
-  // The list's card and the popup's are one card, the popup's with an X.
-  await load("river");
+  // The list's card and the popup's are one card, the popup's with an X. In
+  // Subway, where the lists are under the map and the popup opens.
+  await load("subway");
   {
     const story = await storyOf();
     const id = story.moments.map((g) => g.moment).find((m) =>
@@ -768,10 +769,6 @@ async function run(): Promise<void> {
   // stays lit until it is let go. A click on a moment or a face in the map
   // picks too, and marks the card in the list.
 
-  // Whether the map's own card was shut after each click on a card in a
-  // list, and the click picked the card.
-  const shutAfter: Array<{ shut: boolean; picked: boolean }> = [];
-
   await load("river");
   {
     const story = await storyOf();
@@ -782,10 +779,6 @@ async function run(): Promise<void> {
     const clicked = await clickCard(PERSON_CARD(id));
     await mapSettles();
     const where = await centredIn(FACE(id));
-    shutAfter.push({
-      shut: await tab.evaluate<boolean>(popupShut),
-      picked: await tab.evaluate<boolean>(has(PERSON_CARD(id), "is-picked")),
-    });
     await tab.move(5, 5);
     await sleep(300);
     const after = await tab.evaluate<{ threads: string[]; face: boolean; card: boolean; picked: boolean }>(
@@ -895,10 +888,6 @@ async function run(): Promise<void> {
     const clicked = await clickCard(MOMENT_CARD(id));
     await mapSettles();
     const where = await centredIn(OVAL(id));
-    shutAfter.push({
-      shut: await tab.evaluate<boolean>(popupShut),
-      picked: await tab.evaluate<boolean>(has(MOMENT_CARD(id), "is-picked")),
-    });
     await tab.move(5, 5);
     await sleep(300);
     const after = await tab.evaluate<{ threads: string[]; pill: boolean; card: boolean }>(
@@ -914,6 +903,23 @@ async function run(): Promise<void> {
       "a click on a moment's card brings its pill to the middle of the map and leaves everyone who was there lit",
       { moment: id, off: far?.off, want, clicked, where, ...after },
     );
+  }
+
+  // Whether the map's own card was shut after each click on a card in a
+  // list, and the click picked the card. In Subway, where the lists are under
+  // the map and a click in the map opens the popup.
+  await load("subway");
+  {
+    const story = await storyOf();
+    const shutAfter: Array<{ shut: boolean; picked: boolean }> = [];
+    for (const card of [PERSON_CARD(story.threads[0]?.person.slug ?? ""), MOMENT_CARD(peopled(story)[0] ?? "")]) {
+      await clickCard(card);
+      await mapSettles();
+      shutAfter.push({
+        shut: await tab.evaluate<boolean>(popupShut),
+        picked: await tab.evaluate<boolean>(has(card, "is-picked")),
+      });
+    }
     check(
       shutAfter.length === 2 && shutAfter.every((s) => s.shut && s.picked),
       "a click on a card in a list opens no card in the map",
@@ -1166,17 +1172,86 @@ async function run(): Promise<void> {
       const at = await centreOf(FACE(slug));
       before = await tab.evaluate(where);
       await tab.click(at.x, at.y);
-      opened = await tab.waitFor(popupOpen);
       await listSettles(PEOPLE);
+      opened = await tab.evaluate<boolean>(popupOpen);
       after = await tab.evaluate(where);
       picked = await tab.evaluate<boolean>(has(PERSON_CARD(slug), "is-picked"));
       middle = await midList(PERSON_CARD(slug), PEOPLE);
     }
     check(
-      slug !== null && opened && picked && middle?.ok === true &&
+      slug !== null && !opened && picked && middle?.ok === true &&
         JSON.stringify(after) === JSON.stringify(before),
       "a click on a face in the map marks that person's card and glides the people's list until the card is in the middle of it",
       { person: slug, opened, picked, middle, before, after },
+    );
+  }
+
+  // Beside the map the list's card says all the popup would, so a click in
+  // the map opens nothing and only picks.
+  await load("river");
+  {
+    const id = await momentPastItsList();
+    const where = `({ page: scrollY, left: ${MAP}.scrollLeft, top: ${MAP}.scrollTop })`;
+    let before: unknown = null;
+    let after: unknown = null;
+    let shown: Record<string, unknown> = {};
+    let middle: ({ ok: boolean } & Record<string, unknown>) | null = null;
+    if (id !== null) {
+      const at = await centreOf(OVAL(id));
+      before = await tab.evaluate(where);
+      await tab.click(at.x, at.y);
+      await listSettles(MOMENTS);
+      after = await tab.evaluate(where);
+      shown = await tab.evaluate<Record<string, unknown>>(`({
+        opened: ${popupOpen},
+        open: ${MAP}.querySelectorAll(".is-open").length,
+        pill: ${has(PILL(id), "is-picked")},
+        card: ${has(MOMENT_CARD(id), "is-picked")},
+      })`);
+      middle = await midList(MOMENT_CARD(id), MOMENTS);
+    }
+    check(
+      id !== null && shown.opened === false && shown.open === 0 && shown.pill === true &&
+        shown.card === true && middle?.ok === true &&
+        JSON.stringify(after) === JSON.stringify(before),
+      "beside the map, a click on a moment opens no card, marks its card in the list and glides the list to it",
+      { moment: id, ...shown, middle, before, after },
+    );
+  }
+
+  // Under 1024px the lists are under the map in River too, and the popup is
+  // where its card is.
+  await load("river", 900, 900);
+  {
+    const dot = await centreOf(SIDE_DOT);
+    await tab.click(dot.x, dot.y);
+    check(
+      await tab.waitFor(popupOpen),
+      "a narrow window: a click on a moment in River opens its card in the map",
+    );
+  }
+
+  await load("river", 900, 900);
+  {
+    const id = await tab.evaluate<string>(
+      `document.querySelector(${JSON.stringify(SIDE_DOT)}).dataset.moment`,
+    );
+    const dot = await centreOf(SIDE_DOT);
+    await tab.click(dot.x, dot.y);
+    const opened = await tab.waitFor(popupOpen);
+    await tab.evaluate(`(window.__originsOld = ${PICTURE}, true)`);
+    await tab.size(1400, 900);
+    const redrawn = await tab.waitFor(`${PICTURE} !== window.__originsOld`);
+    const after = await tab.evaluate<{ shut: boolean; open: number; pill: boolean; card: boolean }>(`({
+      shut: ${popupShut},
+      open: ${MAP}.querySelectorAll(".is-open").length,
+      pill: ${has(PILL(id), "is-picked")},
+      card: ${has(MOMENT_CARD(id), "is-picked")},
+    })`);
+    check(
+      opened && redrawn && after.shut && after.open === 0 && after.pill && after.card,
+      "a window widened until the lists are beside the map closes the card that was open",
+      { moment: id, opened, redrawn, ...after },
     );
   }
 
@@ -1704,8 +1779,10 @@ async function run(): Promise<void> {
   }
 
   // --- cards and focus ----------------------------------------------------------
+  // The popup's own checks run in Subway, where the lists are under the map
+  // and a click in the map opens it.
 
-  await load("river");
+  await load("subway");
   {
     const dot = await centreOf(SIDE_DOT);
     await tab.click(dot.x, dot.y);
@@ -1738,7 +1815,7 @@ async function run(): Promise<void> {
   // A click on a person's card in the list closes it already. A moment's card
   // carries its moment's id as the map's pills do, and a click on a pill swaps
   // the card rather than closing it.
-  await load("river");
+  await load("subway");
   {
     const dot = await centreOf(SIDE_DOT);
     await tab.click(dot.x, dot.y);
@@ -1758,7 +1835,7 @@ async function run(): Promise<void> {
     );
   }
 
-  await load("river");
+  await load("subway");
   {
     let inBraid = false;
     for (let presses = 0; presses < 60 && !inBraid; presses += 1) {
@@ -1826,27 +1903,41 @@ async function run(): Promise<void> {
     }
     let after: Record<string, unknown> = {};
     let ok = false;
-    let released = -1;
     if (id !== null) {
       const want = cameTo(story, id);
+      await tab.evaluate(`window.__opener = document.activeElement`);
       await tab.key("Enter");
-      const opened = await tab.waitFor(popupOpen);
       await sleep(300);
-      const marked = await tab.evaluate<{ pill: boolean; card: boolean; threads: string[] }>(`({
+      const marked = await tab.evaluate<
+        { opened: boolean; pill: boolean; card: boolean; threads: string[]; onCard: boolean }
+      >(`({
+        opened: ${popupOpen},
         pill: ${has(PILL(id), "is-picked")},
         card: ${has(MOMENT_CARD(id), "is-picked")},
         threads: ${LIT_PEOPLE},
+        onCard: document.activeElement === document.querySelector(${JSON.stringify(MOMENT_CARD(id))}),
       })`);
       await tab.key("Escape");
       await sleep(300);
-      released = await tab.evaluate<number>(`document.querySelectorAll(".is-picked").length`);
-      after = { opened, want, ...marked, released };
-      ok = opened && marked.pill && marked.card && want.length > 0 &&
-        JSON.stringify(marked.threads) === JSON.stringify(want) && released === 0;
+      const released = await tab.evaluate<{ picked: number; back: boolean }>(`({
+        picked: document.querySelectorAll(".is-picked").length,
+        back: document.activeElement === window.__opener,
+      })`);
+      // Somewhere else the reader went after Enter keeps their focus.
+      await tab.key("Enter");
+      await sleep(300);
+      await tab.evaluate(`(window.__elsewhere = document.querySelector("[data-origins-zoom]"), window.__elsewhere.focus(), true)`);
+      await tab.key("Escape");
+      await sleep(300);
+      const stayed = await tab.evaluate<boolean>(`document.activeElement === window.__elsewhere`);
+      after = { want, ...marked, ...released, stayed };
+      ok = !marked.opened && marked.pill && marked.card && want.length > 0 &&
+        JSON.stringify(marked.threads) === JSON.stringify(want) && marked.onCard &&
+        released.picked === 0 && released.back && stayed;
     }
     check(
       inBraid && id !== null && ok,
-      "opened from the keyboard, a moment is picked and its card in the list is marked",
+      "beside the map, Enter on a moment picks it, moves focus to its card in the list, and Escape sends focus back",
       { inBraid, moment: id, ...after },
     );
   }
@@ -1866,6 +1957,24 @@ async function run(): Promise<void> {
       "a side moment's oval changes its outline when the pointer is over it",
       { rest, hover: await tab.evaluate(stroke) },
     );
+    // Beside the map nothing opens, and the pick alone outlines it.
+    await tab.click(dot.x, dot.y);
+    await tab.move(5, 5);
+    await sleep(300);
+    const picked = await tab.evaluate<string>(stroke);
+    check(picked !== rest, "beside the map, a picked moment's oval keeps its changed outline", {
+      rest,
+      picked,
+    });
+  }
+
+  await load("subway");
+  {
+    const stroke = `getComputedStyle(document.querySelector(${JSON.stringify(`${SIDE_DOT} .origins-oval`)})).stroke`;
+    const dot = await centreOf(SIDE_DOT);
+    await tab.move(5, 5);
+    await sleep(200);
+    const rest = await tab.evaluate<string>(stroke);
     await tab.click(dot.x, dot.y);
     await tab.waitFor(popupOpen);
     await tab.move(5, 5);
@@ -1885,8 +1994,9 @@ async function run(): Promise<void> {
 
   // A window wide enough that the card has room to open on the right of the
   // moment. Where it has room on neither side it is held on screen, in the
-  // same place whatever was clicked, and that would show nothing.
-  await load("river", 1700, 1000);
+  // same place whatever was clicked, and that would show nothing. In Subway,
+  // where the lists are under the map and the card opens.
+  await load("subway", 1700, 1000);
   {
     // the moment with an avatar whose oval is furthest left
     const id = await tab.evaluate<string | null>(`(() => {
@@ -1930,8 +2040,7 @@ async function run(): Promise<void> {
     }
     check(
       byOval !== null && byAvatar !== null && byOval.title !== "" &&
-        // the card opened on the moment's right, which it would not have
-        // done from the avatar: to the right of that is the moment itself
+        // the card opened on the moment's right
         byOval.left > ovalRight &&
         byAvatar.at === byOval.at && byAvatar.title === byOval.title && marked,
       "a moment's avatar opens its moment's card, in the place a click on the moment opens it",
@@ -2191,13 +2300,20 @@ async function run(): Promise<void> {
       "grab: a pressed mouse moves the map with it, and lets go of it when released",
       { from: start, to: await mapAt() },
     );
+  }
 
+  // In Subway, where the lists are under the map and a click in the map
+  // opens the card, so a drag that opened one would show. The map moves
+  // sideways there.
+  await load("subway");
+  {
+    await tab.evaluate(`${MAP}.scrollIntoView({ block: "start" })`);
     // Starting on a moment and ending on whatever is there: the map moves
     // and no card opens, for the one pressed or the one let go over.
     const dot = await centreOf(SIDE_DOT);
     const dotStart = await mapAt();
-    await tab.pull(dot.x, dot.y, dot.x, dot.y - 150);
-    const dragged = await tab.waitFor(`${MAP}.scrollTop >= ${dotStart.top + 140}`);
+    await tab.pull(dot.x, dot.y, dot.x - 150, dot.y);
+    const dragged = await tab.waitFor(`${MAP}.scrollLeft >= ${dotStart.left + 140}`);
     await sleep(300);
     check(
       dragged && (await tab.evaluate<boolean>(popupShut)),
@@ -2220,8 +2336,8 @@ async function run(): Promise<void> {
     const hold = await emptyMap(20);
     if (hold === null) throw new Error("no empty spot on the map beside the open card");
     const cardStart = await mapAt();
-    await tab.pull(hold.x, hold.y, hold.x, hold.y - 60);
-    const carried = await tab.waitFor(`${MAP}.scrollTop >= ${cardStart.top + 50}`);
+    await tab.pull(hold.x, hold.y, hold.x - 60, hold.y);
+    const carried = await tab.waitFor(`${MAP}.scrollLeft >= ${cardStart.left + 50}`);
     await sleep(300);
     check(
       opened && carried && (await tab.evaluate<boolean>(popupOpen)),
