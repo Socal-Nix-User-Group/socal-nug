@@ -805,6 +805,64 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   person cards pointer-only for a while, as moment cards already were. The roving tabindex under
   Accessibility is what put a keyboard route back.
 
+### The two lists
+
+Daniel asked on 2026-11-24 for a list of moments like the list of people, and for a click on a
+card in either list to centre the map on it and leave it lit. Three arrangements were mocked up
+on the real page; Daniel chose the two boxes side by side for Subway and agreed the rest as
+written here. Where this section and an older one disagree about the roster, this one is
+right.
+
+- **What is listed.** People as before, in thread order. Moments: every moment in the story,
+  meetups included, in the story's order, which is date order. A moment's card is compact: its
+  avatar when it has one, its title, its date at the precision the data gives, and one line of
+  names. On a meetup the names are who joined there and then who the record confirms; on any
+  other moment, the people it names. Past four names the line ends "and N more". A meetup with
+  nobody to name has no line.
+- **Where they sit.** The rail (`#origins-roster`) holds two panes, People and Moments, each a
+  heading over a list that scrolls in its own box.
+  - River, in a window 1024px or wider: the rail is beside the map and as tall as the map's
+    ceiling. The panes are stacked, each half of it, and each list scrolls down, as the map
+    does.
+  - Subway, 1024px or wider: the rail is under the map. The panes are side by side, People
+    three parts to Moments' two, each 46vh tall, with the people's cards two across. Each list
+    scrolls down. The other arrangement mocked up was two rows scrolling sideways; Daniel chose
+    this one.
+  - Narrower than 1024px, in both modes: the rail is under the map with the panes stacked, and
+    each list is one row that scrolls sideways, a person's card 19rem wide and a moment's
+    13rem. Before the moments' list the roster on a narrow screen was the whole list of
+    people; with forty-four moments under it the page would be very long.
+- **Hover** pairs both ways, as it has for people. Over a moment's card: whoever was at the
+  moment and not away is lit, and the moment's pill takes its hover outline. Over a moment in
+  the map: its card is tinted.
+- **Picking.** A click on a card picks it. The map scrolls to put the thing picked in the
+  middle of its box, as near as the box can scroll: a person's face, where their thread starts,
+  or a moment's pill. The scroll is smooth unless the reader asks for reduced motion. What is
+  picked stays lit after the pointer leaves: for a person, their thread, face and card; for a
+  moment, everyone who was there, its pill outlined as it is while its card is open, and its
+  card. One thing is picked at a time. A click on another card picks that instead; a click on
+  the card already picked, a click on empty map, or Escape picks nothing. Hovering other cards
+  still lights them on top of the pick.
+- A click on a card in a list opens no popup: the card already says what the popup would, and
+  the popup would cover what was just centred. A click on a link inside a person's card
+  follows the link and picks nothing.
+- **From the map.** A click on a face or a moment in the map opens its popup as before and
+  also picks it: its card in the list is marked and its list scrolls, inside its own box, to
+  show it. The page does not scroll and the map does not move, since the reader is already
+  looking at the thing. Opening a card from the keyboard does the same.
+- **Keyboard.** The cards in the lists are not tab stops. Fifty-seven more would bury the rest
+  of the page, which is what the one tab stop for the map was for. A keyboard reaches every
+  person and moment through the map, where Enter opens the card and picks it.
+- **What a pick outlasts.** A redraw for a resized window and a switch of mode: the new
+  picture is lit and marked the same. Zooming does not touch it.
+- **Switching modes.** Every card of both lists, and the two headings, travel from their place
+  in one arrangement to their place in the other, as the people's cards did. A card out of
+  sight in its list's box in one mode and in sight in the other fades in or out on the way;
+  one out of sight in both is not shown on the way.
+
+The mock-ups are in `.superpowers/sdd/origins-loom-pictures/moment-list.html`, outside the
+repository's history.
+
 ### Member and guest treatment
 
 Several signals, so it does not depend on colour alone:
