@@ -1354,7 +1354,10 @@ be reasonable if layout moved to build time.
 - **The lists and picks beyond what was tried.** Headless Chromium only: the browser check,
   and pictures of the three arrangements, a hovered card, a picked card and a switch part way.
   Not Firefox, not Safari. The switch uses `overflow-x: clip` and the centring a smooth
-  `scrollTo`, and neither has been seen in any other browser. A card
+  `scrollTo`, and neither has been seen in any other browser. The rule for a window a fraction
+  of a pixel under 1024px was not seen at such a width: a frame given 1023.5px came out 1024px
+  wide in headless Chromium, so only 1023px and 1024px were measured, each with its own
+  arrangement. The rail with JavaScript off was measured and takes no room. A card
   clicked with the layout engine blocked was read and not tried: it is picked and has nowhere
   to scroll to.
 - **An id rule in the validator.** Nothing stops a `|` in a moment id, or a person slugged
