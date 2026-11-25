@@ -1,4 +1,4 @@
-import { rootSlug } from "./elk.ts";
+import { LABEL_HEIGHT, MOMENT_AVATAR, rootSlug } from "./elk.ts";
 import type { ElkGraph, Mode } from "./elk.ts";
 import { loomGraphFor, passId, slotOffset, THICK } from "./loom-graph.ts";
 import type { LoomGraph, ThreadMeta } from "./loom-graph.ts";
@@ -51,6 +51,8 @@ export interface LoomPlaced {
   readonly slots: ReadonlyMap<string, Point>;
   readonly roots: ReadonlyMap<string, Point>;
   readonly labels: ReadonlyMap<string, PlacedLabel>;
+  /** The centre of each moment's avatar, for the moments that carry one. */
+  readonly avatars: ReadonlyMap<string, Point>;
   readonly edges: readonly {
     readonly meta: ThreadMeta;
     /** The node the edge leaves: a face's rootId, a moment's id or a passId. */
@@ -92,6 +94,7 @@ export function loomPlacedFrom(
   const slots = new Map<string, Point>();
   const roots = new Map<string, Point>();
   const labels = new Map<string, PlacedLabel>();
+  const avatars = new Map<string, Point>();
 
   const slotAcross = (x: number, y: number, offset: number): Point =>
     river ? { x: x + offset, y: y + THICK / 2 } : { x: x + THICK / 2, y: y + offset };
@@ -130,25 +133,37 @@ export function loomPlacedFrom(
     }
 
     // ELK places the label box relative to the node's corner. River hangs
-    // the text off the box's right edge, Subway off its middle.
+    // the text off the box's right edge, Subway off its middle. The box is
+    // taller than a line of text when the moment has an avatar: in River the
+    // text is on its middle line with the avatar at the far end, in Subway on
+    // its last line with the avatar above.
     const label = node.labels?.[0];
     if (label?.x !== undefined && label.y !== undefined) {
+      const spare = label.height - LABEL_HEIGHT;
       labels.set(
         node.id,
         river
           ? {
             x: x + label.x + label.width,
-            y: y + label.y + BASELINE,
+            y: y + label.y + spare / 2 + BASELINE,
             anchor: "end",
             text: label.text,
           }
           : {
             x: x + label.x + label.width / 2,
-            y: y + label.y + BASELINE,
+            y: y + label.y + spare + BASELINE,
             anchor: "middle",
             text: label.text,
           },
       );
+      if (gathering.moment.avatar !== undefined) {
+        avatars.set(
+          node.id,
+          river
+            ? { x: x + label.x + MOMENT_AVATAR, y: y + label.y + label.height / 2 }
+            : { x: x + label.x + label.width / 2, y: y + label.y + MOMENT_AVATAR },
+        );
+      }
     }
   }
 
@@ -214,6 +229,7 @@ export function loomPlacedFrom(
     slots,
     roots,
     labels,
+    avatars,
     edges,
   };
 }
@@ -247,6 +263,7 @@ export function centreLoomIn(
     slots: moved(placed.slots, move),
     roots: moved(placed.roots, move),
     labels: moved(placed.labels, (l) => ({ ...l, x: l.x + by })),
+    avatars: moved(placed.avatars, move),
     edges: placed.edges.map((edge) => ({
       ...edge,
       points: edge.points.map(move),

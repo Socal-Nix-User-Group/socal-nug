@@ -835,6 +835,88 @@ async function run(): Promise<void> {
     });
   }
 
+  // --- a moment's avatar answers for its moment -----------------------------------
+  // An event's own mark, beside its oval. A click on it opens the card the
+  // oval opens, in the place the oval opens it, and it travels with
+  // everything else when the mode changes. Both need a moment in the history
+  // that carries one.
+
+  // A window wide enough that the card has room to open on the right of the
+  // moment. Where it has room on neither side it is held on screen, in the
+  // same place whatever was clicked, and that would show nothing.
+  await load("river", 1700, 1000);
+  {
+    // the moment with an avatar whose oval is furthest left
+    const id = await tab.evaluate<string | null>(`(() => {
+      const left = (id) => document.querySelector('#origins-braid .origins-node[data-moment="' + id + '"] .origins-oval').getBoundingClientRect().left;
+      const ids = [...document.querySelectorAll("#origins-braid .origins-moment-avatar")].map((a) => a.dataset.moment);
+      return ids.sort((a, b) => left(a) - left(b))[0] ?? null;
+    })()`);
+    const node = `document.querySelector('#origins-braid .origins-node[data-moment="${id}"]')`;
+    const card = `(() => {
+      const c = ${POPUP};
+      return {
+        at: c.style.left + " " + c.style.top,
+        left: c.getBoundingClientRect().left,
+        title: c.querySelector(".origins-detail-title")?.textContent ?? "",
+      };
+    })()`;
+    type Card = { at: string; left: number; title: string };
+    let byOval: Card | null = null;
+    let byAvatar: Card | null = null;
+    let ovalRight = 0;
+    let marked = false;
+    if (id !== null) {
+      const oval = await centreOf(`.origins-node[data-moment="${id}"] .origins-oval`);
+      await tab.click(oval.x, oval.y);
+      await tab.waitFor(popupOpen);
+      byOval = await tab.evaluate<Card>(card);
+      ovalRight = await tab.evaluate<number>(`${node}.getBoundingClientRect().right`);
+      await tab.key("Escape");
+      await tab.waitFor(`!(${popupOpen})`);
+
+      // Where the avatar is now, without scrolling to it: the two cards are
+      // only in the same place if the map has not moved between them.
+      const avatar = await tab.evaluate<Point>(`(() => {
+        const b = document.querySelector('#origins-braid .origins-moment-avatar[data-moment="${id}"]').getBoundingClientRect();
+        return { x: b.left + b.width / 2, y: b.top + b.height / 2 };
+      })()`);
+      await tab.click(avatar.x, avatar.y);
+      await tab.waitFor(popupOpen);
+      byAvatar = await tab.evaluate<Card>(card);
+      marked = await tab.evaluate<boolean>(`${node}.classList.contains("is-open")`);
+    }
+    check(
+      byOval !== null && byAvatar !== null && byOval.title !== "" &&
+        // the card opened on the moment's right, which it would not have
+        // done from the avatar: to the right of that is the moment itself
+        byOval.left > ovalRight &&
+        byAvatar.at === byOval.at && byAvatar.title === byOval.title && marked,
+      "a moment's avatar opens its moment's card, in the place a click on the moment opens it",
+      { moment: id, ovalRight, byOval, byAvatar, marked },
+    );
+  }
+
+  await load("river");
+  {
+    const at = `document.querySelector("#origins-braid .origins-moment-avatar")?.getAttribute("transform") ?? null`;
+    const river = await tab.evaluate<string | null>(at);
+    await pressMode("subway");
+    const moving = await tab.waitFor(MORPHING, 15_000);
+    await sleep(500);
+    const between = await tab.evaluate<{ at: string | null; moving: boolean }>(
+      `({ at: ${at}, moving: ${MORPHING} })`,
+    );
+    const landed = await landedIn("subway");
+    const subway = await tab.evaluate<string | null>(at);
+    check(
+      river !== null && moving && between.moving && landed && between.at !== river &&
+        between.at !== subway && river !== subway,
+      "switching modes: a moment's avatar travels between its two places with everything else",
+      { moving, landed, river, between, subway },
+    );
+  }
+
   // --- no label is cut off --------------------------------------------------------
 
   const labels = `[...document.querySelectorAll("#origins-braid .origins-label")]`;

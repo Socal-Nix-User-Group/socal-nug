@@ -1,10 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { rootId } from "../src/elk.ts";
+import {
+  LABEL_HEIGHT,
+  labelWidth,
+  MOMENT_AVATAR,
+  MOMENT_AVATAR_GAP,
+  rootId,
+} from "../src/elk.ts";
 import type { ElkNode } from "../src/elk.ts";
 import { loomGraphFor, passId, portId } from "../src/loom-graph.ts";
 import { buildStory } from "../src/story.ts";
-import { at, MOMENTS, PEOPLE, story } from "./story-fixture.ts";
+import { at, marked, MOMENTS, PEOPLE, story } from "./story-fixture.ts";
 
 const { graph, meta } = loomGraphFor(story, "river");
 const node = (id: string): ElkNode => graph.children.find((n) => n.id === id)!;
@@ -26,6 +32,29 @@ test("a moment is as wide as its slots", () => {
   assert.equal(node("rob-nix").width, 18);
   const subway = loomGraphFor(story, "subway").graph.children.find((n) => n.id === "founded")!;
   assert.deepEqual([subway.width, subway.height], [14, 30]);
+});
+
+test("a moment with an avatar asks for room for it with its label: beside the text in River, above it in Subway", () => {
+  const label = (mode: "river" | "subway", id: string) =>
+    loomGraphFor(marked, mode).graph.children.find((n) => n.id === id)!.labels![0];
+  const text = labelWidth("camp");
+  assert.deepEqual(
+    [label("river", "camp").width, label("river", "camp").height],
+    [text + MOMENT_AVATAR_GAP + 2 * MOMENT_AVATAR, 2 * MOMENT_AVATAR],
+  );
+  // "camp" is narrower than the avatar, so the avatar sets the width
+  assert.ok(text < 2 * MOMENT_AVATAR);
+  assert.deepEqual(
+    [label("subway", "camp").width, label("subway", "camp").height],
+    [2 * MOMENT_AVATAR, 2 * MOMENT_AVATAR + MOMENT_AVATAR_GAP + LABEL_HEIGHT],
+  );
+  // a moment with none asks for what it always did
+  for (const mode of ["river", "subway"] as const) {
+    assert.deepEqual(
+      [label(mode, "founded").width, label(mode, "founded").height],
+      [labelWidth("founded"), LABEL_HEIGHT],
+    );
+  }
 });
 
 test("everyone through a moment has a port in and a port out, at their slot", () => {

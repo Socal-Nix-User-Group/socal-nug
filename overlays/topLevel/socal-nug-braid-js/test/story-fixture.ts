@@ -48,3 +48,9 @@ export const MOMENTS: Moment[] = [
 ];
 
 export const story = buildStory(MOMENTS, PEOPLE);
+
+/** The same story, with the camp carrying its own mark. */
+export const marked = buildStory(
+  MOMENTS.map((m) => (m.id === "camp" ? { ...m, avatar: "/images/moments/camp.png" } : m)),
+  PEOPLE,
+);

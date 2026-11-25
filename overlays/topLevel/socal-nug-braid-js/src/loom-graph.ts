@@ -1,4 +1,12 @@
-import { AVATAR, labelWidth, LABEL_HEIGHT, rootId, shown } from "./elk.ts";
+import {
+  AVATAR,
+  labelWidth,
+  LABEL_HEIGHT,
+  MOMENT_AVATAR,
+  MOMENT_AVATAR_GAP,
+  rootId,
+  shown,
+} from "./elk.ts";
 import type { ElkEdge, ElkGraph, ElkNode, ElkPort, Mode } from "./elk.ts";
 import { hueFor } from "./palette.ts";
 import type { Story } from "./story.ts";
@@ -104,6 +112,14 @@ export function loomGraphFor(story: Story, mode: Mode): LoomGraph {
     if (gathering.onRibbon) {
       ports.push(...pair(m.id, SPINE, slotOffset(gathering.slots, 0) - SLOT / 2));
     }
+    // A moment's avatar takes room with its label, so ELK keeps everything
+    // else off it as it does off the text: at the far end of the text in
+    // River, on top of it in Subway.
+    const disc = m.avatar === undefined ? 0 : 2 * MOMENT_AVATAR;
+    const room = disc === 0 ? 0 : disc + MOMENT_AVATAR_GAP;
+    const label = river
+      ? { width: labelWidth(text) + room, height: Math.max(LABEL_HEIGHT, disc) }
+      : { width: Math.max(labelWidth(text), disc), height: LABEL_HEIGHT + room };
     // +1 leaves partition 0 for the earliest root
     const layer = String(indexOf.get(m.id)! + 1);
     children.push({
@@ -115,7 +131,7 @@ export function loomGraphFor(story: Story, mode: Mode): LoomGraph {
         "elk.nodeLabels.placement": placement,
         "elk.portConstraints": "FIXED_POS",
       },
-      labels: [{ text, width: labelWidth(text), height: LABEL_HEIGHT }],
+      labels: [{ text, ...label }],
       ports,
     });
 

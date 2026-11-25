@@ -1,4 +1,4 @@
-import { AVATAR, LABEL_HEIGHT, LABEL_MAX, labelWidth } from "../src/elk.ts";
+import { AVATAR, LABEL_HEIGHT, LABEL_MAX, labelWidth, MOMENT_AVATAR } from "../src/elk.ts";
 import { drawLoom } from "../src/loom-draw.ts";
 import { passId, SLOT, slotOffset } from "../src/loom-graph.ts";
 import { slotKey } from "../src/loom-place.ts";
@@ -128,6 +128,22 @@ export function inspectPlacement(story: Story, placed: LoomPlaced): Finding[] {
       found.push({
         kind: "engine",
         message: `${slug} has ${edges} edges and their thread needs ${needs}`,
+      });
+    }
+  }
+
+  // The layout centres a label's box on its moment, across the row in River
+  // and over the column in Subway, and an avatar is placed from that box. One
+  // out of line with its moment says the box is not where the placement takes
+  // it to be.
+  for (const [id, at] of placed.avatars) {
+    const moment = placed.moments.get(id);
+    if (moment === undefined) continue;
+    const off = placed.mode === "river" ? Math.abs(at.y - moment.y) : Math.abs(at.x - moment.x);
+    if (off > 1) {
+      found.push({
+        kind: "layout",
+        message: `${id}'s avatar is ${off.toFixed(1)}px out of line with its moment`,
       });
     }
   }
@@ -479,6 +495,49 @@ export function inspectDrawing(
     }
   }
 
+  // Moments' avatars: exactly one for each moment that carries one, each a
+  // disc with nothing else on it.
+  const avatars = made
+    .filter((n) => n.tag === "g" && hasClass(n, "origins-moment-avatar"))
+    .map((n) => {
+      const at = n.attrs.transform.match(/translate\(([-\d.]+) ([-\d.]+)\)/)!;
+      return { id: n.attrs["data-moment"], x: +at[1], y: +at[2] };
+    });
+  for (const g of story.moments) {
+    const id = g.moment.id;
+    const has = avatars.some((a) => a.id === id);
+    if (g.moment.avatar !== undefined && !has) {
+      engine(`${id} carries an avatar and none is drawn for it`);
+    }
+    if (g.moment.avatar === undefined && has) {
+      engine(`an avatar is drawn for ${id}, which carries none`);
+    }
+  }
+  const R = MOMENT_AVATAR;
+  avatars.forEach((a, i) => {
+    if (a.x - R < 0 || a.x + R > placed.width || a.y - R < 0 || a.y + R > placed.height) {
+      layout(`${a.id}'s avatar is off the canvas`);
+    }
+    for (const f of faces) {
+      if (Math.hypot(a.x - f.x, a.y - f.y) < R + AVATAR) {
+        layout(`${a.id}'s avatar sits on ${f.slug}'s face`);
+      }
+    }
+    for (const o of ovals) {
+      // nearest point of the oval's spine to the disc's centre
+      const nx = Math.min(Math.max(a.x, o.x1), o.x2);
+      const ny = Math.min(Math.max(a.y, o.y1), o.y2);
+      if (Math.hypot(a.x - nx, a.y - ny) < R + o.r) {
+        layout(`${a.id}'s avatar sits on ${o.id}'s oval`);
+      }
+    }
+    for (const b of avatars.slice(i + 1)) {
+      if (Math.hypot(a.x - b.x, a.y - b.y) < 2 * R) {
+        layout(`${a.id}'s avatar sits on ${b.id}'s avatar`);
+      }
+    }
+  });
+
   // Labels, at the layout's own measure of their text.
   const labels = made
     .filter((n) => n.tag === "text" && hasClass(n, "origins-label"))
@@ -521,6 +580,11 @@ export function inspectDrawing(
     for (const o of ovals) {
       if (ovalReach(o, box) < 1) {
         layout(`the label "${box.text}" sits on ${o.id}'s oval`);
+      }
+    }
+    for (const a of avatars) {
+      if (rectReach(box, a.x, a.y, R, R) < 1) {
+        layout(`the label "${box.text}" sits on ${a.id}'s avatar`);
       }
     }
   }
@@ -589,6 +653,11 @@ export function inspectDrawing(
       for (const box of labels) {
         if (x > box.left && x < box.right && y > box.top && y < box.bottom) {
           report("layout", slug, `the label "${box.text}"`, x, y);
+        }
+      }
+      for (const a of avatars) {
+        if (Math.hypot(x - a.x, y - a.y) < R) {
+          report("layout", slug, `${a.id}'s avatar`, x, y);
         }
       }
     }
@@ -684,7 +753,7 @@ const MODE_NAME = { river: "River", subway: "Subway" } as const;
  * Whether the morph between the two layouts starts on the drawing of the one
  * being left and ends on the drawing of the one arrived at, both ways: the
  * layouts pair up, each thread traces the drawn one and is broken where it
- * is, and the beads, labels and year marks are where they are drawn.
+ * is, and the avatars, beads, labels and year marks are where they are drawn.
  */
 export function inspectMorph(
   story: Story,
@@ -725,6 +794,24 @@ export function inspectMorph(
     made
       .filter((n) => n.tag === "text" && hasClass(n, "origins-year"))
       .map((n) => [+n.attrs.x, +n.attrs.y]);
+  // Moments' avatars, in the order of their moments' ids, so the morph's and
+  // the drawing's can be laid side by side.
+  const byId = (a: readonly [string, ...number[]], b: readonly [string, ...number[]]) =>
+    a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0;
+  const avatarsOf = (made: Recorded[]) =>
+    made
+      .filter((n) => n.tag === "g" && hasClass(n, "origins-moment-avatar"))
+      .map((n) => {
+        const at = n.attrs.transform.match(/translate\(([-\d.]+) ([-\d.]+)\)/)!;
+        return [n.attrs["data-moment"], +at[1], +at[2]] as const;
+      })
+      .sort(byId)
+      .map(([, x, y]) => [x, y]);
+  const avatarsAt = (frame: { avatars: ReadonlyMap<string, Point> }) =>
+    [...frame.avatars]
+      .map(([id, p]) => [id, p.x, p.y] as const)
+      .sort(byId)
+      .map(([, x, y]) => [x, y]);
   // Where each drawn label's text starts, by moment: drawLoom draws them in
   // the story's order, one for each moment the layout gave a label.
   const labelsOf = (placed: LoomPlaced, made: Recorded[]) => {
@@ -803,6 +890,7 @@ export function inspectMorph(
       ] as const
     ) {
       const checks: Array<[string, number[][], number[][]]> = [
+        ["avatars", avatarsAt(frame), avatarsOf(made)],
         ["beads", pairs(frame.beads), beadsOf(made)],
         ["labels", pairs(frame.labels), labels],
         ["year lines", frame.ticks.map((t) => [t.x1, t.y1, t.x2, t.y2]), ticksOf(made)],

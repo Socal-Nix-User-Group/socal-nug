@@ -10,7 +10,7 @@ import { flow } from "../src/render.ts";
 import { apart, recorder } from "../smoke/inspect.ts";
 import type { Recorded } from "../smoke/inspect.ts";
 import { fakeLoomLayout } from "./fake-loom-elk.ts";
-import { story } from "./story-fixture.ts";
+import { marked, story } from "./story-fixture.ts";
 
 // River centred in a wider box than Subway's, so the two canvases differ in size.
 const river = await placeLoom(story, "river", fakeLoomLayout, 800);
@@ -160,6 +160,26 @@ test("ease starts at 0, is halfway at the middle, ends at 1, and never goes back
   assert.equal(ease(0.5), 0.5);
   assert.equal(ease(1), 1);
   for (let i = 1; i <= 100; i += 1) assert.ok(ease(i / 100) >= ease((i - 1) / 100));
+});
+
+test("a moment's avatar travels in a straight line from its place in one mode to its place in the other", async () => {
+  const from = await placeLoom(marked, "river", fakeLoomLayout, 800);
+  const to = await placeLoom(marked, "subway", fakeLoomLayout);
+  const morph = morphBetween(marked, from, to, widths);
+  assert.ok(morph !== null);
+  const a = from.avatars.get("camp")!;
+  const b = to.avatars.get("camp")!;
+  assert.deepEqual(frameAt(morph, 0).avatars.get("camp"), a);
+  assert.deepEqual(frameAt(morph, 1).avatars.get("camp"), b);
+  assert.deepEqual(frameAt(morph, 0.5).avatars.get("camp"), {
+    x: (a.x + b.x) / 2,
+    y: (a.y + b.y) / 2,
+  });
+  assert.equal(frameAt(morph, 0.5).avatars.size, 1);
+  // a story with none has none on the way
+  assert.equal(frameAt(between(river, subway), 0.5).avatars.size, 0);
+  // an avatar in only one of the two layouts cannot be paired
+  assert.equal(morphBetween(marked, from, { ...to, avatars: new Map() }, widths), null);
 });
 
 test("shares: the start is 0 and the end is 1 along time, which is y in River and x in Subway", () => {

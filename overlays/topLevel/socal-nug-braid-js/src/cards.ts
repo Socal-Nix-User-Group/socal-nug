@@ -68,17 +68,18 @@ export function detailFor(
     "data-moment": moment.id,
   });
 
-  const marked = moment.avatar !== undefined && moment.avatar !== "";
   const head = el(doc, "div", {
-    class: marked ? "origins-detail-head has-avatar" : "origins-detail-head",
+    class: moment.avatar === undefined
+      ? "origins-detail-head"
+      : "origins-detail-head has-avatar",
   });
-  if (marked) {
+  if (moment.avatar !== undefined) {
     // The event's own mark beside its name, as a person's face is beside
     // theirs. The title says which event, so the picture says nothing more.
     head.appendChild(
       el(doc, "img", {
         class: "origins-detail-avatar",
-        src: moment.avatar!,
+        src: moment.avatar,
         alt: "",
         width: "44",
         height: "44",

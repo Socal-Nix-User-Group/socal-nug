@@ -397,6 +397,7 @@ function boot(): void {
         oval: node.querySelectorAll(".origins-oval")[0],
         hit: node.querySelectorAll(".origins-node-hit")[0],
       }));
+      const avatars = [...svg.querySelectorAll(".origins-moment-avatar")];
       const beads = [...svg.querySelectorAll("circle.origins-bead")];
       const ticks = [...svg.querySelectorAll("path.origins-year-tick")];
       const years = [...svg.querySelectorAll("text.origins-year")];
@@ -446,6 +447,12 @@ function boot(): void {
             e.setAttribute("height", String(box.height + 2 * grow));
             e.setAttribute("rx", String(end + grow));
             e.setAttribute("ry", String(end + grow));
+          }
+        }
+        for (const avatar of avatars) {
+          const at = frame.avatars.get(avatar.dataset.moment ?? "");
+          if (at !== undefined) {
+            avatar.setAttribute("transform", `translate(${at.x} ${at.y})`);
           }
         }
         beads.forEach((bead, i) => {
@@ -753,7 +760,11 @@ function boot(): void {
       node.addEventListener("pointerleave", () => {
         for (const slug of who) highlight(slug, false);
       });
-      node.addEventListener("click", (e) => showMoment(id, e.currentTarget));
+      // A moment's avatar carries its moment's id too, and a click on it is a
+      // click on the moment: the card opens beside the oval either way, and
+      // not on top of the moment's own name.
+      const oval = mount!.querySelectorAll(`.origins-node[data-moment="${id}"]`)[0] ?? node;
+      node.addEventListener("click", () => showMoment(id, oval));
     }
 
     // A face opens its person's card. This replaced the roster rail, which

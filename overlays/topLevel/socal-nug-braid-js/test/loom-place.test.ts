@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { labelWidth, rootId } from "../src/elk.ts";
+import { LABEL_HEIGHT, labelWidth, MOMENT_AVATAR, rootId } from "../src/elk.ts";
 import type { ElkGraph, ElkPoint } from "../src/elk.ts";
 import { loomGraphFor, passId, portId } from "../src/loom-graph.ts";
 import {
@@ -11,7 +11,7 @@ import {
   slotKey,
 } from "../src/loom-place.ts";
 import { fakeLoomLayout } from "./fake-loom-elk.ts";
-import { story } from "./story-fixture.ts";
+import { marked, story } from "./story-fixture.ts";
 
 const placed = await placeLoom(story, "river", fakeLoomLayout);
 
@@ -202,6 +202,54 @@ test("a label carries the text the layout made room for, anchored as its mode ha
     anchor: "middle",
     text: "founded",
   });
+});
+
+test("a moment's avatar sits in the room its label was given: at the far end in River, on top in Subway", async () => {
+  for (const mode of ["river", "subway"] as const) {
+    const built = loomGraphFor(marked, mode);
+    const mapped = loomPlacedFrom(built, await fakeLoomLayout(built.graph), marked, mode);
+    const i = built.graph.children.findIndex((n) => n.id === "camp");
+    const node = built.graph.children[i];
+    const label = node.labels![0];
+    // where the fake layout puts the label's box
+    const left = 100 + i * 20 + (-label.width - 12);
+    const top = Number(node.layoutOptions!["elk.partitioning.partition"]) * 50 + 1;
+    assert.equal(mapped.avatars.size, 1, mode);
+    if (mode === "river") {
+      assert.deepEqual(mapped.avatars.get("camp"), {
+        x: left + MOMENT_AVATAR,
+        y: top + label.height / 2,
+      });
+      // the text hangs off the end nearest the oval as ever, on the middle
+      // line of the taller box
+      assert.deepEqual(mapped.labels.get("camp"), {
+        x: left + label.width,
+        y: top + (label.height - LABEL_HEIGHT) / 2 + 11,
+        anchor: "end",
+        text: "camp",
+      });
+    } else {
+      assert.deepEqual(mapped.avatars.get("camp"), {
+        x: left + label.width / 2,
+        y: top + MOMENT_AVATAR,
+      });
+      // and under the avatar, on the box's last line
+      assert.deepEqual(mapped.labels.get("camp"), {
+        x: left + label.width / 2,
+        y: top + (label.height - LABEL_HEIGHT) + 11,
+        anchor: "middle",
+        text: "camp",
+      });
+    }
+  }
+});
+
+test("a story with no avatars has none placed, and centring moves an avatar with everything else", async () => {
+  assert.equal(placed.avatars.size, 0);
+  const p = await placeLoom(marked, "river", fakeLoomLayout);
+  const wide = centreLoomIn(p, p.width + 200);
+  const at = p.avatars.get("camp")!;
+  assert.deepEqual(wide.avatars.get("camp"), { x: at.x + 100, y: at.y });
 });
 
 test("a hop leaves its slot through the out-port in line with it and arrives through the in-port in line with the next", () => {

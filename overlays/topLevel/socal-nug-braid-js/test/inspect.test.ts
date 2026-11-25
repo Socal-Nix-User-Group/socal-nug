@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { across, passId, SLOT, slotOffset, THICK } from "../src/loom-graph.ts";
-import { rootId, shown } from "../src/elk.ts";
+import { labelWidth, MOMENT_AVATAR, MOMENT_AVATAR_GAP, rootId, shown } from "../src/elk.ts";
 import { drawLoom } from "../src/loom-draw.ts";
 import { placeLoom, slotKey } from "../src/loom-place.ts";
 import type { Box, LoomPlaced, PlacedLabel, Point } from "../src/loom-place.ts";
@@ -18,7 +18,7 @@ import {
 } from "../smoke/inspect.ts";
 import type { Recorded } from "../smoke/inspect.ts";
 import { fakeLoomLayout } from "./fake-loom-elk.ts";
-import { at, PEOPLE, story } from "./story-fixture.ts";
+import { at, marked, MOMENTS, PEOPLE, story } from "./story-fixture.ts";
 
 const fake = await placeLoom(story, "river", fakeLoomLayout);
 
@@ -540,6 +540,155 @@ test("a thread under a label is a layout finding", () => {
     found.some((f) => f.kind === "layout" && f.message.includes(`through the label "${label.text}"`)),
     JSON.stringify(found),
   );
+});
+
+// --- a moment's avatar ---------------------------------------------------------
+// The event's own mark, in the room the layout left with the label. It is a
+// disc the size of a face, and nothing else may be on it.
+
+/** The same story with the conference carrying a mark as well as the camp. */
+const twice = buildStory(
+  MOMENTS.map((m) => (m.id === "camp" || m.id === "scale" ? { ...m, avatar: "/a.png" } : m)),
+  PEOPLE,
+);
+
+/** The clean picture with each marked moment's avatar at the far end of its label. */
+function withAvatars(s: Story): LoomPlaced {
+  const placed = drawable();
+  const avatars = new Map<string, Point>();
+  for (const g of s.moments) {
+    if (g.moment.avatar === undefined) continue;
+    const label = placed.labels.get(g.moment.id)!;
+    avatars.set(g.moment.id, {
+      x: label.x - labelWidth(label.text) - MOMENT_AVATAR_GAP - MOMENT_AVATAR,
+      y: placed.moments.get(g.moment.id)!.y,
+    });
+  }
+  return { ...placed, avatars };
+}
+
+function drawnOf(s: Story, placed: LoomPlaced) {
+  const { doc, made } = recorder();
+  drawLoom(placed, s, doc);
+  return made;
+}
+
+test("a clean drawing with avatars has no findings", () => {
+  for (const s of [marked, twice]) {
+    const placed = withAvatars(s);
+    assert.deepEqual(inspectDrawing(s, placed, drawnOf(s, placed)), []);
+  }
+});
+
+test("a thread through a moment's avatar is a layout finding naming both", () => {
+  const placed = withAvatars(marked);
+  const avatar = placed.avatars.get("camp")!;
+  const made = drawnOf(marked, placed);
+  const thread = withClass(made, "origins-thread").find((p) => p.attrs["data-person"] === "mica")!;
+  thread.attrs.d = goesTo(avatar.x + 10, avatar.y);
+  const found = inspectDrawing(marked, placed, made);
+  assert.equal(found.length, 1, JSON.stringify(found));
+  assert.equal(found[0].kind, "layout");
+  assert.ok(found[0].message.includes("mica's thread runs through camp's avatar"), found[0].message);
+});
+
+test("a thread that only comes near an avatar is no finding", () => {
+  const placed = withAvatars(marked);
+  const avatar = placed.avatars.get("camp")!;
+  const made = drawnOf(marked, placed);
+  const thread = withClass(made, "origins-thread").find((p) => p.attrs["data-person"] === "mica")!;
+  // inside the square around the disc, outside the disc
+  thread.attrs.d = goesTo(avatar.x - 14, avatar.y - 14);
+  assert.deepEqual(inspectDrawing(marked, placed, made), []);
+});
+
+test("an avatar off the canvas, on a face, on an oval, on a label or on another avatar is a layout finding", () => {
+  const clean = withAvatars(twice);
+  const face = clean.roots.get("rob")!;
+  const oval = clean.moments.get("founded")!;
+  const label = clean.labels.get("nug1")!;
+  const other = clean.avatars.get("scale")!;
+  const cases: Array<[string, Point, RegExp]> = [
+    ["off the canvas", { x: 100, y: 5 }, /camp's avatar is off the canvas/],
+    ["on a face", { x: face.x + 20, y: face.y }, /camp's avatar sits on rob's face/],
+    ["on an oval", { x: oval.x - 20, y: oval.y }, /camp's avatar sits on founded's oval/],
+    ["on a label", { x: label.x - 10, y: label.y - 7 }, /the label "nug1" sits on camp's avatar/],
+    ["on another avatar", { x: other.x + 20, y: other.y + 20 }, /camp's avatar sits on scale's avatar/],
+  ];
+  for (const [what, at, pattern] of cases) {
+    const moved = { ...clean, avatars: new Map(clean.avatars).set("camp", at) };
+    const found = inspectDrawing(twice, moved, drawnOf(twice, moved));
+    assert.ok(found.length > 0, what);
+    assert.ok(found.every((f) => f.kind === "layout"), `${what}: ${JSON.stringify(found)}`);
+    assert.ok(found.some((f) => pattern.test(f.message)), `${what}: ${JSON.stringify(found)}`);
+  }
+});
+
+test("a label counts as on an avatar from the disc's edge, not from its centre", () => {
+  const clean = withAvatars(marked);
+  const label = clean.labels.get("camp")!;
+  const end = label.x - labelWidth(label.text);
+  const y = clean.moments.get("camp")!.y;
+  const at = (gap: number) => ({
+    ...clean,
+    avatars: new Map([["camp", { x: end - gap - MOMENT_AVATAR, y }]]),
+  });
+  // a pixel clear of the text's end, and three pixels over it
+  assert.deepEqual(inspectDrawing(marked, at(1), drawnOf(marked, at(1))), []);
+  const found = inspectDrawing(marked, at(-3), drawnOf(marked, at(-3)));
+  assert.deepEqual(found, [{ kind: "layout", message: 'the label "camp" sits on camp\'s avatar' }]);
+});
+
+// The layout centres a label's box on its moment: across the row in River,
+// over the column in Subway. The avatar is placed from that box, so one out
+// of line says the box is not where the placement takes it to be.
+test("an avatar out of line with its moment is a layout finding, measured across time in each mode", async () => {
+  const about = (placed: LoomPlaced) =>
+    inspectPlacement(marked, placed).filter((f) => f.message.includes("avatar"));
+  const river = withAvatars(marked);
+  assert.deepEqual(about(river), []);
+  const at = river.avatars.get("camp")!;
+  const lower = (by: number) => ({ ...river, avatars: new Map([["camp", { x: at.x, y: at.y + by }]]) });
+  assert.deepEqual(about(lower(0.5)), []);
+  assert.deepEqual(about(lower(3)), [{
+    kind: "layout",
+    message: "camp's avatar is 3.0px out of line with its moment",
+  }]);
+  // along the row is where it is meant to be
+  assert.deepEqual(about({ ...river, avatars: new Map([["camp", { x: at.x - 50, y: at.y }]]) }), []);
+
+  const subway = await placeLoom(marked, "subway", fakeLoomLayout);
+  const column = subway.moments.get("camp")!.x;
+  const height = subway.avatars.get("camp")!.y;
+  const over = (by: number) => ({ ...subway, avatars: new Map([["camp", { x: column + by, y: height }]]) });
+  assert.deepEqual(about(over(0)), []);
+  assert.deepEqual(about(over(-4)), [{
+    kind: "layout",
+    message: "camp's avatar is 4.0px out of line with its moment",
+  }]);
+});
+
+test("an avatar the data gives and the picture lacks, or the picture has and the data does not give, is an engine finding", () => {
+  const bare = drawable();
+  assert.deepEqual(inspectDrawing(marked, bare, drawnOf(marked, bare)), [{
+    kind: "engine",
+    message: "camp carries an avatar and none is drawn for it",
+  }]);
+
+  const placed = withAvatars(marked);
+  assert.deepEqual(inspectDrawing(story, placed, drawnOf(marked, placed)), [{
+    kind: "engine",
+    message: "an avatar is drawn for camp, which carries none",
+  }]);
+});
+
+test("a morph between two layouts with avatars has no findings, and one with an avatar in only one of them cannot pair them up", async () => {
+  const river = await placeLoom(marked, "river", fakeLoomLayout);
+  const subway = await placeLoom(marked, "subway", fakeLoomLayout);
+  assert.deepEqual(inspectMorph(marked, river, subway), []);
+  const found = inspectMorph(marked, river, { ...subway, avatars: new Map() });
+  assert.equal(found.length, 2, JSON.stringify(found));
+  assert.ok(found.every((f) => f.kind === "engine" && /could not pair/.test(f.message)));
 });
 
 test("a bead moved outside its oval is an engine finding", () => {

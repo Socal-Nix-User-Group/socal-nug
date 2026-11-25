@@ -175,6 +175,8 @@ export interface Morph {
   readonly threads: ReadonlyMap<string, ThreadMorph>;
   readonly faces: readonly (readonly [string, Point, Point])[];
   readonly boxes: readonly (readonly [string, Box, Box])[];
+  /** A moment's avatar, by moment id. */
+  readonly avatars: readonly (readonly [string, Point, Point])[];
   readonly beads: readonly (readonly [Point, Point])[];
   readonly labels: readonly (readonly [Point, Point])[];
   readonly ticks: readonly (readonly [Tick, Tick])[];
@@ -186,9 +188,9 @@ export interface Morph {
  * from its end in River and its middle in Subway; with the width both become where the text
  * starts.
  *
- * Null when the two layouts do not pair up: an edge, a face, a moment's box or a bead's slot
- * in only one of them, a different number of year marks, or a label with no width. A label
- * in `from` with none in `to` is not one of these: it stays where it is.
+ * Null when the two layouts do not pair up: an edge, a face, a moment's box, a moment's
+ * avatar or a bead's slot in only one of them, a different number of year marks, or a label
+ * with no width. A label in `from` with none in `to` is not one of these: it stays where it is.
  */
 export function morphBetween(
   story: Story,
@@ -199,7 +201,8 @@ export function morphBetween(
   const threads = threadMorphs(from, to);
   const faces = paired(from.roots, to.roots);
   const boxes = paired(from.boxes, to.boxes);
-  if (threads === null || faces === null || boxes === null) return null;
+  const avatars = paired(from.avatars, to.avatars);
+  if (threads === null || faces === null || boxes === null || avatars === null) return null;
 
   const beads: Array<readonly [Point, Point]> = [];
   for (const g of story.moments) {
@@ -243,6 +246,7 @@ export function morphBetween(
     threads,
     faces,
     boxes,
+    avatars,
     beads,
     labels,
     ticks: marksFrom.ticks.map((tick, i) => [tick, marksTo.ticks[i]] as const),
@@ -259,6 +263,8 @@ export interface MorphFrame {
   readonly faces: ReadonlyMap<string, Point>;
   /** A moment's box, by moment id. */
   readonly boxes: ReadonlyMap<string, Box>;
+  /** The centre of a moment's avatar, by moment id. */
+  readonly avatars: ReadonlyMap<string, Point>;
   /** Beads, in the order drawLoom draws them. */
   readonly beads: readonly Point[];
   /** Where each label's text starts, in the order drawLoom draws labels. */
@@ -284,6 +290,7 @@ export function frameAt(morph: Morph, t: number): MorphFrame {
         height: lerp(a.height, b.height, t),
       }]),
     ),
+    avatars: new Map(morph.avatars.map(([id, a, b]) => [id, lerpPoint(a, b, t)])),
     beads: morph.beads.map(between),
     labels: morph.labels.map(between),
     ticks: morph.ticks.map(([a, b]) => ({

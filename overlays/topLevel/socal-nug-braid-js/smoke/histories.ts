@@ -31,6 +31,8 @@ interface RawMoment {
   title: string;
   people: string[];
   trunk: boolean;
+  /** On a gathering beside the meetups, as a conference carries its own mark. */
+  avatar?: string;
   /** On a meetup, as the page carries them: who the record says was there, and away. */
   there?: string[];
   away?: string[];
@@ -126,6 +128,7 @@ export function history(seed: number, years: number): unknown {
         title: `Detour ${detour}`,
         people: kind === "whole" ? membersAt(n) : part(n),
         trunk: false,
+        avatar: "/images/moments/made-up.png",
       });
     });
   }
@@ -140,6 +143,7 @@ export function history(seed: number, years: number): unknown {
       title: `Stretch ${i + 1}`,
       people: group,
       trunk: false,
+      avatar: "/images/moments/made-up.png",
     });
   });
 

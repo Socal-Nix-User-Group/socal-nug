@@ -1,3 +1,4 @@
+import { MOMENT_AVATAR } from "./elk.ts";
 import { describeGathering, describePerson } from "./focus.ts";
 import { slotKey } from "./loom-place.ts";
 import type { LoomPlaced } from "./loom-place.ts";
@@ -238,6 +239,35 @@ export function drawLoom(
     root.appendChild(avatarFor(thread.person, doc));
     svg.appendChild(root);
   });
+
+  // --- moments' avatars, in the room left with their labels ------------------
+  // A thing of its own beside the moment rather than part of its group, so
+  // the oval keeps its outline, its focus ring and its place in the
+  // keyboard's order to itself. It says which moment it belongs to, and the
+  // page gives it the moment's hover and click. The image is made to sit in
+  // a circle, so nothing is cut here.
+  for (const gathering of story.moments) {
+    const moment = gathering.moment;
+    const at = placed.avatars.get(moment.id);
+    if (at === undefined || moment.avatar === undefined) continue;
+    const avatar = make(doc, "g", {
+      class: "origins-moment-avatar",
+      "data-moment": moment.id,
+      transform: `translate(${round(at.x)} ${round(at.y)})`,
+    });
+    avatar.appendChild(
+      make(doc, "image", {
+        href: moment.avatar,
+        x: -MOMENT_AVATAR,
+        y: -MOMENT_AVATAR,
+        width: 2 * MOMENT_AVATAR,
+        height: 2 * MOMENT_AVATAR,
+        // the oval's button already names the moment
+        "aria-hidden": "true",
+      }),
+    );
+    svg.appendChild(avatar);
+  }
 
   // --- labels, where ELK left room for them ---------------------------------
   for (const gathering of story.moments) {

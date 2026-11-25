@@ -66,6 +66,14 @@ export const AVATAR = 18;
 /** What a label may claim beside its node; longer titles are cut to it. */
 export const LABEL_MAX = 150;
 export const LABEL_HEIGHT = 14;
+/**
+ * Half the width of a moment's avatar, the event's own mark. A face's size.
+ * The layout leaves room for it with the label: beside the text in River,
+ * above it in Subway.
+ */
+export const MOMENT_AVATAR = 18;
+/** The room between a moment's avatar and its label's text. */
+export const MOMENT_AVATAR_GAP = 4;
 /** Pixels per character at the label's 11px, near enough to reserve room. */
 const CHAR = 6.4;
 

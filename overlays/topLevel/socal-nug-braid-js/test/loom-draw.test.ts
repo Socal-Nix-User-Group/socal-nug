@@ -5,7 +5,7 @@ import { placeLoom, slotKey } from "../src/loom-place.ts";
 import { buildStory } from "../src/story.ts";
 import type { DocumentLike, ElementLike } from "../src/render.ts";
 import { fakeLoomLayout } from "./fake-loom-elk.ts";
-import { at, PEOPLE, story } from "./story-fixture.ts";
+import { at, marked, PEOPLE, story } from "./story-fixture.ts";
 
 interface Node {
   tag: string;
@@ -354,6 +354,40 @@ test("every face is a button named for its person", () => {
     faces.find((f) => f.attrs["data-person"] === "rob")!.attrs["aria-label"],
     "ROB, member",
   );
+});
+
+test("a moment's avatar is drawn where the layout placed it, as a thing of its own that answers for its moment", async () => {
+  const p = await placeLoom(marked, "river", fakeLoomLayout);
+  const { doc, made: drawn } = stubDocument();
+  drawLoom(p, marked, doc);
+  const avatars = withClass(drawn, "origins-moment-avatar");
+  assert.equal(avatars.length, 1);
+  const [avatar] = avatars;
+  const at = p.avatars.get("camp")!;
+  const round = (n: number) => Math.round(n * 100) / 100;
+  assert.equal(avatar.tag, "g");
+  assert.equal(avatar.attrs["data-moment"], "camp");
+  assert.equal(avatar.attrs.transform, `translate(${round(at.x)} ${round(at.y)})`);
+  // Beside the moment's own group, not in it: the oval keeps its outline, its
+  // focus ring and its place in the keyboard's order to itself.
+  assert.ok(drawn.find((n) => n.tag === "svg")!.children.includes(avatar));
+  assert.equal(avatar.attrs.role, undefined);
+  assert.equal(avatar.attrs.tabindex, undefined);
+  assert.equal(avatar.children.length, 1);
+  const image = avatar.children[0];
+  assert.deepEqual(
+    [image.tag, image.attrs.href, image.attrs.x, image.attrs.y, image.attrs.width, image.attrs.height],
+    ["image", "/images/moments/camp.png", "-18", "-18", "36", "36"],
+  );
+  // the oval's button already names the moment
+  assert.equal(image.attrs["aria-hidden"], "true");
+  // after the faces and before the labels
+  const index = (token: string) =>
+    drawn.map((n, i) => ((n.attrs.class ?? "").split(" ").includes(token) ? i : -1)).filter((i) => i >= 0);
+  assert.ok(Math.max(...index("origins-root")) < drawn.indexOf(avatar));
+  assert.ok(drawn.indexOf(avatar) < Math.min(...index("origins-label")));
+  // and a story with no avatars draws none
+  assert.equal(withClass(made, "origins-moment-avatar").length, 0);
 });
 
 test("every label is text where the layout left room for it", () => {

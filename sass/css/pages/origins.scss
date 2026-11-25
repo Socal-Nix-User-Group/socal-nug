@@ -292,6 +292,12 @@ html[data-theme=dark] .origins-legend {
     stroke-width: 3;
 }
 
+// An event's own mark, beside its moment. It opens the moment's card as the
+// oval does.
+.origins-moment-avatar {
+    cursor: pointer;
+}
+
 // A little larger than the oval, so a thin one is still easy to hit.
 .origins-node-hit {
     fill: transparent;
