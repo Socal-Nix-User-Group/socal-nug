@@ -7,7 +7,7 @@ import type { LoomPlaced } from "./loom-place.ts";
 import { ease, frameAt, MORPH_MS, morphBetween, OPENING, scrollFor, sharesOf } from "./morph.ts";
 import type { Shares } from "./morph.ts";
 import { parseData } from "./parse.ts";
-import { centred, litBy, reveal, toggled } from "./pick.ts";
+import { centred, framed, litBy, toggled } from "./pick.ts";
 import type { Pick } from "./pick.ts";
 import { placePopup } from "./popup.ts";
 import type { DocumentLike, ElementLike } from "./render.ts";
@@ -28,6 +28,8 @@ import { fitZoom, stepZoom, wheelZoom, ZOOM_MAX, ZOOM_MIN } from "./zoom.ts";
 interface PageElement extends ElementLike {
   readonly clientWidth: number;
   readonly clientHeight: number;
+  readonly scrollWidth: number;
+  readonly scrollHeight: number;
   scrollLeft: number;
   scrollTop: number;
   scrollTo(to: { left: number; top: number; behavior: "smooth" | "auto" }): void;
@@ -694,9 +696,11 @@ function boot(): void {
   }
 
   /**
-   * Pick what was clicked in the map and bring its card into view in its
-   * list. The list's own scroll position, not scrollIntoView, which would
-   * scroll the page and the map as well.
+   * Pick what was clicked in the map and glide its list until its card is in
+   * the middle of the list's box, or as near as the list goes: a card
+   * brought only as far as the box's edge is easy to miss there. The list's
+   * own scrollTo, not scrollIntoView, which would scroll the page and the
+   * map as well. At once for a reader who asks for less motion.
    */
   function pickInMap(pick: Pick): void {
     picked = pick;
@@ -710,8 +714,26 @@ function boot(): void {
     const list = card.closest(".origins-roster, .origins-moments")!;
     const c = card.getBoundingClientRect();
     const l = list.getBoundingClientRect();
-    list.scrollTop += reveal(c.top, c.top + c.height, l.top, l.top + l.height);
-    list.scrollLeft += reveal(c.left, c.left + c.width, l.left, l.left + l.width);
+    const to = framed(
+      {
+        x: c.left - l.left + list.scrollLeft,
+        y: c.top - l.top + list.scrollTop,
+        width: c.width,
+        height: c.height,
+      },
+      { width: list.clientWidth, height: list.clientHeight },
+      {
+        x: list.scrollWidth - list.clientWidth,
+        y: list.scrollHeight - list.clientHeight,
+      },
+    );
+    list.scrollTo({
+      left: to.x,
+      top: to.y,
+      behavior: window!.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+    });
   }
 
   function markOpen(id: string | undefined): void {

@@ -419,6 +419,56 @@ const centredIn = (selector: string): Promise<{ ok: boolean } & Record<string, u
     return { ok: there(off.x, at.x, reach.x) && there(off.y, at.y, reach.y), off, at, reach };
   })()`);
 
+/** Wait for a smooth scroll of a list to end: the same place 200ms apart. */
+async function listSettles(list: string): Promise<void> {
+  const at = `[${list}.scrollLeft, ${list}.scrollTop].join()`;
+  let was = await tab.evaluate<string>(at);
+  for (let waited = 0; waited < 5000; waited += 200) {
+    await sleep(200);
+    const is = await tab.evaluate<string>(at);
+    if (is === was) return;
+    was = is;
+  }
+}
+
+/**
+ * Whether the middle of a card is in the middle of its list's box, within
+ * 2px, on each axis, or the list has gone as far towards it as it can on
+ * that axis.
+ */
+const midList = (card: string, list: string): Promise<{ ok: boolean } & Record<string, unknown>> =>
+  tab.evaluate(`(() => {
+    const l = ${list};
+    const c = document.querySelector(${JSON.stringify(card)});
+    if (c === null) return { ok: false, missing: true };
+    const b = l.getBoundingClientRect();
+    const r = c.getBoundingClientRect();
+    const off = {
+      x: r.left + r.width / 2 - b.left - l.clientWidth / 2,
+      y: r.top + r.height / 2 - b.top - l.clientHeight / 2,
+    };
+    const at = { x: l.scrollLeft, y: l.scrollTop };
+    const reach = { x: l.scrollWidth - l.clientWidth, y: l.scrollHeight - l.clientHeight };
+    const there = (o, now, most) =>
+      Math.abs(o) <= 2 || (o < 0 && now <= 1) || (o > 0 && now >= most - 1);
+    return { ok: there(off.x, at.x, reach.x) && there(off.y, at.y, reach.y), off, at, reach };
+  })()`);
+
+/**
+ * A moment whose card is past the end of its list's box once the list is
+ * back at its start, so the list has somewhere to go to show it.
+ */
+const momentPastItsList = (): Promise<string | null> =>
+  tab.evaluate(`(() => {
+    const list = ${MOMENTS};
+    list.scrollTop = 0;
+    list.scrollLeft = 0;
+    const l = list.getBoundingClientRect();
+    const out = [...list.querySelectorAll(".origins-moment-card")]
+      .find((c) => c.getBoundingClientRect().top >= l.bottom);
+    return out?.dataset.moment ?? null;
+  })()`);
+
 /** Every check, in the order a failure is easiest to read. */
 async function run(): Promise<void> {
   // --- scrolling past the map ---------------------------------------------------
@@ -885,45 +935,35 @@ async function run(): Promise<void> {
 
   await load("subway");
   {
-    // A moment whose card is past the end of its list's box once the list
-    // is back at its start.
-    const id = await tab.evaluate<string | null>(`(() => {
-      const list = ${MOMENTS};
-      list.scrollTop = 0;
-      list.scrollLeft = 0;
-      const l = list.getBoundingClientRect();
-      const out = [...list.querySelectorAll(".origins-moment-card")]
-        .find((c) => c.getBoundingClientRect().top >= l.bottom);
-      return out?.dataset.moment ?? null;
-    })()`);
+    const id = await momentPastItsList();
     const where = `({ page: scrollY, left: ${MAP}.scrollLeft, top: ${MAP}.scrollTop })`;
+    const down = `${MOMENTS}.scrollTop`;
     let before: unknown = null;
     let after: unknown = null;
     let opened = false;
-    let shown: Record<string, unknown> | null = null;
+    let picked = false;
+    let middle: ({ ok: boolean } & Record<string, unknown>) | null = null;
+    let glide: { start: number; first: number; last: number } | null = null;
     if (id !== null) {
       const at = await centreOf(OVAL(id));
       before = await tab.evaluate(where);
+      const start = await tab.evaluate<number>(down);
       await tab.click(at.x, at.y);
+      // Straight after the click: a list that glides has not arrived yet.
+      const first = await tab.evaluate<number>(down);
       opened = await tab.waitFor(popupOpen);
-      await sleep(300);
+      await listSettles(MOMENTS);
+      glide = { start, first, last: await tab.evaluate<number>(down) };
       after = await tab.evaluate(where);
-      shown = await tab.evaluate(`(() => {
-        const c = document.querySelector(${JSON.stringify(MOMENT_CARD(id))});
-        const b = c.getBoundingClientRect();
-        const l = ${MOMENTS}.getBoundingClientRect();
-        return {
-          picked: c.classList.contains("is-picked"),
-          inside: b.top >= l.top - 1 && b.bottom <= l.bottom + 1 &&
-            b.left >= l.left - 1 && b.right <= l.right + 1,
-        };
-      })()`);
+      picked = await tab.evaluate<boolean>(has(MOMENT_CARD(id), "is-picked"));
+      middle = await midList(MOMENT_CARD(id), MOMENTS);
     }
     check(
-      id !== null && opened && shown?.picked === true && shown?.inside === true &&
+      id !== null && opened && picked && middle?.ok === true && glide !== null &&
+        glide.last !== glide.start && glide.first !== glide.last &&
         JSON.stringify(after) === JSON.stringify(before),
-      "a click on a moment in the map marks its card and scrolls its list to show it, without moving the page or the map",
-      { moment: id, opened, shown, before, after },
+      "a click on a moment in the map marks its card and glides its list until the card is in the middle of it, without moving the page or the map",
+      { moment: id, opened, picked, middle, glide, before, after },
     );
   }
 
@@ -1035,30 +1075,23 @@ async function run(): Promise<void> {
     let before: unknown = null;
     let after: unknown = null;
     let opened = false;
-    let shown: Record<string, unknown> | null = null;
+    let picked = false;
+    let middle: ({ ok: boolean } & Record<string, unknown>) | null = null;
     if (slug !== null) {
       const at = await centreOf(FACE(slug));
       before = await tab.evaluate(where);
       await tab.click(at.x, at.y);
       opened = await tab.waitFor(popupOpen);
-      await sleep(300);
+      await listSettles(PEOPLE);
       after = await tab.evaluate(where);
-      shown = await tab.evaluate(`(() => {
-        const c = document.querySelector(${JSON.stringify(PERSON_CARD(slug))});
-        const b = c.getBoundingClientRect();
-        const l = ${PEOPLE}.getBoundingClientRect();
-        return {
-          picked: c.classList.contains("is-picked"),
-          inside: b.top >= l.top - 1 && b.bottom <= l.bottom + 1 &&
-            b.left >= l.left - 1 && b.right <= l.right + 1,
-        };
-      })()`);
+      picked = await tab.evaluate<boolean>(has(PERSON_CARD(slug), "is-picked"));
+      middle = await midList(PERSON_CARD(slug), PEOPLE);
     }
     check(
-      slug !== null && opened && shown?.picked === true && shown?.inside === true &&
+      slug !== null && opened && picked && middle?.ok === true &&
         JSON.stringify(after) === JSON.stringify(before),
-      "a click on a face in the map marks that person's card and scrolls the people's list to show it",
-      { person: slug, opened, shown, before, after },
+      "a click on a face in the map marks that person's card and glides the people's list until the card is in the middle of it",
+      { person: slug, opened, picked, middle, before, after },
     );
   }
 
@@ -1562,6 +1595,22 @@ async function run(): Promise<void> {
       far !== null && far.off > 50 && clicked && where.ok,
       "with reduced motion asked for, a click on a card puts the map there at once",
       { moment: id, off: far?.off, clicked, where },
+    );
+  }
+  await load("subway");
+  {
+    const id = await momentPastItsList();
+    let middle: ({ ok: boolean } & Record<string, unknown>) | null = null;
+    if (id !== null) {
+      const at = await centreOf(OVAL(id));
+      await tab.click(at.x, at.y);
+      // No wait: the list is to be there already.
+      middle = await midList(MOMENT_CARD(id), MOMENTS);
+    }
+    check(
+      id !== null && middle?.ok === true,
+      "with reduced motion asked for, a click on a moment in the map puts its card in the middle of its list at once",
+      { moment: id, middle },
     );
   }
   await tab.send("Emulation.setEmulatedMedia", { features: [] });

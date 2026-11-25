@@ -863,8 +863,13 @@ right.
   the popup would cover what was just centred. A popup that is open closes. A click on a link
   inside a person's card follows the link and picks nothing.
 - **From the map.** A click on a face or a moment in the map opens its popup as before and
-  also picks it: its card in the list is marked and its list scrolls, inside its own box, to
-  show it. The page does not scroll and the map does not move, since the reader is already
+  also picks it: its card in the list is marked and its list glides, inside its own box, until
+  the card is in the middle of the box, or as near as the list goes. A card longer than the
+  box is put at the box's start, since a card is read from its start and centred it would lose
+  both ends. A reader who asks for reduced motion gets the list there at once. At first the
+  list jumped the least distance that showed the card, which left the card at the box's edge;
+  Daniel asked for the glide and the middle on 2026-11-25. The page does not scroll and the map
+  does not move, since the reader is already
   looking at the thing. Opening a card from the keyboard does the same. The pick is not tied to
   the popup: closing the popup with its X leaves the pick, which is let go the same three ways
   as any other. A tap is a click, so on a touch screen a tap on a moment picks it and lights
@@ -888,7 +893,7 @@ right.
 - **How it is built.** The cards and the two panes are made by `momentCardFor`, `momentsFor`
   and `listsFor` in `src/cards.ts`. The arithmetic of a pick is in `src/pick.ts` and touches no
   page: what a click leaves picked, who a pick lights, where the map must scroll to put a point
-  in its middle, and how far a list must scroll to show a card. The page script keeps four
+  in its middle, and where a list must scroll to put a card in its. The page script keeps four
   things, the pick, the people lit by hover or focus, the moment whose card is under the
   pointer and the moment under the pointer in the map, and one function sets every lit, outlined
   and picked mark from them, in the map and in the lists. Nothing else sets those marks, which
@@ -896,8 +901,8 @@ right.
   hover. Every draw forgets what hover lit, since the elements that would have said the pointer
   left went with the old picture, and lights the new one from the pick. The point to centre on
   is read from where the face or the pill is on screen, the way the popup finds its anchor. A
-  list is scrolled by setting its own scroll position; `scrollIntoView` is not used, because it
-  scrolls the page and the map as well.
+  list is scrolled with its own `scrollTo`; `scrollIntoView` is not used, because it scrolls
+  the page and the map as well.
 
 The mock-ups are in `.superpowers/sdd/origins-loom-pictures/moment-list.html`, outside the
 repository's history.
@@ -1143,20 +1148,21 @@ two lists one above the other there and side by side under Subway, each scrollin
 box; two rows that scroll sideways in a narrow window; the wheel over a list scrolling that
 list and then the page; both lists there when the layout engine is blocked; and hover, a
 moment's card lighting its people and outlining its pill, a moment in the map tinting its card,
-and the card under the pointer tinted. Seventeen are about a pick: a click on a person's card
+and the card under the pointer tinted. Eighteen are about a pick: a click on a person's card
 and on a moment's card bringing the face or the pill to the middle of the map, or the map to
 the end of its reach, and leaving the right people lit; a double click leaving the card
 picked; no popup opening for it, and one that is open closing; each of the three ways of
 letting go; a hover on another card adding to the pick and leaving it standing when it ends; a
 click on a moment or a face in the map, and the keyboard's Enter there, marking its card, a
-click scrolling its list to show it without moving the page or the map; a click on a link in a
-person's card picking nobody; the zoom and a drag leaving the pick; the pick still there after
-a switch and after a resize; a picture redrawn under a resting pointer leaving nobody lit; the
-map put there at once under reduced motion; and a tap picking the moment, with nothing left
-lit once it is let go. Each check that could pass for want of anything to click also asserts
-that the pick it depends on happened.
+click gliding its list until the card is in the middle of it, without a jump and without
+moving the page or the map; a click on a link in a person's card picking nobody; the zoom and
+a drag leaving the pick; the pick still there after a switch and after a resize; a picture
+redrawn under a resting pointer leaving nobody lit; the map, and a list, put there at once
+under reduced motion; and a tap picking the moment, with nothing left lit once it is let go.
+Each check that could pass for want of anything to click also asserts that the pick it depends
+on happened.
 
-Eighty-four checks, each named for what a visitor would
+Eighty-five checks, each named for what a visitor would
 notice and none naming a moment or a person, so the data can change under it as long as the
 picture stays about the size it is (see below). It needs the
 network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
@@ -1340,10 +1346,11 @@ be reasonable if layout moved to build time.
 - **A press on the map's scrollbar.** In headless Chromium it sends no click, so it lets go of
   nothing, which was tried. Firefox and Safari were not. A browser that sends the box a click
   for it would let go of the pick, which scrolling the map is not meant to do.
-- **Checks that keep time.** Three of the new browser checks read the page inside the 1.2
-  seconds of a switch, or look for a scroll to have begun shortly after a click. On a machine
-  slow enough they would fail with the page right; none can pass with it wrong. One older
-  check is the same.
+- **Checks that keep time.** Four of the new browser checks read the page inside the 1.2
+  seconds of a switch, look for a scroll to have begun shortly after a click, or, to tell a
+  glide from a jump, look for a list not to have arrived straight after one. On a machine slow
+  enough they would fail with the page right; none can pass with it wrong. One older check is
+  the same.
 - **Hover across a redraw.** A draw forgets who hover lit. With the pointer resting on a card
   in a list while the picture is redrawn (a resize, a switch), the card stays tinted and a
   moment's pill stays outlined, but the people it lit go unlit until the pointer moves off and

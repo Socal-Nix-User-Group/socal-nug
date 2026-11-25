@@ -1,4 +1,4 @@
-import type { Point } from "./loom-place.ts";
+import type { Box, Point } from "./loom-place.ts";
 import type { Story } from "./story.ts";
 
 /** What a reader has picked from a list or the map: one person or one moment. */
@@ -40,12 +40,23 @@ export function centred(
 }
 
 /**
- * How far a list has to scroll along one axis for [start, end] to show
- * inside [viewStart, viewEnd]: 0 when it already does. Something longer than
- * the view is shown from its start.
+ * Where a list has to be scrolled to for `card`, a card's box in the list's
+ * content in pixels, to sit in the middle of the list's box, held to how far
+ * the list can scroll. A card longer than the box along an axis is put at the
+ * box's start on that axis instead: a card is read from its start, and
+ * centred it would lose both ends.
  */
-export function reveal(start: number, end: number, viewStart: number, viewEnd: number): number {
-  if (end - start > viewEnd - viewStart || start < viewStart) return start - viewStart;
-  if (end > viewEnd) return end - viewEnd;
-  return 0;
+export function framed(
+  card: Box,
+  box: { readonly width: number; readonly height: number },
+  reach: Point,
+): Point {
+  return centred(
+    {
+      x: card.x + Math.min(card.width, box.width) / 2,
+      y: card.y + Math.min(card.height, box.height) / 2,
+    },
+    box,
+    reach,
+  );
 }

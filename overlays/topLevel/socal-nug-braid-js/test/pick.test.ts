@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { centred, litBy, reveal, toggled } from "../src/pick.ts";
+import { centred, framed, litBy, toggled } from "../src/pick.ts";
 import { story } from "./story-fixture.ts";
 
 test("a click on a card picks it, and a second click on the same card picks nothing", () => {
@@ -35,11 +35,26 @@ test("centring puts the point in the middle of the box, and stops where the box 
   assert.deepEqual(centred({ x: 300, y: 300 }, box, { x: 0, y: 0 }), { x: 0, y: 0 });
 });
 
-test("a list scrolls only as far as it takes to show a card, and not at all for one already in view", () => {
-  assert.equal(reveal(120, 180, 100, 300), 0);
-  assert.equal(reveal(40, 90, 100, 300), -60);
-  assert.equal(reveal(280, 350, 100, 300), 50);
-  // longer than the view: from its start
-  assert.equal(reveal(150, 500, 100, 300), 50);
-  assert.equal(reveal(60, 500, 100, 300), -40);
+test("a list is scrolled to put a card in the middle of its box, as far as the list goes", () => {
+  // a list 400 by 300 that scrolls down 3000, and a card 100 tall across its width
+  const box = { width: 400, height: 300 };
+  const reach = { x: 0, y: 3000 };
+  // the card's middle, 1050, ends up 150 down the box
+  assert.deepEqual(framed({ x: 0, y: 1000, width: 400, height: 100 }, box, reach), { x: 0, y: 900 });
+  // the first card and the last cannot be brought to the middle
+  assert.deepEqual(framed({ x: 0, y: 0, width: 400, height: 100 }, box, reach), { x: 0, y: 0 });
+  assert.deepEqual(framed({ x: 0, y: 3200, width: 400, height: 100 }, box, reach), { x: 0, y: 3000 });
+  // a row that scrolls sideways is centred across in the same way
+  assert.deepEqual(
+    framed({ x: 2000, y: 0, width: 300, height: 260 }, { width: 900, height: 260 }, { x: 5000, y: 0 }),
+    { x: 1700, y: 0 },
+  );
+});
+
+test("a card longer than its list's box is put at the box's start, not centred with both ends cut off", () => {
+  const box = { width: 400, height: 300 };
+  // 500 tall in a box 300 tall: its top goes to the top of the box
+  assert.deepEqual(framed({ x: 0, y: 1000, width: 400, height: 500 }, box, { x: 0, y: 3000 }), { x: 0, y: 1000 });
+  // exactly as tall as the box is the same thing either way
+  assert.deepEqual(framed({ x: 0, y: 1000, width: 400, height: 300 }, box, { x: 0, y: 3000 }), { x: 0, y: 1000 });
 });
