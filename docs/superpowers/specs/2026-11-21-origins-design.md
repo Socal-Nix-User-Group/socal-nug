@@ -708,9 +708,11 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   - the map's box, from the tall box beside the rail to the wide one above it;
   - each card of both lists, and the two headings, from one arrangement to the other. A card
     really is the width it appears to be on the way, so its text wraps as it travels and is
-    never stretched. Cards cross over the picture on their way, which Daniel does not mind;
-    with two lists the people's cards also cross the moments' (see "The two lists" for which
-    cards are shown on the way, and "Still open").
+    never stretched. Cards cross over the picture on their way, and with two lists the
+    people's cards cross the moments' as well, the words of one showing through another for
+    part of the way. Daniel does not mind either: the first he said when there was one list,
+    the second on 2026-11-25 after trying it. See "The two lists" for which cards are shown on
+    the way.
 - The first Loom dropped the slide the page had before it, because a moment that is wide in one
   mode and tall in the other had nowhere sensible to slide from. The pill now changes shape as
   it moves, through a circle half way. Threads were the hard part: the two modes give one edge
@@ -1248,9 +1250,9 @@ be reasonable if layout moved to build time.
 - **The card.** The treatment was called out early as generic and never revisited beyond
   squaring the corners. There is one card surface now, used in the popup and the roster, so it
   is a single thing to design rather than two.
-- **Descriptions and quotes.** Chris Tewfik, Joshua Campbell and Matthew Croughan have neither.
+- **Descriptions and quotes.** Joshua Campbell and Matthew Croughan have neither.
   Everyone else has a description; only Daniel Baker, Jared Baur and Mica have a quote, and only
-  Daniel Baker, David Nuon and Samuel Raumin have links.
+  Daniel Baker, David Nuon, Samuel Raumin and Chris Tewfik have links.
   Rob Hernandez's and Jared Baur's "First contact" have no blurb, though Daniel Baker's and
   Connor Baker's have one, and several conference and camp moments have none.
 - **Eight `CONFIRM` markers** in `data/moments.toml`: two dates given as approximations, one
@@ -1342,10 +1344,6 @@ be reasonable if layout moved to build time.
   seconds of a switch, or look for a scroll to have begun shortly after a click. On a machine
   slow enough they would fail with the page right; none can pass with it wrong. One older
   check is the same.
-- **Two lists crossing in the switch.** Between River and Subway the people's cards travel
-  across the moments' cards, and the cards are see-through enough for the words of one to show
-  through another for part of the 1.2 seconds. Daniel accepted cards crossing the picture when
-  there was one list and has not seen this.
 - **Hover across a redraw.** A draw forgets who hover lit. With the pointer resting on a card
   in a list while the picture is redrawn (a resize, a switch), the card stays tinted and a
   moment's pill stays outlined, but the people it lit go unlit until the pointer moves off and

@@ -125,6 +125,9 @@ people = [
   "joshua-campbell",
 ]
 blurb = "Daniel Baker, Daniel Fullmer and Ben Futoriansky were at the Nix booth. Daniel Baker and David Nuon met Rob Hernandez there."
+links = [
+  { title = "SCaLE 20x", url = "https://www.socallinuxexpo.org/scale/20x/" },
+]
 
 [[moment]]
 id = "snug-founded"
