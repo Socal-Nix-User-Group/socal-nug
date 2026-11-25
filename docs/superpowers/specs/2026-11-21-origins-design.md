@@ -907,6 +907,62 @@ right.
 The mock-ups are in `.superpowers/sdd/origins-loom-pictures/moment-list.html`, outside the
 repository's history.
 
+### One card for a moment, and the popup only under the map
+
+Daniel asked on 2026-11-25 for a moment's card in the list to say everything its popup says,
+so that the popup could go: with the two lists, and a click in the map bringing the card to
+the middle of its list, the popup says nothing the list does not. A person's card was already
+one card in both places.
+
+What was measured first, on the 44 moments and 13 people of that day:
+
+- The list's card lacked the blurb (10 moments have one), the event page link (20), the outside
+  links (16 moments; 39 links in all with the event pages) and every name past four. No moment
+  has a photo.
+- A popup card is 96px to 235px tall, 143px at the median, against 80px for the list's compact
+  card. Beside River in a 1000px window about two and a half show at once where four and a
+  half did.
+- The popup is redundant only where the lists are beside the map. Under Subway, with the map's
+  top at the top of the window, the moments' list has 418px on screen in a 1920 by 1080
+  window, 238px at 1440 by 900 and 106px at 1366 by 768. A card brought to the middle of that
+  list is whole in the first, cut off at the bottom in the second and all but out of sight in
+  the third.
+
+Three ways to deal with the list being under the map were put to Daniel: keep the popup there;
+remove it everywhere and scroll the page to the card; remove it everywhere and leave the reader
+to scroll. Daniel chose the first.
+
+- **One card.** A moment's card in the list is its popup's card without the X: mark, title,
+  date, photo when it has one, blurb, names, event page and outside links. `detailFor` builds
+  both, as `personCardFor` builds both of a person's. The names are the popup's, in full:
+  "Joined here:" and "Confirmed there:" on a meetup, the people named on any other moment. The
+  compact card and its limit of four names are gone.
+- A meetup's card carries the trunk's colour down its edge and any other moment's the muted
+  colour, in the list and in the popup alike, as their ovals do in the map. Before this the
+  popup's edge was the trunk's colour for every moment.
+- A click on a link in a moment's card follows the link and picks nothing, as in a person's
+  card.
+- On a narrow screen a moment's card in its row is 19rem wide, as a person's is; 13rem was for
+  the compact card.
+- **Where the popup stays.** A click, a tap or Enter on a face or a moment in the map opens
+  the popup when the rail is under the map: in Subway at any width, and in any window narrower
+  than 1024px. When the rail is beside the map, which is River in a window 1024px or wider,
+  nothing opens: the click picks, and the list glides to the card, which is beside what was
+  clicked and says everything. The script tells which by where the rail is on the page, not by
+  repeating the stylesheet's breakpoint.
+- **The keyboard, beside the map.** Enter or Space on a moment or a face moves focus to its
+  card in the list, so a screen reader reads the card and its links are the next tab stops.
+  Escape lets go of the pick and sends focus back to where it was in the map. The card takes
+  focus from the script only; it is still not a tab stop. Under the map the keyboard opens the
+  popup with focus in it, as before.
+- A moment's pill keeps its changed outline while it is picked, in every arrangement. The
+  outline for an open popup is the same one and applies only where there is a popup.
+- **What it costs: tab stops.** A moment's full card has links, so the rail now has 57 links
+  after the map where it had 18, and a reader tabbing past the page goes through them. They are
+  links and behave as links; making all but the picked card's unreachable by Tab was thought of
+  and not done.
+- The popup's code stays, since two of the three arrangements still open it.
+
 ### Member and guest treatment
 
 Several signals, so it does not depend on colour alone:
