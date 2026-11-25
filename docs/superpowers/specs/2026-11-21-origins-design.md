@@ -241,9 +241,12 @@ quote = "..."                                     # their own words
 links = [{ title = "...", url = "https://..." }]  # their own sites
 ```
 
-- `quote` is shown as a quotation on the person's Origins card and nowhere else. `description` is
-  prose about them and reads as the site talking; a quote reads as them. `profiles.json` does not
-  describe `quote`, so nothing checks it.
+- `quote` is shown as a quotation, above the description, on the person's Origins card and on
+  the About grid. `description` is prose about them and reads as the site talking; a quote reads
+  as them. The About grid did not show it at first: the field was split out of `description` for
+  the card, the About template was never taught it, and Mica's line dropped off that page until
+  Daniel asked where the quotes were. `profiles.json` does not describe `quote`, so nothing
+  checks it.
 - `links` is the same shape as a moment's `links`. `profile_url` is the person's GitHub, which
   the alias links to; `links` is anywhere else they want to be found. Each is shown by its title,
   under the description, on the About grid and on the person's Origins card. They are plain links
@@ -862,7 +865,8 @@ In `checks/default.nix`:
   the hand over the map, the dimming of whoever is not lit, and the roster taking the map's
   ceiling beside it. It checks that the guest in the data is on the Origins page and not in the
   About grid, and proves the About filter with a guest probe as well. It checks that every
-  member's own links are in the data block and on the About grid.
+  member's own links are in the data block and on the About grid, and that every member's quote
+  is on the About grid as a quotation.
 
 - `braid-smoke`: builds the story from the built site's own data block, which is the repository's
   `data/moments.toml` and `content/events/` through the template's merge, not from fixtures. It

@@ -182,8 +182,18 @@ class SiteBuild(unittest.TestCase):
         about = html.unescape((self.out / 'about' / 'index.html').read_text())
         for person in linked:
             for link in person['links']:
-                self.assertIn(
-                    f'<a class="mr-3" href="{link["url"]}">{link["title"]}</a>', about)
+                anchor = f'<a class="mr-3" href="{link["url"]}">{link["title"]}</a>'
+                self.assertTrue(anchor in about, f'not on the About page: {anchor}')
+
+    def test_a_members_own_words_are_on_about_as_a_quotation(self):
+        # the same field the Origins card shows as a quotation
+        _, data = self.origins_data()
+        quoted = [p for p in data['people'] if p['member'] and p['quote']]
+        self.assertTrue(quoted, 'no member profile carries a quote')
+        about = html.unescape((self.out / 'about' / 'index.html').read_text())
+        for person in quoted:
+            said = f'<blockquote>{person["quote"]}</blockquote>'
+            self.assertTrue(said in about, f'not on the About page: {said}')
 
     def test_a_guest_has_a_page_but_is_not_in_the_members_grid(self):
         # the filter is proved with a probe as well, so it does not rest on

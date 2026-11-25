@@ -38,7 +38,12 @@
               <h6 class="subtitle is-6">
                 <a href="{{ profile.extra.profile_url }}">{{ profile.extra.alias }}</a>
               </h6>
-      
+
+              {#- Their own words, where the description is the site talking. -#}
+              {%- set quote = profile.extra.quote | default(value="") %}
+              {%- if quote != "" %}
+              <blockquote>{{ quote }}</blockquote>
+              {%- endif %}
               {{ profile.extra.description }}
               {#- Their own sites. The alias above goes to their GitHub. -#}
               {%- set links = profile.extra.links | default(value=[]) %}
