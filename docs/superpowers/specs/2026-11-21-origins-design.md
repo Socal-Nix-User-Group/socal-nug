@@ -770,8 +770,11 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
 ### Cards and the popup
 
 - Thread roots are the person's avatar, circular, ringed in their thread colour.
-- Clicking a face opens that person's card and clicking a moment opens its card, both in one popup
-  that is a child of the scrolling map. It is placed in the map's own scroll coordinates beside
+- Where the rail is under the map (Subway, and any window narrower than 1024px), clicking a face
+  opens that person's card and clicking a moment opens its card, both in one popup
+  that is a child of the scrolling map. Where the rail is beside the map nothing opens, since
+  2026-11-25: the card is in the list beside what was clicked (see "One card for a moment, and
+  the popup only under the map"). The popup is placed in the map's own scroll coordinates beside
   what was clicked, to the right and flipping left when there is no room, clamped to the slice of
   the map on screen so it never opens somewhere the reader has to scroll to find, and it pans with
   the map once open. A moment keeps a changed outline while its card is open.
@@ -820,7 +823,9 @@ on the real page; Daniel chose the two boxes side by side for Subway and agreed 
 written here. Where this section and an older one disagree about the roster, this one is
 right.
 
-- **What is listed.** People as before, in thread order. Moments: every moment in the story,
+- **What is listed.** (The compact card described here lasted a day; a moment's card in the
+  list is now the card its popup shows, see the next section.) People as before, in thread
+  order. Moments: every moment in the story,
   meetups included, in the story's order, which is date order. A moment's card is compact: its
   avatar when it has one, its title, its date at the precision the data gives, and one line of
   names. On a meetup the names are who joined there and then who the record confirms; on any
@@ -839,7 +844,7 @@ right.
     this one.
   - Narrower than 1024px, in both modes: the rail is under the map with the panes stacked, and
     each list is one row that scrolls sideways, a person's card 19rem wide and a moment's
-    13rem. Before the moments' list the roster on a narrow screen was the whole list of
+    13rem (19rem since it became the full card). Before the moments' list the roster on a narrow screen was the whole list of
     people; with forty-four moments under it the page would be very long. Like the map, a row
     keeps a sideways overscroll to itself, so a swipe at its end does not take the browser back
     a page. The rule holds up to 1023.98px and not 1023px: a zoomed browser can make a window a
@@ -862,8 +867,9 @@ right.
 - A click on a card in a list opens no popup: the card already says what the popup would, and
   the popup would cover what was just centred. A popup that is open closes. A click on a link
   inside a person's card follows the link and picks nothing.
-- **From the map.** A click on a face or a moment in the map opens its popup as before and
-  also picks it: its card in the list is marked and its list glides, inside its own box, until
+- **From the map.** A click on a face or a moment in the map picks it, and where the rail is
+  under the map also opens its popup as before: its card in the list is marked and its list
+  glides, inside its own box, until
   the card is in the middle of the box, or as near as the list goes. A card longer than the
   box is put at the box's start, since a card is read from its start and centred it would lose
   both ends. A reader who asks for reduced motion gets the list there at once. At first the
@@ -876,7 +882,9 @@ right.
   the people who were there; before this a tap lit nothing.
 - **Keyboard.** The cards in the lists are not tab stops. Fifty-seven more would bury the rest
   of the page, which is what the one tab stop for the map was for. A keyboard reaches every
-  person and moment through the map, where Enter opens the card and picks it.
+  person and moment through the map, where Enter picks it and either opens its popup or, beside
+  the map, moves focus to its card in the list. The links inside the cards are ordinary tab
+  stops, and since a moment's card became the full card there are 57 of them.
 - **What a pick outlasts.** A redraw for a resized window and a switch of mode: the new
   picture is lit and marked the same. Zooming and dragging the map do not touch it, and nor
   does a click anywhere outside the map and the lists.
@@ -949,12 +957,18 @@ to scroll. Daniel chose the first.
   than 1024px. When the rail is beside the map, which is River in a window 1024px or wider,
   nothing opens: the click picks, and the list glides to the card, which is beside what was
   clicked and says everything. The script tells which by where the rail is on the page, not by
-  repeating the stylesheet's breakpoint.
+  repeating the stylesheet's breakpoint: beside means the rail's left edge is at or past the
+  map's right edge, read afresh at every click, since the window can be resized and the mode
+  switched between two of them. A pointer click beside the map moves focus nowhere.
 - **The keyboard, beside the map.** Enter or Space on a moment or a face moves focus to its
   card in the list, so a screen reader reads the card and its links are the next tab stops.
-  Escape lets go of the pick and sends focus back to where it was in the map. The card takes
-  focus from the script only; it is still not a tab stop. Under the map the keyboard opens the
-  popup with focus in it, as before.
+  Escape lets go of the pick and sends focus back to the map, to whatever the map's cursor is
+  on, without scrolling anything. Only while focus has stayed on that card or inside it: once
+  focus has left the card, by Tab or by a click somewhere else, it is where the reader put it,
+  and Escape leaves it there even if it has since come back to the card. A click on the card
+  itself is not leaving it, as a click inside the popup is not. The card takes focus from the
+  script only; it is still not a tab stop, and it shows a ring while it has focus from the
+  keyboard. Under the map the keyboard opens the popup with focus in it, as before.
 - A moment's pill keeps its changed outline while it is picked, in every arrangement. The
   outline for an open popup is the same one and applies only where there is a popup.
 - **What it costs: tab stops.** A moment's full card has links, so the rail now has 57 links
@@ -962,6 +976,14 @@ to scroll. Daniel chose the first.
   links and behave as links; making all but the picked card's unreachable by Tab was thought of
   and not done.
 - The popup's code stays, since two of the three arrangements still open it.
+- **As built.** In the list beside River a moment's card is 96px to 216px tall, 123px at the
+  median, a little shorter than in the popup because the list is wider. Seen in headless
+  Chromium: in River at 1400px a click on a moment opens nothing, marks its card and brings it
+  to the middle of the list; Enter puts focus on the card, with its ring, and Escape sends it
+  back; in Subway at 1400px and at 1366 by 768, and in River at 900px, the popup opens as it
+  did. Read in the code and not tried in a browser: Space in place of Enter, a tap on a touch
+  screen in a wide River window, and a switch from Subway to River with the popup open (a
+  window widened with the popup open is tried, and closes it the same way).
 
 ### Member and guest treatment
 
@@ -996,8 +1018,10 @@ The picture is the accessible version of itself. Its SVG is a named group, every
 every face is a `role="button"` with a label, and the picture is one tab stop with a roving
 tabindex: the arrow keys move a cursor through the story in the order it happened, faces a step
 ahead of their person's first moment, Home and End go to either end, Enter or Space opens that
-card with focus in it, and Escape closes it with focus back where it was. Forward is Down or Right
-in both modes. One tab stop for every moment and face, several dozen of them, in the middle of a
+card with focus in it, and Escape closes it with focus back where it was. Where the rail is
+beside the map there is no popup to open, and Enter or Space moves focus to the card in the
+list instead, with Escape sending it back (see "One card for a moment, and the popup only
+under the map"). Forward is Down or Right in both modes. One tab stop for every moment and face, several dozen of them, in the middle of a
 page is a wall to anyone tabbing past, which is the reason for the roving pattern rather than plain
 focusable moments.
 
@@ -1029,10 +1053,14 @@ the picture could not be drawn. That was an accepted trade, not an oversight.
 The list of moments in the rail (see "The two lists") is not that list come back. The script
 builds it from the same data block the picture is drawn from, so there is no second copy to
 keep correct, and with JavaScript off it is not there. A screen reader does now meet each
-moment twice, as a button in the picture and as a list item under a "Moments" heading with its
-title, date and names. The cards in both lists answer a click and are not buttons or tab stops:
-picking is a pointer's convenience, as taking hold of the map is, and the keyboard's way to a
-person or a moment stays the picture, where Enter opens the card and picks it.
+moment twice, as a button in the picture and as a list item under a "Moments" heading with
+everything its card says: title, date, blurb, names and links. The cards in both lists answer a
+click and are not buttons or tab stops: picking from a list is a pointer's convenience, as
+taking hold of the map is, and the keyboard's way to a person or a moment stays the picture,
+where Enter picks it and either opens its popup or moves focus to its card in the list. The
+links inside the cards are tab stops like any links, 57 of them after the map since a moment's
+card became the full card. That is the wall the map's single tab stop was made to avoid, come
+back in the rail, and it was accepted as the price of links that behave as links.
 
 ### Build and toolchain
 
@@ -1218,7 +1246,18 @@ under reduced motion; and a tap picking the moment, with nothing left lit once i
 Each check that could pass for want of anything to click also asserts that the pick it depends
 on happened.
 
-Eighty-five checks, each named for what a visitor would
+Seven are about the one card for a moment and where the popup stays. A moment's card in the
+list says what its card in the map says, word for word and link for link; a click on a link in
+it picks nothing; in a narrow window it is as wide as a person's. Beside the map a click on a
+moment opens no card, marks its card in the list and glides the list to it, and its oval keeps
+the changed outline while it is picked; in a narrow window in River the click opens the popup;
+and a window widened until the lists are beside the map closes a popup that was open and keeps
+the pick. The check of the keyboard beside the map was restated with them: Enter picks, moves
+focus to the card in the list, and Escape sends focus back, but not when the reader has put it
+somewhere else, nor when it has left the card and come back. Every older check that opens the
+popup now runs in Subway, where the popup is, with the claim and the assertions it had.
+
+Ninety-two checks, each named for what a visitor would
 notice and none naming a moment or a person, so the data can change under it as long as the
 picture stays about the size it is (see below). It needs the
 network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
@@ -1382,7 +1421,8 @@ be reasonable if layout moved to build time.
   screen tall, so a card is usually clicked with the map out of sight above it. The map centres
   and the people light, but what the reader sees is the card marked. Scrolling the page up to
   the map on a pick was not asked for and has not been tried.
-- **A pick that outlives its popup.** A click or a tap on a moment in the map picks it, and
+- **A pick that outlives its popup.** This is now only where the popup still opens, with the
+  rail under the map. A click or a tap on a moment in the map picks it, and
   closing its popup with the X leaves the people lit and everyone else faint until Escape, a
   click on empty map or a click on its card. That is the rule as agreed, and it is one rule for
   every pick. On a phone the card that shows what is picked is under the map and out of sight,
