@@ -6,6 +6,7 @@ import {
   MOMENT_AVATAR,
   MOMENT_AVATAR_GAP,
   rootId,
+  textWidth,
 } from "../src/elk.ts";
 import type { ElkNode } from "../src/elk.ts";
 import { loomGraphFor, passId, portId } from "../src/loom-graph.ts";
@@ -34,19 +35,41 @@ test("a moment is as wide as its slots", () => {
   assert.deepEqual([subway.width, subway.height], [14, 30]);
 });
 
+// The room kept for a label is a flat 6.4px a character, which is generous:
+// an i is not as wide as an m. Where something has to sit against the text,
+// its real width is wanted. These are the titles in the data, as headless
+// Chromium measured them drawn in Barlow at 11px on 2026-11-24.
+test("a label's text is measured a character at a time, as the page's font draws it", () => {
+  for (
+    const [title, drawn] of [
+      ["NixCon", 34],
+      ["Nix Camp", 45],
+      ["Nix Vegas", 46.2],
+      ["SCaLE 22x / PlanetNix", 105.2],
+      ["SCaLE 21x / NixCon NA", 107.6],
+    ] as const
+  ) {
+    assert.ok(Math.abs(textWidth(title) - drawn) < 0.6, `${title}: ${textWidth(title)}`);
+    assert.ok(textWidth(title) < labelWidth(title), title);
+  }
+  assert.equal(textWidth(""), 0);
+  assert.ok(textWidth("iii") < textWidth("mmm") / 2);
+  // a character the table does not have counts for what the layout keeps for any
+  assert.equal(textWidth("é"), labelWidth("é"));
+});
+
 test("a moment with an avatar asks for room for it with its label: beside the text in River, above it in Subway", () => {
   const label = (mode: "river" | "subway", id: string) =>
     loomGraphFor(marked, mode).graph.children.find((n) => n.id === id)!.labels![0];
   const text = labelWidth("camp");
   assert.deepEqual(
     [label("river", "camp").width, label("river", "camp").height],
-    [text + MOMENT_AVATAR_GAP + 2 * MOMENT_AVATAR, 2 * MOMENT_AVATAR],
+    [text + MOMENT_AVATAR_GAP + 2 * MOMENT_AVATAR, Math.max(LABEL_HEIGHT, 2 * MOMENT_AVATAR)],
   );
-  // "camp" is narrower than the avatar, so the avatar sets the width
-  assert.ok(text < 2 * MOMENT_AVATAR);
+  // as wide as the wider of the two, the text and the avatar over it
   assert.deepEqual(
     [label("subway", "camp").width, label("subway", "camp").height],
-    [2 * MOMENT_AVATAR, 2 * MOMENT_AVATAR + MOMENT_AVATAR_GAP + LABEL_HEIGHT],
+    [Math.max(text, 2 * MOMENT_AVATAR), 2 * MOMENT_AVATAR + MOMENT_AVATAR_GAP + LABEL_HEIGHT],
   );
   // a moment with none asks for what it always did
   for (const mode of ["river", "subway"] as const) {

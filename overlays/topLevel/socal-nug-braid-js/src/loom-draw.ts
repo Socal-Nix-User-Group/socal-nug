@@ -278,6 +278,13 @@ export function drawLoom(
       x: round(label.x),
       y: round(label.y),
       "text-anchor": label.anchor,
+      // An avatar stands against this text, placed by how long the text is
+      // reckoned to be. Drawing it at exactly that length, by the gaps
+      // between its letters, makes the reckoning true in whatever font the
+      // reader's browser ends up with.
+      ...(label.length === undefined
+        ? {}
+        : { textLength: round(label.length), lengthAdjust: "spacing" }),
     });
     text.textContent = label.text;
     svg.appendChild(text);

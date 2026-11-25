@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { MOMENT_AVATAR } from "../src/elk.ts";
 import { drawLoom } from "../src/loom-draw.ts";
 import { placeLoom, slotKey } from "../src/loom-place.ts";
 import { buildStory } from "../src/story.ts";
@@ -377,7 +378,14 @@ test("a moment's avatar is drawn where the layout placed it, as a thing of its o
   const image = avatar.children[0];
   assert.deepEqual(
     [image.tag, image.attrs.href, image.attrs.x, image.attrs.y, image.attrs.width, image.attrs.height],
-    ["image", "/images/moments/camp.png", "-18", "-18", "36", "36"],
+    [
+      "image",
+      "/images/moments/camp.png",
+      String(-MOMENT_AVATAR),
+      String(-MOMENT_AVATAR),
+      String(2 * MOMENT_AVATAR),
+      String(2 * MOMENT_AVATAR),
+    ],
   );
   // the oval's button already names the moment
   assert.equal(image.attrs["aria-hidden"], "true");
@@ -388,6 +396,22 @@ test("a moment's avatar is drawn where the layout placed it, as a thing of its o
   assert.ok(drawn.indexOf(avatar) < Math.min(...index("origins-label")));
   // and a story with no avatars draws none
   assert.equal(withClass(made, "origins-moment-avatar").length, 0);
+});
+
+// The avatar is placed from how long the text is reckoned to be. Drawing the
+// text at exactly that length makes the reckoning true in whatever font the
+// reader's browser ends up with, so the two can never run into each other.
+test("a label with an avatar beside it is drawn at the length the layout placed the avatar by, and no other label is", async () => {
+  const p = await placeLoom(marked, "river", fakeLoomLayout);
+  const { doc, made: drawn } = stubDocument();
+  drawLoom(p, marked, doc);
+  const labels = withClass(drawn, "origins-label");
+  const held = labels.filter((l) => l.attrs.textLength !== undefined);
+  assert.deepEqual(held.map((l) => l.text), ["camp"]);
+  assert.equal(held[0].attrs.textLength, String(p.labels.get("camp")!.length));
+  // closing up or opening out the gaps between letters, never squashing them
+  assert.equal(held[0].attrs.lengthAdjust, "spacing");
+  assert.equal(withClass(made, "origins-label").some((l) => l.attrs.textLength !== undefined), false);
 });
 
 test("every label is text where the layout left room for it", () => {

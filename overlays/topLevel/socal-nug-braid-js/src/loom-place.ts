@@ -1,4 +1,11 @@
-import { LABEL_HEIGHT, MOMENT_AVATAR, rootSlug } from "./elk.ts";
+import {
+  LABEL_HEIGHT,
+  labelWidth,
+  MOMENT_AVATAR,
+  MOMENT_AVATAR_GAP,
+  rootSlug,
+  textWidth,
+} from "./elk.ts";
 import type { ElkGraph, Mode } from "./elk.ts";
 import { loomGraphFor, passId, slotOffset, THICK } from "./loom-graph.ts";
 import type { LoomGraph, ThreadMeta } from "./loom-graph.ts";
@@ -32,6 +39,12 @@ export interface PlacedLabel {
   readonly anchor: "end" | "middle";
   /** What the layout made room for, which is not always the whole title. */
   readonly text: string;
+  /**
+   * How long the text is to be drawn, for a label with an avatar beside it.
+   * The avatar is placed by this, so the text is held to it. Any other label
+   * is drawn at whatever length it comes to.
+   */
+  readonly length?: number;
 }
 
 export interface LoomPlaced {
@@ -135,33 +148,39 @@ export function loomPlacedFrom(
     // ELK places the label box relative to the node's corner. River hangs
     // the text off the box's right edge, Subway off its middle. The box is
     // taller than a line of text when the moment has an avatar: in River the
-    // text is on its middle line with the avatar at the far end, in Subway on
-    // its last line with the avatar above.
+    // text is on its middle line with the avatar before it, in Subway on its
+    // last line with the avatar above.
     const label = node.labels?.[0];
     if (label?.x !== undefined && label.y !== undefined) {
       const spare = label.height - LABEL_HEIGHT;
+      const end = x + label.x + label.width;
+      const middle = x + label.x + label.width / 2;
+      // The room kept for the text is a flat width a character, so how much
+      // is to spare differs from title to title. An avatar set at the far
+      // end of the room would stand a different distance from each text, so
+      // it is set against the text as drawn, and the text is drawn at that
+      // length. A title wider than its room is held to the room.
+      const marked = gathering.moment.avatar !== undefined;
+      const drawn = Math.min(textWidth(label.text), labelWidth(label.text));
       labels.set(
         node.id,
-        river
-          ? {
-            x: x + label.x + label.width,
-            y: y + label.y + spare / 2 + BASELINE,
-            anchor: "end",
-            text: label.text,
-          }
-          : {
-            x: x + label.x + label.width / 2,
-            y: y + label.y + spare + BASELINE,
-            anchor: "middle",
-            text: label.text,
-          },
+        {
+          x: river ? end : middle,
+          y: y + label.y + (river ? spare / 2 : spare) + BASELINE,
+          anchor: river ? "end" : "middle",
+          text: label.text,
+          ...(marked ? { length: drawn } : {}),
+        },
       );
-      if (gathering.moment.avatar !== undefined) {
+      if (marked) {
         avatars.set(
           node.id,
           river
-            ? { x: x + label.x + MOMENT_AVATAR, y: y + label.y + label.height / 2 }
-            : { x: x + label.x + label.width / 2, y: y + label.y + MOMENT_AVATAR },
+            ? {
+              x: end - drawn - MOMENT_AVATAR_GAP - MOMENT_AVATAR,
+              y: y + label.y + label.height / 2,
+            }
+            : { x: middle, y: y + label.y + MOMENT_AVATAR },
         );
       }
     }

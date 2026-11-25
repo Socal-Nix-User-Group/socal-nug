@@ -585,7 +585,7 @@ test("a thread through a moment's avatar is a layout finding naming both", () =>
   const avatar = placed.avatars.get("camp")!;
   const made = drawnOf(marked, placed);
   const thread = withClass(made, "origins-thread").find((p) => p.attrs["data-person"] === "mica")!;
-  thread.attrs.d = goesTo(avatar.x + 10, avatar.y);
+  thread.attrs.d = goesTo(avatar.x + MOMENT_AVATAR / 2, avatar.y);
   const found = inspectDrawing(marked, placed, made);
   assert.equal(found.length, 1, JSON.stringify(found));
   assert.equal(found[0].kind, "layout");
@@ -598,7 +598,7 @@ test("a thread that only comes near an avatar is no finding", () => {
   const made = drawnOf(marked, placed);
   const thread = withClass(made, "origins-thread").find((p) => p.attrs["data-person"] === "mica")!;
   // inside the square around the disc, outside the disc
-  thread.attrs.d = goesTo(avatar.x - 14, avatar.y - 14);
+  thread.attrs.d = goesTo(avatar.x - 0.8 * MOMENT_AVATAR, avatar.y - 0.8 * MOMENT_AVATAR);
   assert.deepEqual(inspectDrawing(marked, placed, made), []);
 });
 
@@ -613,7 +613,11 @@ test("an avatar off the canvas, on a face, on an oval, on a label or on another 
     ["on a face", { x: face.x + 20, y: face.y }, /camp's avatar sits on rob's face/],
     ["on an oval", { x: oval.x - 20, y: oval.y }, /camp's avatar sits on founded's oval/],
     ["on a label", { x: label.x - 10, y: label.y - 7 }, /the label "nug1" sits on camp's avatar/],
-    ["on another avatar", { x: other.x + 20, y: other.y + 20 }, /camp's avatar sits on scale's avatar/],
+    [
+      "on another avatar",
+      { x: other.x + MOMENT_AVATAR, y: other.y + MOMENT_AVATAR },
+      /camp's avatar sits on scale's avatar/,
+    ],
   ];
   for (const [what, at, pattern] of cases) {
     const moved = { ...clean, avatars: new Map(clean.avatars).set("camp", at) };
@@ -637,6 +641,28 @@ test("a label counts as on an avatar from the disc's edge, not from its centre",
   assert.deepEqual(inspectDrawing(marked, at(1), drawnOf(marked, at(1))), []);
   const found = inspectDrawing(marked, at(-3), drawnOf(marked, at(-3)));
   assert.deepEqual(found, [{ kind: "layout", message: 'the label "camp" sits on camp\'s avatar' }]);
+});
+
+// A label with an avatar beside it is drawn at a set length, shorter than the
+// room kept for it, and the avatar stands against the text as drawn. Measured
+// by the room, every such label would be found sitting on its own avatar.
+test("a label drawn at a set length is measured at that length, not by the room kept for it", () => {
+  const clean = withAvatars(marked);
+  const label = clean.labels.get("camp")!;
+  const length = labelWidth(label.text) - 10;
+  const y = clean.moments.get("camp")!.y;
+  const snug = {
+    ...clean,
+    labels: new Map(clean.labels).set("camp", { ...label, length }),
+    avatars: new Map([["camp", { x: label.x - length - MOMENT_AVATAR_GAP - MOMENT_AVATAR, y }]]),
+  };
+  assert.deepEqual(inspectDrawing(marked, snug, drawnOf(marked, snug)), []);
+  // the same avatar against a label drawn at whatever length it comes to
+  const loose = { ...snug, labels: clean.labels };
+  assert.deepEqual(inspectDrawing(marked, loose, drawnOf(marked, loose)), [{
+    kind: "layout",
+    message: 'the label "camp" sits on camp\'s avatar',
+  }]);
 });
 
 // The layout centres a label's box on its moment: across the row in River,

@@ -544,7 +544,9 @@ export function inspectDrawing(
     .map((n) => {
       const x = +n.attrs.x;
       const y = +n.attrs.y;
-      const width = labelWidth(n.text);
+      // A label drawn at a set length is that long. Any other is taken to
+      // fill the room the layout kept for it.
+      const width = n.attrs.textLength === undefined ? labelWidth(n.text) : +n.attrs.textLength;
       const anchor = n.attrs["text-anchor"];
       const left = anchor === "end"
         ? x - width

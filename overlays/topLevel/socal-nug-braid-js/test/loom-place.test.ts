@@ -1,6 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { LABEL_HEIGHT, labelWidth, MOMENT_AVATAR, rootId } from "../src/elk.ts";
+import {
+  LABEL_HEIGHT,
+  labelWidth,
+  MOMENT_AVATAR,
+  MOMENT_AVATAR_GAP,
+  rootId,
+  textWidth,
+} from "../src/elk.ts";
 import type { ElkGraph, ElkPoint } from "../src/elk.ts";
 import { loomGraphFor, passId, portId } from "../src/loom-graph.ts";
 import {
@@ -10,8 +17,9 @@ import {
   placeLoom,
   slotKey,
 } from "../src/loom-place.ts";
+import { buildStory } from "../src/story.ts";
 import { fakeLoomLayout } from "./fake-loom-elk.ts";
-import { marked, story } from "./story-fixture.ts";
+import { marked, MOMENTS, PEOPLE, story } from "./story-fixture.ts";
 
 const placed = await placeLoom(story, "river", fakeLoomLayout);
 
@@ -204,10 +212,17 @@ test("a label carries the text the layout made room for, anchored as its mode ha
   });
 });
 
-test("a moment's avatar sits in the room its label was given: at the far end in River, on top in Subway", async () => {
+test("a moment's avatar sits in the room its label was given: hard against the text in River, on top of it in Subway", async () => {
+  // a title that is drawn shorter than the room kept for it, as most are
+  const titled = buildStory(
+    MOMENTS.map((m) => (m.id === "camp" ? { ...m, title: "Nix Camp", avatar: "/a.png" } : m)),
+    PEOPLE,
+  );
+  const drawn = textWidth("Nix Camp");
+  assert.ok(drawn < labelWidth("Nix Camp") - 5);
   for (const mode of ["river", "subway"] as const) {
-    const built = loomGraphFor(marked, mode);
-    const mapped = loomPlacedFrom(built, await fakeLoomLayout(built.graph), marked, mode);
+    const built = loomGraphFor(titled, mode);
+    const mapped = loomPlacedFrom(built, await fakeLoomLayout(built.graph), titled, mode);
     const i = built.graph.children.findIndex((n) => n.id === "camp");
     const node = built.graph.children[i];
     const label = node.labels![0];
@@ -216,17 +231,20 @@ test("a moment's avatar sits in the room its label was given: at the far end in 
     const top = Number(node.layoutOptions!["elk.partitioning.partition"]) * 50 + 1;
     assert.equal(mapped.avatars.size, 1, mode);
     if (mode === "river") {
+      // the gap from the start of the text as it is drawn, not from the far
+      // end of the room, so every avatar is as close to its text as any other
       assert.deepEqual(mapped.avatars.get("camp"), {
-        x: left + MOMENT_AVATAR,
+        x: left + label.width - drawn - MOMENT_AVATAR_GAP - MOMENT_AVATAR,
         y: top + label.height / 2,
       });
       // the text hangs off the end nearest the oval as ever, on the middle
-      // line of the taller box
+      // line of the taller box, and says how long it is to be drawn
       assert.deepEqual(mapped.labels.get("camp"), {
         x: left + label.width,
         y: top + (label.height - LABEL_HEIGHT) / 2 + 11,
         anchor: "end",
-        text: "camp",
+        text: "Nix Camp",
+        length: drawn,
       });
     } else {
       assert.deepEqual(mapped.avatars.get("camp"), {
@@ -238,10 +256,27 @@ test("a moment's avatar sits in the room its label was given: at the far end in 
         x: left + label.width / 2,
         y: top + (label.height - LABEL_HEIGHT) + 11,
         anchor: "middle",
-        text: "camp",
+        text: "Nix Camp",
+        length: drawn,
       });
     }
+    // a label with no avatar beside it is drawn at whatever length it comes to
+    assert.equal(mapped.labels.get("founded")!.length, undefined, mode);
   }
+});
+
+test("a title drawn wider than the room kept for it is held to the room, so its avatar stays inside", async () => {
+  // the fixture's own title is one: an m is half as wide again as the room a
+  // character is given
+  assert.ok(textWidth("camp") > labelWidth("camp"));
+  const built = loomGraphFor(marked, "river");
+  const mapped = loomPlacedFrom(built, await fakeLoomLayout(built.graph), marked, "river");
+  const i = built.graph.children.findIndex((n) => n.id === "camp");
+  const label = built.graph.children[i].labels![0];
+  const left = 100 + i * 20 + (-label.width - 12);
+  assert.equal(mapped.labels.get("camp")!.length, labelWidth("camp"));
+  // hard against the far end of the room, and not a hair outside it
+  assert.ok(Math.abs(mapped.avatars.get("camp")!.x - MOMENT_AVATAR - left) < 1e-9);
 });
 
 test("a story with no avatars has none placed, and centring moves an avatar with everything else", async () => {

@@ -415,14 +415,30 @@ fifteen conference and camp moments have one. Eight images are vendored in
 - The two moments SCaLE shared with PlanetNix, and the one it shared with NixCon NA, carry
   SCaLE's mark. A moment has one avatar.
 - Nix Camp's own page shows a unicorn; the tents are the logo Daniel found on nix.ug.
-- **In the picture.** A moment's avatar is drawn the size of a face, 36px, at the far end of its
-  label in River and above it in Subway, and it is shown again beside the title in the moment's
-  card. Three ways were mocked up on the real page: this one, the same at 24px, and the card
-  alone. Daniel had not picked when it was built; this was the one recommended, because at 24px
-  the eagle and the tents lose their shape, and in the card alone nobody sees a mark until they
-  have clicked. The size is one constant, `MOMENT_AVATAR` in `src/elk.ts`. Leaving room for
-  fifteen of them took River from 741px by 2805px to 774px by 3145px, and Subway from 6136px by
-  579px to 6152px by 602px.
+- **In the picture.** A moment's avatar is drawn 24px across, before its label's text in River
+  and above it in Subway, and it is shown again, at 44px, beside the title in the moment's card.
+  Three ways were mocked up on the real page: the size of a face (36px), 24px, and the card
+  alone. It was built at 36px, which was the recommendation; Daniel saw that on the real page
+  and chose 24px. The size is one constant, `MOMENT_AVATAR` in `src/elk.ts`. Leaving room for
+  fifteen of them took River from 741px by 2805px to 764px by 2968px, and Subway from 6136px by
+  579px to 6148px by 592px.
+- **Against the text.** In River every avatar stands 6px from the start of its label's text.
+  It did not at first. The room kept for a label is a flat 6.4px a character, which is more
+  than most titles are drawn at and by a different amount for each, and an avatar set at the
+  far end of that room stood 8px from "NixCon", 15px from "Nix Vegas" and 33px from "SCaLE 22x
+  / PlanetNix". Daniel asked for them to be close and alike. The avatar is now placed by how
+  wide the text is drawn: `textWidth` in `src/elk.ts` adds up each character's width in Barlow
+  at 11px, from a table measured in headless Chromium, which comes within about half a pixel
+  of the fifteen titles as the browser draws them. The label is then drawn at exactly that
+  length (`textLength`, adjusting the gaps between letters), so the distance holds in whatever
+  font the reader's browser ends up with: in Barlow the adjustment is about half a pixel over
+  a whole title at most, and in a fallback font the title is closed up or opened out to fit
+  rather than running into its avatar. A title that would be drawn wider than the room kept
+  for it is held to the room. The room itself is unchanged, so no other label and no layout
+  moved for this.
+- The two Nix Vegas images were made again with the mark filling more of its dark disc. On the
+  dark theme the disc hardly shows, so the margin inside it read as more distance from the
+  text.
 - The avatar is an element of its own beside the moment's pill, not part of the pill's group, so
   the pill keeps its outline, its focus ring and its place in the keyboard's order to itself. It
   carries the moment's id: hovering it lights the people through the moment, and a click on it
@@ -542,9 +558,9 @@ The graph:
 - Labels are handed to ELK as node labels, sized by their text and cut with an ellipsis past
   150px. That is what makes it leave room for them: they become part of the node's margin,
   nothing else is placed there, and edges route around them. A moment with an avatar asks for a
-  larger label box and gets room for the avatar the same way: 36px and a 4px gap wider in River,
-  where the avatar sits at the far end of the text, and as much taller in Subway, where it sits
-  on top of it.
+  larger label box and gets room for the avatar the same way: 24px and a 6px gap wider in River,
+  where the avatar stands before the text, and as much taller in Subway, where it sits on top
+  of it.
 - River is direction DOWN with labels beside nodes; Subway is direction RIGHT with labels above.
   The same graph, laid out twice, which is what lets the picture morph from one to the other
   (see "Toggle and responsive behaviour").
@@ -555,7 +571,8 @@ The graph:
 From ELK's output, `loom-place.ts` makes each moment's box and centre, the point of each person's
 slot inside it, each label's anchor, the centre of each moment's avatar in the label's box (the
 text is on the box's middle line in River and its last line in Subway, which for a box one line
-tall is where it always was), each pass-through's box (kept apart from the moments, with
+tall is where it always was; see "Event marks" for how the avatar is set against the text),
+each pass-through's box (kept apart from the moments, with
 no centre or label), each face's centre, and a polyline per edge saying whose thread it is and
 which nodes it runs between. Each polyline is carried on from the port on a box's edge to the
 person's slot inside it, at both ends, so one person's edges meet inside the moment and the
@@ -591,9 +608,10 @@ run ELK; the smoke check is the one place the engine is tested through it.
   size of an ordinary bead, with nothing in it.
 - Faces: the person's avatar, or their initial when there is no image, in a circle ringed in their
   thread colour.
-- Moments' avatars: the event's mark, 36px across, in the room left with the label. No ring and
+- Moments' avatars: the event's mark, 24px across, in the room left with the label. No ring and
   nothing cut, since the image is made to sit in a circle (see "Event marks").
-- Labels: each moment's title, where ELK left room for it.
+- Labels: each moment's title, where ELK left room for it. A label with an avatar beside it is
+  drawn at a set length (`textLength`), the length its avatar was placed by.
 
 There is no trunk, and there are no halo rings.
 
@@ -712,7 +730,7 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   has carried counts as at the start along the map and in the middle across it.
 - That is also where the first picture opens: at the start of the map, with as much out of sight
   on one side as on the other. A River wider than its box therefore opens centred, by Daniel's
-  choice. The ribbon runs from 466px to 559px across the 774px picture, so opened at its left
+  choice. The ribbon runs from 466px to 559px across the 764px picture, so opened at its left
   edge River shows 9px of it in a 475px box and none of it on a phone. A resize redraws the
   picture and leaves the box scrolled where it was.
 - A view whose zoom was last set by Fit arrives at the other mode's fit, the zoom changing on
@@ -959,7 +977,8 @@ In `checks/default.nix`:
     canvas or is wider than the 150px it may claim, and no thread runs under a label;
   - every moment that carries an avatar has one drawn and no other moment does; each is on the
     canvas, in line with its moment to within a pixel (on its row in River, over its column in
-    Subway), and no thread, face, moment, label or other avatar is on it;
+    Subway), and no thread, face, moment, label or other avatar is on it. A label drawn at a set
+    length is measured at that length, and any other by the room kept for it;
   - every filled bead is inside its own moment, and a person has one exactly where the record
     vouches for them and nowhere else;
   - for everyone recorded as away from a meetup, no part of their drawn thread is inside that
@@ -1002,10 +1021,12 @@ along and a round trip returns; that a fitted view arrives fitted; that the mode
 buttons do nothing while it moves; that reduced motion makes it instant; and that a switch made
 to fail, in a frame and before the first one, still ends in the ordinary picture with the next
 switch working. Two more are about where the view is put without a morph: a River wider than
-its box opens centred, and the instant switch lands the same share of the way along. Two are
+its box opens centred, and the instant switch lands the same share of the way along. Three are
 about a moment's avatar: a click on it opens its moment's card in the place a click on the pill
-opens it, and it is part way between its two places while the mode changes.
-Sixty checks, each named for what a visitor would
+opens it, it is part way between its two places while the mode changes, and in River every one
+stands the same distance from its label's text, which only a browser can say, since only a
+browser knows how wide the text came out.
+Sixty-one checks, each named for what a visitor would
 notice and none naming a moment or a person, so the data can change under it as long as the
 picture stays about the size it is (see below). It needs the
 network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
@@ -1147,7 +1168,7 @@ be reasonable if layout moved to build time.
   pointer then; pressing Enter on a focused moment while it morphs is meant to open nothing;
   and a mouse already holding the map when a keyboard press switches modes is meant to be let
   go.
-- **River wider than its box.** River is 774px wide, 33px of that the room for the moments'
+- **River wider than its box.** River is 764px wide, 23px of that the room for the moments'
   avatars. Beside the roster its box is 859px in a
   window of 1408px or more, 667px from 1216px and 475px from 1024px, all measured, so in a
   window from 1024px to 1407px, and on a phone, River scrolls sideways. It opens centred (see

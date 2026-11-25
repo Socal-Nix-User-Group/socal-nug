@@ -917,6 +917,32 @@ async function run(): Promise<void> {
     );
   }
 
+  // In River a moment's avatar stands before its label's text. The room the
+  // layout keeps for a title is not the width the title is drawn at, and an
+  // avatar set by the room stood 8px from a short title and 33px from a long
+  // one. Only a browser knows how wide the text really came out.
+  await load("river");
+  {
+    const gaps = await tab.evaluate<Array<{ moment: string; gap: number }>>(`(() => {
+      const svg = ${PICTURE};
+      const labels = [...svg.querySelectorAll("text.origins-label")].map((t) => t.getBoundingClientRect());
+      return [...svg.querySelectorAll(".origins-moment-avatar")].map((a) => {
+        const box = a.getBoundingClientRect();
+        const row = box.top + box.height / 2;
+        // its own label: the one on its row, each moment having a row to itself
+        const off = (b) => Math.abs(b.top + b.height / 2 - row);
+        const label = labels.reduce((best, b) => (off(b) < off(best) ? b : best));
+        return { moment: a.dataset.moment, gap: Math.round((label.left - box.right) * 10) / 10 };
+      });
+    })()`);
+    const all = gaps.map((g) => g.gap);
+    check(
+      gaps.length > 0 && Math.min(...all) > 0 && Math.max(...all) - Math.min(...all) <= 1,
+      "River: every moment's avatar stands the same distance from its label's text",
+      gaps,
+    );
+  }
+
   // --- no label is cut off --------------------------------------------------------
 
   const labels = `[...document.querySelectorAll("#origins-braid .origins-label")]`;
