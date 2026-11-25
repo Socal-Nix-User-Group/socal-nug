@@ -646,7 +646,7 @@ function boot(): void {
       card.classList.toggle("is-lit", lit.has(card.dataset.person ?? ""));
       card.classList.toggle("is-picked", card.dataset.person === person);
     }
-    for (const card of roster.querySelectorAll(".origins-moment-card")) {
+    for (const card of roster.querySelectorAll(".origins-detail-card")) {
       const id = card.dataset.moment;
       card.classList.toggle("is-lit", id === over || id === hot);
       card.classList.toggle("is-picked", id === moment);
@@ -708,7 +708,7 @@ function boot(): void {
     const card = roster?.querySelectorAll(
       pick.kind === "person"
         ? `.origins-card[data-person="${pick.id}"]`
-        : `.origins-moment-card[data-moment="${pick.id}"]`,
+        : `.origins-detail-card[data-moment="${pick.id}"]`,
     )[0];
     if (card === undefined) return;
     const list = card.closest(".origins-roster, .origins-moments")!;
@@ -1013,7 +1013,7 @@ function boot(): void {
     // A moment's card lights what hovering its moment in the map lights, and
     // outlines the moment there so the reader can find it. Found by its own
     // id, as the map's moments are.
-    for (const card of roster.querySelectorAll(".origins-moment-card")) {
+    for (const card of roster.querySelectorAll(".origins-detail-card")) {
       const gathering = story.moments.find((m) => m.moment.id === card.dataset.moment)!;
       const id = gathering.moment.id;
       const who = gathering.through.filter((p) => !p.away).map((p) => p.slug);
@@ -1029,8 +1029,9 @@ function boot(): void {
         relight();
       });
       card.addEventListener("click", (event) => {
-        // As a person's card: a double click is one click.
-        if (morphing || (event.detail ?? 0) > 1) return;
+        // As a person's card: a double click is one click, and a click on one
+        // of the card's links is for the link.
+        if (morphing || (event.detail ?? 0) > 1 || event.target!.closest("a") !== null) return;
         picked = toggled(picked, { kind: "moment", id });
         relight();
         if (picked !== null) centreOn(picked);

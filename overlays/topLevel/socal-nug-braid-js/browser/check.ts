@@ -255,7 +255,7 @@ const leftBehind = (): Promise<string[]> =>
     const layout = document.getElementById("origins-layout");
     const lists = [
       ["people", ${PEOPLE}, ".origins-roster-item", ".origins-card"],
-      ["moments", ${MOMENTS}, ".origins-moments-item", ".origins-moment-card"],
+      ["moments", ${MOMENTS}, ".origins-moments-item", ".origins-detail-card"],
     ];
     for (const [name, e] of [["box", ${MAP}], ["layout", layout], ...lists]) {
       if (e === null) out.push(name + " is missing");
@@ -291,7 +291,7 @@ const listOrder = (): Promise<string> =>
   tab.evaluate(`[
     ...[...${ROSTER}.querySelectorAll(".origins-card")].map((c) => c.dataset.person),
     "|",
-    ...[...${ROSTER}.querySelectorAll(".origins-moment-card")].map((c) => c.dataset.moment),
+    ...[...${ROSTER}.querySelectorAll(".origins-detail-card")].map((c) => c.dataset.moment),
   ].join(" ")`);
 
 /** The story the page tells, from the data in the page. */
@@ -320,7 +320,7 @@ const FACE = (slug: string) => `#origins-braid .origins-root[data-person="${slug
 const OVAL = (id: string) => `#origins-braid .origins-node[data-moment="${id}"] .origins-oval`;
 const PILL = (id: string) => `#origins-braid .origins-node[data-moment="${id}"]`;
 const PERSON_CARD = (slug: string) => `#origins-roster .origins-card[data-person="${slug}"]`;
-const MOMENT_CARD = (id: string) => `#origins-roster .origins-moment-card[data-moment="${id}"]`;
+const MOMENT_CARD = (id: string) => `#origins-roster .origins-detail-card[data-moment="${id}"]`;
 
 /** Whose threads are lit in the map, in order. */
 const LIT_PEOPLE =
@@ -464,7 +464,7 @@ const momentPastItsList = (): Promise<string | null> =>
     list.scrollTop = 0;
     list.scrollLeft = 0;
     const l = list.getBoundingClientRect();
-    const out = [...list.querySelectorAll(".origins-moment-card")]
+    const out = [...list.querySelectorAll(".origins-detail-card")]
       .find((c) => c.getBoundingClientRect().top >= l.bottom);
     return out?.dataset.moment ?? null;
   })()`);
@@ -547,7 +547,7 @@ async function run(): Promise<void> {
           m.left >= rail.left - 1 && m.right <= rail.right + 1,
         overflow: [getComputedStyle(people).overflowY, getComputedStyle(moments).overflowY],
         more: moments.scrollHeight > moments.clientHeight,
-        cards: moments.querySelectorAll(".origins-moment-card").length,
+        cards: moments.querySelectorAll(".origins-detail-card").length,
         nodes: ${MAP}.querySelectorAll(".origins-node").length,
       };
     })()`);
@@ -615,7 +615,7 @@ async function run(): Promise<void> {
       return {
         under: ${ROSTER}.getBoundingClientRect().top >= ${MAP}.getBoundingClientRect().bottom,
         lists: lists.map((list) => {
-          const tops = [...list.querySelectorAll(".origins-card, .origins-moment-card")]
+          const tops = [...list.querySelectorAll(".origins-card, .origins-detail-card")]
             .map((c) => c.getBoundingClientRect().top);
           return {
             row: tops.length > 0 && tops.every((t) => Math.abs(t - tops[0]) <= 1),
@@ -635,6 +635,18 @@ async function run(): Promise<void> {
       "a narrow window: people and moments are two rows that scroll sideways",
       rows ?? { moments: "missing" },
     );
+
+    const widths = await tab.evaluate<{ person: number; moment: number } | null>(`(() => {
+      const p = ${PEOPLE}?.querySelector(".origins-card");
+      const m = ${MOMENTS}?.querySelector(".origins-detail-card");
+      if (!p || !m) return null;
+      return { person: p.getBoundingClientRect().width, moment: m.getBoundingClientRect().width };
+    })()`);
+    check(
+      widths !== null && Math.abs(widths.person - widths.moment) <= 1,
+      "a narrow window: a moment's card in its row is as wide as a person's",
+      widths ?? { cards: "missing" },
+    );
   }
 
   // --- a moment's card and its pill ------------------------------------------------
@@ -650,7 +662,7 @@ async function run(): Promise<void> {
     const id = gathering?.moment.id ?? "";
     const want = [...new Set((gathering?.through ?? []).filter((p) => !p.away).map((p) => p.slug))]
       .sort();
-    const card = `#origins-roster .origins-moment-card[data-moment="${id}"]`;
+    const card = `#origins-roster .origins-detail-card[data-moment="${id}"]`;
     const oval = `#origins-braid .origins-node[data-moment="${id}"] .origins-oval`;
     const stroke = `getComputedStyle(document.querySelector(${JSON.stringify(oval)})).stroke`;
     const lit = `[...new Set([...${MAP}.querySelectorAll("path.origins-thread.is-lit")].map((p) => p.dataset.person))].sort()`;
@@ -715,6 +727,39 @@ async function run(): Promise<void> {
       tinted && back,
       "mouse: a moment's card is tinted while the pointer is on it",
       { away, over, back },
+    );
+  }
+
+  // The list's card and the popup's are one card, the popup's with an X.
+  await load("river");
+  {
+    const story = await storyOf();
+    const id = story.moments.map((g) => g.moment).find((m) =>
+      (m.blurb ?? "") !== "" && ((m.links ?? []).length > 0 || (m.permalink ?? "") !== "")
+    )?.id ?? "";
+    const words = (selector: string) => `(() => {
+      const c = document.querySelector(${JSON.stringify(selector)});
+      if (c === null) return null;
+      const copy = c.cloneNode(true);
+      for (const x of copy.querySelectorAll("[data-origins-dismiss]")) x.remove();
+      return { text: copy.textContent, links: [...copy.querySelectorAll("a")].map((a) => a.href) };
+    })()`;
+    let opened = false;
+    if (id !== "") {
+      const at = await centreOf(OVAL(id));
+      await tab.click(at.x, at.y);
+      opened = await tab.waitFor(popupOpen);
+    }
+    type Said = { text: string; links: string[] } | null;
+    const map = await tab.evaluate<Said>(
+      words(`.origins-popup .origins-detail-card[data-moment="${id}"]`),
+    );
+    const list = await tab.evaluate<Said>(words(MOMENT_CARD(id)));
+    check(
+      id !== "" && opened && map !== null && list !== null && map.links.length > 0 &&
+        JSON.stringify(map) === JSON.stringify(list),
+      "a moment's card in the list says what its card in the map says",
+      { moment: id, opened, map, list },
     );
   }
 
@@ -798,6 +843,46 @@ async function run(): Promise<void> {
       link !== null && after.stayed && after.picked === 0 && after.lit === 0 && clicked && picks,
       "a click on a link in a person's card picks nobody",
       { person: id, link, ...after, clicked, picks },
+    );
+  }
+
+  await load("river");
+  {
+    const story = await storyOf();
+    const id = story.moments.map((g) => g.moment).find((m) =>
+      (m.links ?? []).length > 0 || (m.permalink ?? "") !== ""
+    )?.id ?? "";
+    const card = MOMENT_CARD(id);
+    // As for a person's card: stopped before the browser follows the link,
+    // and the click still reaches the card on its way up.
+    await tab.evaluate(`(document.addEventListener("click", (e) => {
+      if (e.target.closest("a") !== null) e.preventDefault();
+    }, true), true)`);
+    const link = await tab.evaluate<Point | null>(`(() => {
+      const a = document.querySelector(${JSON.stringify(`${card} a`)});
+      if (a === null) return null;
+      a.scrollIntoView({ block: "center", inline: "center" });
+      const b = a.getBoundingClientRect();
+      const at = { x: b.left + b.width / 2, y: b.top + b.height / 2 };
+      return a.contains(document.elementFromPoint(at.x, at.y)) ? at : null;
+    })()`);
+    if (link !== null) await tab.click(link.x, link.y);
+    await tab.move(5, 5);
+    await tab.evaluate(`(document.activeElement?.blur(), true)`);
+    await sleep(300);
+    const after = await tab.evaluate<{ picked: number; lit: number; stayed: boolean }>(`({
+      picked: document.querySelectorAll(".is-picked").length,
+      lit: document.querySelectorAll(".is-lit").length,
+      stayed: location.pathname === "/origins/",
+    })`);
+    // The same card off its links does pick.
+    const clicked = await clickCard(card);
+    const picks = await tab.evaluate<boolean>(has(card, "is-picked"));
+    await tab.key("Escape");
+    check(
+      link !== null && after.stayed && after.picked === 0 && after.lit === 0 && clicked && picks,
+      "a click on a link in a moment's card picks nothing",
+      { moment: id, link, ...after, clicked, picks },
     );
   }
 
@@ -1658,12 +1743,12 @@ async function run(): Promise<void> {
     const dot = await centreOf(SIDE_DOT);
     await tab.click(dot.x, dot.y);
     const opened = await tab.waitFor(popupOpen);
-    const card = "#origins-roster .origins-moment-card";
+    const card = "#origins-roster .origins-detail-card";
     const there = await tab.evaluate<boolean>(`document.querySelector(${JSON.stringify(card)}) !== null`);
     let closed = false;
     if (there) {
-      const at = await centreOf(card);
-      await tab.click(at.x, at.y);
+      // Off its links: the card holds them now, and a click on one is the link's.
+      await clickCard(card);
       closed = await tab.waitFor(popupShut);
     }
     check(
@@ -1941,7 +2026,7 @@ async function run(): Promise<void> {
     await load("river");
     const cards = `[
       document.querySelectorAll("#origins-roster .origins-roster .origins-card").length,
-      document.querySelectorAll("#origins-roster .origins-moments .origins-moment-card").length,
+      document.querySelectorAll("#origins-roster .origins-moments .origins-detail-card").length,
     ]`;
     const everyone = await tab.evaluate<number[]>(cards);
     await tab.send("Network.setCacheDisabled", { cacheDisabled: true });

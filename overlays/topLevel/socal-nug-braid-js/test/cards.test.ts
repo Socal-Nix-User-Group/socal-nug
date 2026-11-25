@@ -4,7 +4,6 @@ import {
   detailFor,
   joinLineFor,
   listsFor,
-  momentCardFor,
   momentsFor,
   personCardFor,
   rosterFor,
@@ -13,7 +12,7 @@ import type { DocumentLike, ElementLike } from "../src/render.ts";
 import { buildStory } from "../src/story.ts";
 import type { Story } from "../src/story.ts";
 import type { Person } from "../src/types.ts";
-import { at, marked, MOMENTS, PEOPLE, story } from "./story-fixture.ts";
+import { at, MOMENTS, PEOPLE, story } from "./story-fixture.ts";
 
 interface Node {
   tag: string;
@@ -398,80 +397,61 @@ test("somebody with no links gets no empty row of them", () => {
 
 const tokens = (n: Node) => (n.attrs.class ?? "").split(" ");
 const byClass = (made: Node[], token: string) => made.filter((n) => tokens(n).includes(token));
-const momentCard = (s: Story, id: string) => {
+const momentCard = (s: Story, id: string, dismissable = true) => {
   const { doc, made } = stubDocument();
-  momentCardFor(s.moments.find((g) => g.moment.id === id)!, PEOPLE, doc);
+  detailFor(s.moments.find((g) => g.moment.id === id)!, PEOPLE, doc, dismissable);
   return made;
 };
 const said = (made: Node[], token: string) => byClass(made, token).map((n) => n.text);
+const dismisses = (made: Node[]) =>
+  made.filter((n) => n.tag === "button" || n.attrs["data-origins-dismiss"] !== undefined);
 
-test("the list of moments is one card for each moment, in the story's order, each saying which moment it is", () => {
+test("the list of moments is one detail card for each moment, in the story's order, each saying which moment it is", () => {
   const { doc, made } = stubDocument();
   momentsFor(story, PEOPLE, doc);
   const list = made.find((n) => n.tag === "ul")!;
   assert.deepEqual(tokens(list), ["origins-moments"]);
   assert.equal(list.children.length, story.moments.length);
   assert.ok(list.children.every((li) => li.tag === "li" && tokens(li).includes("origins-moments-item")));
+  assert.ok(list.children.every((li) =>
+    li.children.length === 1 && li.children[0].tag === "div" &&
+    tokens(li.children[0]).includes("origins-detail-card")
+  ));
   assert.deepEqual(
     list.children.map((li) => li.children[0].attrs["data-moment"]),
     story.moments.map((g) => g.moment.id),
   );
 });
 
-test("a moment's card says its title and its date at the precision the data gives", () => {
-  const made = momentCard(story, "camp");
-  assert.deepEqual(said(made, "origins-moment-card-title"), ["camp"]);
-  assert.deepEqual(said(made, "origins-moment-card-date"), ["September 2023"]);
+// The popup opens over the picture and needs a way to shut it. The list
+// covers nothing, so an X there would be a button that does nothing.
+test("a moment's card in the list has no X, and its twin in the popup has one", () => {
+  const { doc, made } = stubDocument();
+  momentsFor(story, PEOPLE, doc);
+  assert.deepEqual(dismisses(made), []);
+  assert.equal(dismisses(momentCard(story, "scale")).length, 1);
+});
+
+test("a moment's card in the list says what its card in the popup says", () => {
+  for (const id of ["scale", "nug1"]) {
+    const listed = momentCard(story, id, false);
+    const popped = momentCard(story, id).filter((n) => n.attrs["data-origins-dismiss"] === undefined);
+    assert.deepEqual(texts(listed), texts(popped), id);
+  }
+  assert.deepEqual(
+    said(momentCard(story, "scale", false), "origins-detail-people"),
+    ["DANIEL, DAVID, ROB, JARED, MICA, CONNOR"],
+  );
 });
 
 test("a meetup's card is told apart from any other moment's", () => {
-  assert.ok(tokens(byClass(momentCard(story, "nug1"), "origins-moment-card")[0]).includes("is-trunk"));
-  assert.equal(tokens(byClass(momentCard(story, "camp"), "origins-moment-card")[0]).includes("is-trunk"), false);
-});
-
-test("a moment off the ribbon names the people it names, and past four says how many more", () => {
-  assert.deepEqual(said(momentCard(story, "camp"), "origins-moment-card-people"), ["DANIEL, ROB"]);
-  assert.deepEqual(
-    said(momentCard(story, "scale"), "origins-moment-card-people"),
-    ["DANIEL, DAVID, ROB, JARED and 2 more"],
-  );
-});
-
-test("a meetup names who joined there and then who the record confirms, and nobody else in the group", () => {
-  // jared joins at nug1 and nothing is recorded there
-  assert.deepEqual(said(momentCard(story, "nug1"), "origins-moment-card-people"), ["JARED"]);
-  // nobody joins at nug3; the record has daniel there and rob away
-  assert.deepEqual(said(momentCard(story, "nug3"), "origins-moment-card-people"), ["DANIEL"]);
-});
-
-test("a meetup with someone who joined there and someone the record confirms names the joiner first", () => {
-  const both = buildStory(
-    [...MOMENTS, at("nug5", "2024-08", ["morgan"], true, { there: ["daniel"] })],
-    PEOPLE,
-  );
-  assert.deepEqual(said(momentCard(both, "nug5"), "origins-moment-card-people"), ["MORGAN, DANIEL"]);
-});
-
-test("a moment with exactly four names spells out all four and says nothing of more", () => {
-  assert.deepEqual(
-    said(momentCard(story, "booth"), "origins-moment-card-people"),
-    ["DANIEL, ROB, DAVID, MICA"],
-  );
-});
-
-test("a meetup with nobody to name has no line of names", () => {
-  const quiet = buildStory([...MOMENTS, at("nug5", "2024-08", [], true)], PEOPLE);
-  assert.deepEqual(byClass(momentCard(quiet, "nug5"), "origins-moment-card-people"), []);
-});
-
-test("a moment's card carries its avatar when it has one, and no image when it has none", () => {
-  const withOne = byClass(momentCard(marked, "camp"), "origins-moment-card-avatar");
-  assert.equal(withOne.length, 1);
-  assert.deepEqual(
-    [withOne[0].tag, withOne[0].attrs.src, withOne[0].attrs.alt, withOne[0].attrs.width, withOne[0].attrs.height],
-    ["img", "/images/moments/camp.png", "", "28", "28"],
-  );
-  assert.equal(momentCard(story, "camp").some((n) => n.tag === "img"), false);
+  for (const dismissable of [true, false]) {
+    assert.ok(tokens(byClass(momentCard(story, "nug1", dismissable), "origins-detail-card")[0]).includes("is-trunk"));
+    assert.equal(
+      tokens(byClass(momentCard(story, "camp", dismissable), "origins-detail-card")[0]).includes("is-trunk"),
+      false,
+    );
+  }
 });
 
 test("the rail holds two panes, People over the roster and Moments over the list of moments", () => {

@@ -61,10 +61,15 @@ export function detailFor(
   gathering: Gathering,
   people: ReadonlyMap<string, Person>,
   doc: DocumentLike,
+  /**
+   * The popup opens over the picture and needs a way to shut it. The list of
+   * moments covers nothing, so an X there would be a button that does nothing.
+   */
+  dismissable = true,
 ): ElementLike {
   const moment = gathering.moment;
   const card = el(doc, "div", {
-    class: "origins-detail-card",
+    class: moment.trunk ? "origins-detail-card is-trunk" : "origins-detail-card",
     "data-moment": moment.id,
   });
 
@@ -97,7 +102,7 @@ export function detailFor(
       formatFuzzyDate(moment.date),
     ),
   );
-  head.appendChild(dismissFor(doc));
+  if (dismissable) head.appendChild(dismissFor(doc));
   card.appendChild(head);
 
   if (moment.photo !== undefined && moment.photo !== "") {
@@ -300,76 +305,7 @@ export function rosterFor(story: Story, doc: DocumentLike): ElementLike {
   return list;
 }
 
-/** How many names a moment's card in the list spells out before "and N more". */
-export const NAMES_SHOWN = 4;
-
-/**
- * One moment's card in the list of moments.
- *
- * It names people the way the moment's popup does, so a meetup says who
- * joined there and who the record confirms, not everyone in the group then.
- */
-export function momentCardFor(
-  gathering: Gathering,
-  people: ReadonlyMap<string, Person>,
-  doc: DocumentLike,
-): ElementLike {
-  const moment = gathering.moment;
-  const card = el(doc, "div", {
-    class: moment.trunk ? "origins-moment-card is-trunk" : "origins-moment-card",
-    "data-moment": moment.id,
-  });
-
-  const head = el(doc, "div", { class: "origins-moment-card-head" });
-  if (moment.avatar !== undefined) {
-    head.appendChild(
-      el(doc, "img", {
-        class: "origins-moment-card-avatar",
-        src: moment.avatar,
-        alt: "",
-        width: "28",
-        height: "28",
-      }),
-    );
-  }
-  const text = el(doc, "div", { class: "origins-moment-card-text" });
-  text.appendChild(
-    el(doc, "span", { class: "origins-moment-card-title" }, moment.title),
-  );
-  text.appendChild(
-    el(
-      doc,
-      "span",
-      { class: "origins-moment-card-date" },
-      formatFuzzyDate(moment.date),
-    ),
-  );
-  head.appendChild(text);
-  card.appendChild(head);
-
-  const namesOf = (slugs: readonly string[]) =>
-    slugs
-      .map((slug) => people.get(slug)?.name)
-      .filter((name): name is string => name !== undefined);
-  const names = moment.trunk
-    ? [
-      ...namesOf(gathering.through.filter((p) => p.joined).map((p) => p.slug)),
-      ...namesOf(
-        gathering.through.filter((p) => p.vouched && !p.joined).map((p) => p.slug),
-      ),
-    ]
-    : namesOf(moment.people);
-  if (names.length > 0) {
-    const said = names.length > NAMES_SHOWN
-      ? `${names.slice(0, NAMES_SHOWN).join(", ")} and ${names.length - NAMES_SHOWN} more`
-      : names.join(", ");
-    card.appendChild(el(doc, "p", { class: "origins-moment-card-people" }, said));
-  }
-
-  return card;
-}
-
-/** Every moment, in the story's order, as a list of those cards. */
+/** Every moment, in the story's order, as a list of the cards its popup shows. */
 export function momentsFor(
   story: Story,
   people: ReadonlyMap<string, Person>,
@@ -378,7 +314,7 @@ export function momentsFor(
   const list = el(doc, "ul", { class: "origins-moments" });
   for (const gathering of story.moments) {
     const item = el(doc, "li", { class: "origins-moments-item" });
-    item.appendChild(momentCardFor(gathering, people, doc));
+    item.appendChild(detailFor(gathering, people, doc, false));
     list.appendChild(item);
   }
   return list;

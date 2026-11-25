@@ -165,7 +165,7 @@ $origins-box-height: 85vh;
     }
 
     .origins-moments-item {
-        flex: 0 0 13rem;
+        flex: 0 0 19rem;
     }
 }
 
@@ -186,19 +186,13 @@ $origins-box-height: 85vh;
     }
 }
 
-// A moment in the list. Trunk moments carry the trunk's colour down their
-// edge, as their ovals do in the map.
-.origins-moment-card {
-    background: var(--origins-surface);
-    border-left: 4px solid var(--origins-muted);
-    padding: 0.45rem 0.6rem;
+// The same treatment for a moment's card in its list, which is the card its
+// popup shows. A click on it picks the moment. A long title must not widen
+// its row.
+.origins-moments .origins-detail-card {
     min-width: 0;
     cursor: pointer;
     transition: background 0.15s ease;
-
-    &.is-trunk {
-        border-left-color: var(--origins-trunk);
-    }
 
     &.is-lit {
         background: color-mix(in srgb, var(--origins-trunk) 16%, transparent);
@@ -209,35 +203,6 @@ $origins-box-height: 85vh;
         outline: 2px solid var(--origins-trunk);
         outline-offset: -2px;
     }
-}
-
-.origins-moment-card-head {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-}
-
-.origins-moment-card-text {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-
-.origins-moment-card-title {
-    font-weight: 700;
-    font-size: 0.78rem;
-    line-height: 1.25;
-}
-
-.origins-moment-card-date {
-    font-size: 0.62rem;
-    opacity: 0.7;
-}
-
-.origins-moment-card-people {
-    font-size: 0.62rem;
-    opacity: 0.7;
-    margin: 0.25rem 0 0;
 }
 
 // Zola compiles every file under sass/ on its own as well as through
@@ -727,13 +692,19 @@ html[data-theme=dark] .origins-legend {
 
 // --- moment detail ----------------------------------------------------------
 
+// Trunk moments carry the trunk's colour down their edge, as their ovals do
+// in the map.
 .origins-detail-card {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
     padding: 0.6rem 0.7rem;
     background: var(--origins-surface);
-    border-left: 4px solid var(--origins-trunk);
+    border-left: 4px solid var(--origins-muted);
+
+    &.is-trunk {
+        border-left-color: var(--origins-trunk);
+    }
 }
 
 .origins-detail-head {
