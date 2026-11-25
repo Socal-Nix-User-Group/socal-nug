@@ -1124,10 +1124,10 @@ be reasonable if layout moved to build time.
   Daniel Baker, David Nuon and Samuel Raumin have links.
   Rob Hernandez's and Jared Baur's "First contact" have no blurb, though Daniel Baker's and
   Connor Baker's have one, and several conference and camp moments have none.
-- **Seven `CONFIRM` markers** in `data/moments.toml`: two dates given as approximations, one
+- **Eight `CONFIRM` markers** in `data/moments.toml`: two dates given as approximations, one
   meetup guessed at (Connor Baker's first, below), "I think everyone was there" on the three
-  SCaLE moments, and "I believe David and I were at every single NUG event" over the attendance
-  records.
+  SCaLE moments, "I believe David and I were at every single NUG event" over the attendance
+  records, and Chris Tewfik at NUG #10 (below).
 - **Who met whom at SCaLE 20x.** The moment was "Nix booth at SCaLE 20x" and is now "SCaLE 20x",
   the whole conference, by Daniel's decision, so that everyone who was at SCaLE that year is
   through it whether or not they were at the booth. Joshua Campbell is on it for that reason;
@@ -1135,15 +1135,21 @@ be reasonable if layout moved to build time.
   the booth and that Daniel Baker and David Nuon met Rob Hernandez there. Daniel means to
   expand it with who met whom.
 - **Who was at each meetup** is recorded whole, everyone in the group either there or away, for
-  the seven meetups Daniel checked against pictures: NUG #1, #2, #3, #4, #6, the June 2025 Mini
-  NUG and NUG #17. For the other twelve up to NUG #17 Daniel Baker and David Nuon are recorded,
-  and Chris Tewfik, and nothing is said about anyone else. Chris is recorded at every meetup
+  nine meetups: the seven Daniel checked against pictures (NUG #1, #2, #3, #4, #6, the June 2025
+  Mini NUG and NUG #17) and two Daniel gave from memory on 2026-11-24, NUG #5 and NUG #10, each
+  as a list of who was there with every other member not. For the other ten up to NUG #17
+  Daniel Baker and David Nuon are recorded, and Chris Tewfik, and at NUG #12 Tristan Ross and
+  Morgan Jones, and nothing is said about anyone else. The lists name only people who have a
+  profile; others were at many of these. Chris is recorded at every meetup
   from NUG #5, where Chris joined, to NUG #17: there at NUG #6 and NUG #17, which Daniel knew
   of, and at NUG #7, #8, #10, #11, #12, #13 and the June 2025 Mini NUG, which Chris added,
   saying there were no others; so away from NUG #9, the April 2025 Mini NUG and NUG #14, #15
   and #16. Joshua Campbell was added after the seven were recorded, and Daniel then placed
   Joshua at each from NUG #2, where Joshua joined: there at NUG #4, and away from NUG #3,
   NUG #6, the June 2025 Mini NUG and NUG #17.
+- **Chris Tewfik at NUG #10.** Daniel's list for NUG #10 does not name Chris and says no other
+  member was there. Chris's own account, given earlier, has Chris at it. The record keeps Chris
+  there, under a `CONFIRM`, until one of the two says otherwise.
 - **Connor Baker's first meetup** is recorded as NUG #7, as a guess. NUG #6 was first thought
   to be where Connor joined, but Connor is not in the pictures of it; Daniel thinks NUG #7 may
   have been the first.
