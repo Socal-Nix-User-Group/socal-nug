@@ -3,13 +3,17 @@ import assert from "node:assert/strict";
 import {
   detailFor,
   joinLineFor,
+  listsFor,
+  momentCardFor,
+  momentsFor,
   personCardFor,
   rosterFor,
 } from "../src/cards.ts";
 import type { DocumentLike, ElementLike } from "../src/render.ts";
 import { buildStory } from "../src/story.ts";
+import type { Story } from "../src/story.ts";
 import type { Person } from "../src/types.ts";
-import { at, MOMENTS, PEOPLE, story } from "./story-fixture.ts";
+import { at, marked, MOMENTS, PEOPLE, story } from "./story-fixture.ts";
 
 interface Node {
   tag: string;
@@ -388,6 +392,91 @@ test("somebody with no links gets no empty row of them", () => {
   const { doc, made } = stubDocument();
   personCardFor(thread("daniel"), small, doc);
   assert.equal(linksRow(made), undefined);
+});
+
+// --- the list of moments -----------------------------------------------------
+
+const tokens = (n: Node) => (n.attrs.class ?? "").split(" ");
+const byClass = (made: Node[], token: string) => made.filter((n) => tokens(n).includes(token));
+const momentCard = (s: Story, id: string) => {
+  const { doc, made } = stubDocument();
+  momentCardFor(s.moments.find((g) => g.moment.id === id)!, PEOPLE, doc);
+  return made;
+};
+const said = (made: Node[], token: string) => byClass(made, token).map((n) => n.text);
+
+test("the list of moments is one card for each moment, in the story's order, each saying which moment it is", () => {
+  const { doc, made } = stubDocument();
+  momentsFor(story, PEOPLE, doc);
+  const list = made.find((n) => n.tag === "ul")!;
+  assert.deepEqual(tokens(list), ["origins-moments"]);
+  assert.equal(list.children.length, story.moments.length);
+  assert.ok(list.children.every((li) => li.tag === "li" && tokens(li).includes("origins-moments-item")));
+  assert.deepEqual(
+    list.children.map((li) => li.children[0].attrs["data-moment"]),
+    story.moments.map((g) => g.moment.id),
+  );
+});
+
+test("a moment's card says its title and its date at the precision the data gives", () => {
+  const made = momentCard(story, "camp");
+  assert.deepEqual(said(made, "origins-moment-card-title"), ["camp"]);
+  assert.deepEqual(said(made, "origins-moment-card-date"), ["September 2023"]);
+});
+
+test("a meetup's card is told apart from any other moment's", () => {
+  assert.ok(tokens(byClass(momentCard(story, "nug1"), "origins-moment-card")[0]).includes("is-trunk"));
+  assert.equal(tokens(byClass(momentCard(story, "camp"), "origins-moment-card")[0]).includes("is-trunk"), false);
+});
+
+test("a moment off the ribbon names the people it names, and past four says how many more", () => {
+  assert.deepEqual(said(momentCard(story, "camp"), "origins-moment-card-people"), ["DANIEL, ROB"]);
+  assert.deepEqual(
+    said(momentCard(story, "scale"), "origins-moment-card-people"),
+    ["DANIEL, DAVID, ROB, JARED and 2 more"],
+  );
+});
+
+test("a meetup names who joined there and then who the record confirms, and nobody else in the group", () => {
+  // jared joins at nug1 and nothing is recorded there
+  assert.deepEqual(said(momentCard(story, "nug1"), "origins-moment-card-people"), ["JARED"]);
+  // nobody joins at nug3; the record has daniel there and rob away
+  assert.deepEqual(said(momentCard(story, "nug3"), "origins-moment-card-people"), ["DANIEL"]);
+});
+
+test("a meetup with nobody to name has no line of names", () => {
+  const quiet = buildStory([...MOMENTS, at("nug5", "2024-08", [], true)], PEOPLE);
+  assert.deepEqual(byClass(momentCard(quiet, "nug5"), "origins-moment-card-people"), []);
+});
+
+test("a moment's card carries its avatar when it has one, and no image when it has none", () => {
+  const withOne = byClass(momentCard(marked, "camp"), "origins-moment-card-avatar");
+  assert.equal(withOne.length, 1);
+  assert.deepEqual(
+    [withOne[0].tag, withOne[0].attrs.src, withOne[0].attrs.alt, withOne[0].attrs.width, withOne[0].attrs.height],
+    ["img", "/images/moments/camp.png", "", "28", "28"],
+  );
+  assert.equal(momentCard(story, "camp").some((n) => n.tag === "img"), false);
+});
+
+test("the rail holds two panes, People over the roster and Moments over the list of moments", () => {
+  const { doc, made } = stubDocument();
+  const panes = listsFor(story, PEOPLE, doc);
+  assert.equal(panes.length, 2);
+  const sections = made.filter((n) => n.tag === "section");
+  assert.deepEqual(sections.map(tokens), [["origins-pane", "is-people"], ["origins-pane", "is-moments"]]);
+  for (const [section, title, list] of [
+    [sections[0], "People", "origins-roster"],
+    [sections[1], "Moments", "origins-moments"],
+  ] as const) {
+    assert.deepEqual(
+      section.children.map((c) => [c.tag, tokens(c)[0]]),
+      [["h2", "origins-pane-title"], ["ul", list]],
+    );
+    assert.equal(section.children[0].text, title);
+  }
+  assert.equal(sections[0].children[1].children.length, story.threads.length);
+  assert.equal(sections[1].children[1].children.length, story.moments.length);
 });
 
 // --- the roster --------------------------------------------------------------
