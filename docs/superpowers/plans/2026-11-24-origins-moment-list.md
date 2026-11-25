@@ -192,7 +192,7 @@ Run the unit tests. Expected: `pick.test.ts` fails to load, `Cannot find module 
 
 - [ ] **Step 5: Write the failing tests for the cards in `test/cards.test.ts`**
 
-Add them in a section of their own before "the roster". They use the file's `stubDocument()`, `Node`, and from the fixture `story`, `marked`, `MOMENTS`, `PEOPLE`, `at` (import `marked` and `MOMENTS`, which the file does not import yet). The fixture's people are named by their slug in capitals.
+Add them in a section of their own before "the roster". They use the file's `stubDocument()`, `Node`, and from the fixture `story`, `marked`, `MOMENTS`, `PEOPLE`, `at` (import `marked`, which the file does not import yet, and the `Story` type from `../src/story.ts`). The fixture's people are named by their slug in capitals.
 
 ```ts
 const tokens = (n: Node) => (n.attrs.class ?? "").split(" ");
@@ -279,8 +279,6 @@ test("the rail holds two panes, People over the roster and Moments over the list
 });
 ```
 
-`Story` and `buildStory` are imported in the file already or need importing from `../src/story.ts`.
-
 - [ ] **Step 6: Run them and see them fail** (the three functions are not exported yet)
 
 - [ ] **Step 7: Implement `NAMES_SHOWN`, `momentCardFor`, `momentsFor` and `listsFor` in `src/cards.ts`**, with the file's own `el` helper, to the markup above. `listsFor` calls `rosterFor(story, doc)` for the people's list.
@@ -324,6 +322,9 @@ test("the rail holds two panes, People over the roster and Moments over the list
    - The headings are always shown.
    - Each list keeps, for the length of the switch, the room it has in the mode arrived at, as the roster's list does now (`min-height`; and where the list is a row, its height is what matters, which `min-height` covers).
    - `tidy()` takes the `style` off the map's box, the layout, both lists, every card and both headings.
+   - A list keeps its own scroll position through the switch. Lifting its cards out empties it, and an empty scroll box goes back to its start, so the cards would jump when they are put back. Read each list's `scrollLeft` and `scrollTop` once the page is in the mode arrived at (when the cards are measured there), and put them back in `tidy()` after the styles come off.
+   - A card that is not shown on the way has to be lifted with the rest, but need not be moved every frame.
+6. **A click on a moment's card closes a card open in the map.** The handler on `document` that closes the popup lets a click pass when its target is inside `[data-moment]` or `.origins-root`, because in the map such a click swaps the card. A moment's card in the rail carries `data-moment` too, and a click on it must close the popup, as a click on a person's card in the rail does. Let the click pass only when that element is inside the map (`mount`).
 
 **Tests**
 
@@ -344,6 +345,8 @@ test("the rail holds two panes, People over the roster and Moments over the list
   - New: "mouse: hovering a moment in the map tints its card in the list": compare the card's computed `background-color` with the pointer away and with it over the moment's pill.
   - `leftBehind()` and "switching modes leaves nothing set on the map, the layout or the roster, and every card back in the roster": cover both lists, every card of each and both headings: no `style` on any of them or on either list, each card's `position` is `static`, each card's parent is its own list, and the cards of each list are in the order they were in before the switch (read the `data-person` and `data-moment` order before and after).
   - New: "switching modes: a moment's card travels from its place in one arrangement to its place in the other": part way through a switch from River the first card of the moments' list is `position: absolute` and its box is at neither the place it had in River nor the place it has in Subway once landed.
+  - New: "switching modes: a list scrolled part way down is where it was after the switch": in River set the moments' list's `scrollTop` to 200, switch to Subway and wait for it to land; the list's `scrollTop` is within 1px of 200.
+  - New: "a click on a moment's card in the list closes a card open in the map": open a moment's card by a click on its pill, then click a moment's card in the list; the popup is hidden. (A click on a person's card in the list closes it already; this is the same for the other list.)
   - Any other check in the file that reads the roster (`#origins-roster .origins-card`, the roster's item count, "without the layout engine, the roster is still there") must still mean what it says with two lists in the rail; "without the layout engine" must find both lists.
   Run `nix run .#socal-nug-braid-browser` now, against the unchanged page, and record which of these fail and with what detail. The new and rewritten ones must fail; the ones kept must pass.
 
@@ -374,7 +377,7 @@ test("the rail holds two panes, People over the roster and Moments over the list
 1. **One pick, and what is lit.** Keep in `boot()` a `picked: Pick | null` and the set of slugs lit by hover. `highlight(slug, on)` now only adds to or takes from that set and then relights. Relighting sets `is-lit` on every `[data-person]` element in the map and in the rail to "the slug is hovered, or is in `litBy(story, picked)`", and sets `is-picked` on exactly: the picked person's card in the rail, or the picked moment's card in the rail and its pill in the map. Relight after every draw as well (the first, a resize, a switch that does not travel, and the landing of one that does), because a new picture has none of the classes.
 2. **A click on a card in a list.** On a person's card in the rail: ignore it when the click is on or inside an `a`; otherwise `picked = toggled(picked, { kind: "person", id })`. On a moment's card: the same with `kind: "moment"`. Then relight, and when something is now picked, scroll the map to `centred(point, box, reachOf())`, where `point` is the face's or the moment's centre from `shown` times `zoom`, and `box` is the map's `clientWidth` and `clientHeight`: `mount.scrollTo({ left, top, behavior })` with `behavior` `"smooth"`, or `"auto"` when `matchMedia("(prefers-reduced-motion: reduce)")` matches. No popup is opened. A click while `morphing` does nothing.
 3. **A click in the map.** Where a face's click calls `showPerson` and a moment's (pill or mark) calls `showMoment`, and where `openAt` does either for the keyboard, also set `picked` to that person or moment (set, not toggled), relight, and bring its card into view inside its own list: add `reveal(...)` of the card's box against the list's box to the list's `scrollTop` and to its `scrollLeft` (boxes from `getBoundingClientRect()`). Do not call `scrollIntoView`, and do not scroll the map.
-4. **Letting go.** Escape, which closes the popup, also sets `picked` to `null` and relights. A click inside the map's box that is on no pill, mark or face and not inside the popup does the same; the handler on `document` that closes the popup is where that click is already recognised. A click that ends a drag of the map is already suppressed and must stay so.
+4. **Letting go.** Escape, which closes the popup (the `keydown` handler on `document`), also sets `picked` to `null` and relights. A click inside the map's box (`mount.contains(target)`) that is on no pill, mark or face (`target.closest("[data-moment], .origins-root") === null`) and not inside the popup does the same. The `click` handler on `document` that closes the popup recognises that click, but it returns at once while the popup is hidden; letting go must happen whether or not a popup is open. A click that ends a drag of the map never reaches `document` (the capturing handler on `mount` stops it) and must go on not reaching it, so a drag lets go of nothing. A click outside the map and outside the lists (the zoom buttons, the mode buttons, the rest of the page) lets go of nothing.
 5. **How a pick looks**, in `sass/css/pages/origins.scss`: `.origins-card.is-picked` and `.origins-moment-card.is-picked` take `background: color-mix(in srgb, var(--origins-trunk) 22%, transparent)` and `outline: 2px solid var(--origins-trunk); outline-offset: -2px`. `.origins-node.is-picked .origins-oval` takes what `.origins-node.is-open .origins-oval` takes: add the selector to that rule.
 
 **Tests** (`browser/check.ts`, written and seen to fail before the page is changed)
@@ -386,6 +389,7 @@ test("the rail holds two panes, People over the roster and Moments over the list
   - "a second click on the picked card, a click on empty map, and Escape each let go of it": three times over, pick a card, then do one of the three; afterwards nothing has `is-picked` and no thread is lit.
   - "hovering another card while one is picked lights both, and leaving it leaves the pick lit": pick a person, hover a different person's card, both threads lit; move off, only the picked one's.
   - "a click on a moment in the map marks its card and scrolls its list to show it, without moving the page or the map": in Subway, scroll the moments' list to its start, then click a pill in the map whose card is out of sight in the list. Afterwards the card has `is-picked`, its box is inside its list's box, and `scrollY` and the map's `scrollLeft` and `scrollTop` are what they were before the click. The popup is open, as before.
+  - "zooming the map and dragging it leave the pick as it is": pick a moment's card, press the zoom-in button, then drag the map by more than the grab's slop from a point on empty map and let go; the card still has `is-picked` and the people through the moment are still lit.
   - "a pick is still marked and lit after the mode is switched": pick a moment's card in River, switch to Subway and wait for it to land; its card and its pill have `is-picked` and the people through it are lit.
   - "with reduced motion asked for, a click on a card puts the map there at once": with the reduced-motion media feature emulated, read the map's scroll position straight after the click, with no wait, and find the pill in the middle or the map at the end of its reach.
   Run `nix run .#socal-nug-braid-browser` against the page as Task 2 left it and record what each new check prints. They must fail; everything else must pass.
