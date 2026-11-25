@@ -340,7 +340,7 @@ ______________________________________________________________________
   - the pill's hover outline also answers `is-hot`: `.origins-node.is-hot .origins-oval` is in `self.css`.
     Write the assertions against what the Sass compiler actually emits: build the site (`nix build .#socal-nug-site --no-link --print-out-paths`) and read `css/style.css` in the result before fixing the strings. Run `nix build .#checks.x86_64-linux.test-site --no-link` and see the new tests fail before the stylesheet is changed.
 
-- [ ] **Step 2: Rewrite the roster checks in `browser/check.ts` and add the new ones, before changing the page.** Names are what a visitor would notice. Keep `ROSTER` as the rail and add `PEOPLE = \`${ROSTER}.querySelector(".origins-roster")\``and`MOMENTS = \`${ROSTER}.querySelector(".origins-moments")\`\`.
+- [ ] **Step 2: Rewrite the roster checks in `browser/check.ts` and add the new ones, before changing the page.** Names are what a visitor would notice. Keep `ROSTER` as the rail and add two constants beside it, `PEOPLE` and `MOMENTS`: the same kind of page expression as `ROSTER`, each `ROSTER` followed by `.querySelector(".origins-roster")` and `.querySelector(".origins-moments")`.
 
   - Keep "River: the roster beside the map is no taller than the map, and ends where the map ends when it has more to show", measuring the rail.
   - "River: the wheel over the roster scrolls the roster, and carries on down the page at its end": aim at the middle of the people's list and read that list's `scrollTop`.
@@ -356,7 +356,7 @@ ______________________________________________________________________
   - Any other check in the file that reads the roster (`#origins-roster .origins-card`, the roster's item count, "without the layout engine, the roster is still there") must still mean what it says with two lists in the rail; "without the layout engine" must find both lists.
     Run `nix run .#socal-nug-braid-browser` now, against the unchanged page, and record which of these fail and with what detail. The new and rewritten ones must fail; the ones kept must pass.
 
-- [ ] **Step 3: Implement** items 1 to 5 of "What to build".
+- [ ] **Step 3: Implement** items 1 to 6 of "What to build".
 
 - [ ] **Step 4: Rebuild the bundle. Run `nix flake check`.** Expected: `all checks passed!`.
 
