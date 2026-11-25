@@ -227,6 +227,18 @@ export function personCardFor(
     );
   }
 
+  if (person.links.length > 0) {
+    // Their own sites, on one line that wraps. Plain links like the alias
+    // above them, which goes to their GitHub.
+    const links = el(doc, "div", { class: "origins-card-links" });
+    for (const link of person.links) {
+      links.appendChild(
+        el(doc, "a", { class: "origins-card-link", href: link.url }, link.title),
+      );
+    }
+    body.appendChild(links);
+  }
+
   body.appendChild(
     el(
       doc,

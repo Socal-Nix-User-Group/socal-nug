@@ -49,6 +49,7 @@ function person(slug: string, member: boolean, imageUrl = ""): Person {
     quote: "",
     imageUrl,
     profileUrl: "",
+    links: [],
     member,
   };
 }

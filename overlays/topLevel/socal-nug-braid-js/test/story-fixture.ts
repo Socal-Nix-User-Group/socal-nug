@@ -11,6 +11,7 @@ export function person(slug: string, member = true): Person {
     quote: "",
     imageUrl: "",
     profileUrl: "",
+    links: [],
     member,
   };
 }

@@ -36,6 +36,28 @@
                     "type": "string",
                     "description": "The URL to the user's profile.",
                     "format": "uri"
+                },
+                "links": {
+                    "type": "array",
+                    "description": "The user's own sites, shown by title on the about page and on their Origins card.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "title": {
+                                "type": "string",
+                                "description": "The text the link is shown as."
+                            },
+                            "url": {
+                                "type": "string",
+                                "description": "Where the link goes.",
+                                "format": "uri"
+                            }
+                        },
+                        "required": [
+                            "title",
+                            "url"
+                        ]
+                    }
                 }
             },
             "required": [

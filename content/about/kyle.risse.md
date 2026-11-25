@@ -5,7 +5,7 @@ weight = 7
 member = true
 name = "Kyle Risse"
 alias = "@kylerisse"
-description = ""
+description = "SCaLE Volunteer. Nixpkgs maintainer."
 image_url = "/images/people/kyle-risse.png"
 profile_url = "https://github.com/kylerisse"
 +++

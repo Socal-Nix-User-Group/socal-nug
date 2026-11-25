@@ -5,7 +5,7 @@ weight = 8
 member = true
 name = "Morgan Jones"
 alias = "@numinit"
-description = ""
+description = "Nix Vegas Co-founder. Nix Badge Creator. Nixpkgs maintainer."
 image_url = "/images/people/morgan-jones.png"
 profile_url = "https://github.com/numinit"
 +++

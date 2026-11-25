@@ -24,6 +24,8 @@ export interface Person {
   readonly quote: string;
   readonly imageUrl: string;
   readonly profileUrl: string;
+  /** Their own sites. `profileUrl` is their GitHub; these are anywhere else. */
+  readonly links: readonly Link[];
   readonly member: boolean;
 }
 

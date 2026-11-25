@@ -40,6 +40,15 @@
               </h6>
       
               {{ profile.extra.description }}
+              {#- Their own sites. The alias above goes to their GitHub. -#}
+              {%- set links = profile.extra.links | default(value=[]) %}
+              {%- if links %}
+              <p>
+                {%- for link in links %}
+                <a class="mr-3" href="{{ link.url }}">{{ link.title }}</a>
+                {%- endfor %}
+              </p>
+              {%- endif %}
         </div>
       </div>
     </div>

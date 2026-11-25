@@ -54,20 +54,22 @@ function toPerson(raw: unknown, index: number): Person {
     profileUrl: typeof record.profileUrl === "string"
       ? record.profileUrl
       : "",
+    links: toLinks(record.links, where) ?? [],
     member: record.member === true,
   };
 }
 
 /**
- * Titled outbound links. Absent and empty both come back as undefined, like
- * every other optional field; the template emits `[]` for a moment with none.
+ * Titled outbound links, a moment's or a person's. Absent and empty both come
+ * back as undefined, like every other optional field; the template emits `[]`
+ * for a moment or a person with none.
  */
-function toLinks(raw: unknown, id: string): readonly Link[] | undefined {
+function toLinks(raw: unknown, owner: string): readonly Link[] | undefined {
   if (raw === undefined || raw === null) return undefined;
-  const list = asArray(raw, `moment ${id}: links`);
+  const list = asArray(raw, `${owner}: links`);
   if (list.length === 0) return undefined;
   return list.map((entry, i) => {
-    const where = `moment ${id}: links[${i}]`;
+    const where = `${owner}: links[${i}]`;
     const record = asRecord(entry, where);
     return {
       title: asString(record.title, `${where}.title`),
@@ -120,7 +122,7 @@ function toMoment(raw: unknown, index: number): Moment {
     blurb: optionalString(record.blurb, `moment ${id}: blurb`),
     photo: optionalString(record.photo, `moment ${id}: photo`),
     permalink: optionalString(record.permalink, `moment ${id}: permalink`),
-    links: toLinks(record.links, id),
+    links: toLinks(record.links, `moment ${id}`),
     there: toSlugs(record.there, id, "there"),
     away: toSlugs(record.away, id, "away"),
   };

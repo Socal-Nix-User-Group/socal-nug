@@ -234,6 +234,23 @@ the page reads people from. A thin guest page is the cheaper cost.
 
 Guests may fill in `image_url` and `description` or leave them empty. The page handles both.
 
+Two more fields under `[extra]` are optional for everyone:
+
+```toml
+quote = "..."                                     # their own words
+links = [{ title = "...", url = "https://..." }]  # their own sites
+```
+
+- `quote` is shown as a quotation on the person's Origins card and nowhere else. `description` is
+  prose about them and reads as the site talking; a quote reads as them. `profiles.json` does not
+  describe `quote`, so nothing checks it.
+- `links` is the same shape as a moment's `links`. `profile_url` is the person's GitHub, which
+  the alias links to; `links` is anywhere else they want to be found. Each is shown by its title,
+  under the description, on the About grid and on the person's Origins card. They are plain links
+  that open in the same tab, like the alias beside them. The titles in the data are the sites'
+  host names, which is a habit and not a rule. `profiles.json` requires a title and a url on each
+  entry, and the engine's parser rejects an entry without them.
+
 There is one guest in the data: Matthew Croughan, who organizes Nix Camp and is at every one, was
 at SCaLE 20x and 21x, and has been at every NixCon since 2024. NixCon 2024 is in the data for
 Matthew alone: nobody from the group is thought to have been there, so it is a moment that names
@@ -681,7 +698,8 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   and whose tinted card already says who. Hovering a meetup therefore dims only the people
   recorded away from it and those who had not joined yet.
 - A person's card carries avatar, name, alias (linking to their profile), quote, description,
-  membership badge and where they joined, as "Joined at" with that meetup's title and date.
+  their own links on one line that wraps, membership badge and where they joined, as "Joined at"
+  with that meetup's title and date.
 - A moment's card carries title, date, photo, blurb, and the event page or outside links. Any
   moment that is not a meetup lists the people it names. A meetup's card says "Joined here:" with
   the names of who joined there, and "Confirmed there:" with anyone else the record vouches for,
@@ -829,7 +847,8 @@ In `checks/default.nix`:
   with no title, a date in the right format that does not exist (such as a month 13), a moment
   with no `id`, and `links` that is not a list.
 
-- `frontmatter` extends to the required `member` field through `profiles.json`.
+- `frontmatter` extends to the required `member` field through `profiles.json`, and to a
+  profile's `links`, each of which needs a title and a url.
 
 - `test-site` checks the built page: its data block parses and carries the history, the meetups
   come from the events section and carry `there` and `away` lists, a record's attendance reaches
@@ -838,7 +857,8 @@ In `checks/default.nix`:
   the roster are in place. It reads the stylesheet for the rules behind the legend's tooltip,
   the hand over the map, the dimming of whoever is not lit, and the roster taking the map's
   ceiling beside it. It checks that the guest in the data is on the Origins page and not in the
-  About grid, and proves the About filter with a guest probe as well.
+  About grid, and proves the About filter with a guest probe as well. It checks that every
+  member's own links are in the data block and on the About grid.
 
 - `braid-smoke`: builds the story from the built site's own data block, which is the repository's
   `data/moments.toml` and `content/events/` through the template's merge, not from fixtures. It
@@ -981,11 +1001,11 @@ be reasonable if layout moved to build time.
 - **The card.** The treatment was called out early as generic and never revisited beyond
   squaring the corners. There is one card surface now, used in the popup and the roster, so it
   is a single thing to design rather than two.
-- **Descriptions and quotes.** Connor Baker, Kyle Risse, Morgan Jones, Samuel Raumin, Chris
-  Tewfik, Joshua Campbell and Matthew Croughan have neither. Jared Baur and Mica have a quote and
-  no description, which rather shows up the gap.
-  Rob Hernandez's and Jared Baur's "First contact" have no blurb, though Daniel Baker's has one,
-  and several conference and camp moments have none.
+- **Descriptions and quotes.** Chris Tewfik, Joshua Campbell and Matthew Croughan have neither.
+  Everyone else has a description; only Daniel Baker, Jared Baur and Mica have a quote, and only
+  Daniel Baker, David Nuon and Samuel Raumin have links.
+  Rob Hernandez's and Jared Baur's "First contact" have no blurb, though Daniel Baker's and
+  Connor Baker's have one, and several conference and camp moments have none.
 - **Seven `CONFIRM` markers** in `data/moments.toml`: two dates given as approximations, one
   meetup guessed at (Connor Baker's first, below), "I think everyone was there" on the three
   SCaLE moments, and "I believe David and I were at every single NUG event" over the attendance

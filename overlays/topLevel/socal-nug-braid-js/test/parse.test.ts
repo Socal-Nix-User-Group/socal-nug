@@ -169,6 +169,34 @@ test("a quote comes through as written, inner quotation marks and all", () => {
   assert.equal(people.get("daniel-baker")!.quote, said);
 });
 
+test("a person with no links gets an empty list, not undefined", () => {
+  const { people } = parseData(PAYLOAD);
+  assert.deepEqual(people.get("daniel-baker")!.links, []);
+});
+
+test("a person's links come through, each with its title", () => {
+  const links = [
+    { title: "djacu.dev", url: "https://djacu.dev/" },
+    { title: "Lessons", url: "https://example.com/lessons" },
+  ];
+  const { people } = parseData({
+    ...PAYLOAD,
+    people: [{ ...PAYLOAD.people[0], links }],
+  });
+  assert.deepEqual(people.get("daniel-baker")!.links, links);
+});
+
+test("a person's link with no url is rejected, naming the person", () => {
+  assert.throws(
+    () =>
+      parseData({
+        ...PAYLOAD,
+        people: [{ ...PAYLOAD.people[0], links: [{ title: "Nowhere" }] }],
+      }),
+    /people\[0\].*links\[0\]\.url/,
+  );
+});
+
 test("a meetup's attendance lists come through", () => {
   const { moments } = parseData({ people: [], moments: [{ id: "m", date: "2024-06-01", title: "M", people: [], trunk: true, there: ["a"], away: ["b"] }] });
   assert.deepEqual(moments[0].there, ["a"]);

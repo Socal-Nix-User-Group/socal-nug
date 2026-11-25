@@ -9,6 +9,7 @@ Uses only the standard library. The site is built into a temporary directory. Th
 about-page ordering test writes a temporary profile into the source's content/about/.
 """
 import hashlib
+import html
 import json
 import pathlib
 import re
@@ -172,6 +173,17 @@ class SiteBuild(unittest.TestCase):
         for name in guests:
             self.assertNotIn(name, about)
         self.assertTrue((self.out / 'about' / 'matthew-croughan' / 'index.html').is_file())
+
+    def test_a_members_own_sites_are_on_about_and_in_the_origins_data(self):
+        # one profile field, read by both pages
+        _, data = self.origins_data()
+        linked = [p for p in data['people'] if p['member'] and p['links']]
+        self.assertTrue(linked, 'no member profile carries links')
+        about = html.unescape((self.out / 'about' / 'index.html').read_text())
+        for person in linked:
+            for link in person['links']:
+                self.assertIn(
+                    f'<a class="mr-3" href="{link["url"]}">{link["title"]}</a>', about)
 
     def test_a_guest_has_a_page_but_is_not_in_the_members_grid(self):
         # the filter is proved with a probe as well, so it does not rest on

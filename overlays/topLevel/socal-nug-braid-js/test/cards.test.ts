@@ -55,6 +55,7 @@ function person(slug: string, member: boolean): Person {
     quote: "",
     imageUrl: "",
     profileUrl: `https://example.com/${slug}`,
+    links: [],
     member,
   };
 }
@@ -321,6 +322,42 @@ test("somebody with no quote gets no empty quotation", () => {
   const { doc, made } = stubDocument();
   personCardFor(thread("daniel"), small, doc);
   assert.equal(made.some((n) => n.tag === "blockquote"), false);
+});
+
+// --- a person's own sites ----------------------------------------------------
+// The alias goes to their GitHub. These are wherever else they asked to be
+// found, each under the title their profile gives it.
+
+const linksRow = (made: Node[]) =>
+  made.find((n) =>
+    (n.attrs.class ?? "").split(" ").includes("origins-card-links")
+  );
+
+test("a person card links to their sites, each by its title", () => {
+  const { doc, made } = stubDocument();
+  const linked = {
+    ...CAST.get("daniel")!,
+    links: [
+      { title: "djacu.dev", url: "https://djacu.dev/" },
+      { title: "Lessons", url: "https://example.com/lessons" },
+    ],
+  };
+  personCardFor({ ...thread("daniel"), person: linked }, small, doc);
+  const row = linksRow(made);
+  assert.ok(row !== undefined, "no row of links in the card");
+  assert.deepEqual(
+    row.children.map((n) => [n.tag, n.text, n.attrs.href]),
+    [
+      ["a", "djacu.dev", "https://djacu.dev/"],
+      ["a", "Lessons", "https://example.com/lessons"],
+    ],
+  );
+});
+
+test("somebody with no links gets no empty row of them", () => {
+  const { doc, made } = stubDocument();
+  personCardFor(thread("daniel"), small, doc);
+  assert.equal(linksRow(made), undefined);
 });
 
 // --- the roster --------------------------------------------------------------
