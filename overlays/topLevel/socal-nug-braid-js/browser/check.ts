@@ -659,15 +659,19 @@ async function run(): Promise<void> {
   }
 
   {
-    // River is centred in its box, so a narrower box draws it differently.
-    await load("river", 1200, 1000);
+    // River is centred in a box wider than it is, so a narrower box draws it
+    // differently. That needs a River that fits the wider box: the widest the
+    // page gives it is 859px, from a window of 1408px up. The history decides
+    // how wide River is, and once it is wider than that the two pictures are
+    // the same and this says so.
+    await load("river", 1400, 1000);
     const narrow = await shape();
-    await load("river");
+    await load("river", 1500, 1000);
     const wide = await shape();
-    await load("subway");
+    await load("subway", 1500, 1000);
     await pressMode("river");
     const moving = await tab.waitFor(MORPHING, 15_000);
-    await tab.size(1200, 1000);
+    await tab.size(1400, 1000);
     const landed = await landedIn("river");
     await sleep(600);
     const after = await shape();

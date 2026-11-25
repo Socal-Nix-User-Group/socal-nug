@@ -304,14 +304,27 @@ export interface Shares {
 
 const held = (n: number) => Math.min(1, Math.max(0, n));
 
-/** `reach` is how far the box can scroll on each axis. Time runs down in River, across in Subway. */
-export function sharesOf(mode: Mode, scroll: Point, reach: Point): Shares {
+/** Where a view that has not been carried anywhere is taken to be: the start, in the middle. */
+const NOWHERE: Shares = { along: 0, across: 0.5 };
+
+/**
+ * `reach` is how far the box can scroll on each axis. Time runs down in River,
+ * across in Subway. A box with nowhere to go on an axis has no place of its
+ * own on it, so it keeps the share the view `arrived` with: a view carried
+ * through a mode that cannot scroll one way comes out where it went in.
+ */
+export function sharesOf(
+  mode: Mode,
+  scroll: Point,
+  reach: Point,
+  arrived: Shares = NOWHERE,
+): Shares {
   const river = mode === "river";
   const along = river ? [scroll.y, reach.y] : [scroll.x, reach.x];
   const across = river ? [scroll.x, reach.x] : [scroll.y, reach.y];
   return {
-    along: along[1] === 0 ? 0 : held(along[0] / along[1]),
-    across: across[1] === 0 ? 0.5 : held(across[0] / across[1]),
+    along: along[1] === 0 ? arrived.along : held(along[0] / along[1]),
+    across: across[1] === 0 ? arrived.across : held(across[0] / across[1]),
   };
 }
 

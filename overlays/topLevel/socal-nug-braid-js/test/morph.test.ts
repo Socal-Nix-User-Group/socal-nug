@@ -182,6 +182,21 @@ test("shares: nothing to scroll along is the start, nothing across is the middle
   assert.deepEqual(scrollFor("river", { along: 0, across: 0.5 }, pt(0, 0)), pt(0, 0));
 });
 
+// River can be wider than its box while Subway has nothing to scroll down, and
+// a River zoomed out to fit has nothing to scroll at all. A view carried
+// through either comes out where it went in.
+test("shares: an axis with nowhere to scroll keeps the share the view arrived with", () => {
+  const arrived = { along: 0.37, across: 0 };
+  assert.deepEqual(sharesOf("subway", pt(450, 0), pt(900, 0), arrived), { along: 0.5, across: 0 });
+  assert.deepEqual(sharesOf("river", pt(0, 0), pt(0, 0), arrived), { along: 0.37, across: 0 });
+  // an axis that can scroll says where it is, whatever the view arrived with
+  assert.deepEqual(sharesOf("river", pt(300, 500), pt(300, 500), arrived), { along: 1, across: 1 });
+  // there and back: the left edge of a River wider than its box, through a Subway no taller than its own
+  const out = sharesOf("river", pt(0, 185), pt(74, 500));
+  const back = sharesOf("subway", scrollFor("subway", out, pt(900, 0)), pt(900, 0), out);
+  assert.deepEqual(scrollFor("river", back, pt(74, 500)), pt(0, 185));
+});
+
 test("year marks are the lines and labels drawLoom draws, in both modes", () => {
   // what drawLoom drew for the fixture before the marks were worked out on their own
   assert.deepEqual(yearMarks(river, story), {

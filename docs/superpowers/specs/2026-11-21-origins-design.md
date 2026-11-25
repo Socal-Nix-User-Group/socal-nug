@@ -644,6 +644,10 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   moves in a straight line from where it was to where it lands, so everything crosses the screen
   in a straight line. A round trip comes back to where it began, to within a pixel: the browser
   keeps a scroll position to whole pixels and Subway scrolls more than twice as far as River.
+  An axis the box cannot scroll has no place of its own on it, so on that axis the view keeps the
+  share the last switch carried: River can be wider than its box while Subway has nothing to
+  scroll down, and a view at River's left edge comes back to River's left edge. A view no switch
+  has carried counts as at the start along the map and in the middle across it.
 - A view whose zoom was last set by Fit arrives at the other mode's fit, the zoom changing on
   the way. Fit is a different zoom in each mode, because the pictures are different shapes (19%
   in Subway and 32% in River in a 1400px window today), and carrying one across left the other
@@ -920,18 +924,29 @@ along and a round trip returns; that a fitted view arrives fitted; that the mode
 buttons do nothing while it moves; that reduced motion makes it instant; and that a switch made
 to fail, in a frame and before the first one, still ends in the ordinary picture with the next
 switch working. Fifty-six checks, each named for what a visitor would
-notice and none naming a moment or a person, so the data can change under it. It needs the
+notice and none naming a moment or a person, so the data can change under it as long as the
+picture stays about the size it is (see below). It needs the
 network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
 and is typechecked by `braid-types`, which is what stops it rotting between uses.
 
-It is kept out of `nix flake check` on purpose. Everything it looks at is decided by the page's
+It is kept out of `nix flake check` on purpose. What it looks at is decided by the page's
 script (anything under `overlays/topLevel/socal-nug-braid-js/src/`), its stylesheet
-(`sass/css/pages/origins.scss`) and its template (`templates/origins.html`); no event, moment or
-profile can break any of it, so a content change would pay for a 1.7 GiB Chromium and get nothing
-back but the chance of a false failure. It is run by whoever changes any of those, when they
-change them. Run against
+(`sass/css/pages/origins.scss`) and its template (`templates/origins.html`), and it is run by
+whoever changes any of those, when they change them. A 1.7 GiB Chromium on every content change
+would mostly buy the chance of a false failure. Run against
 the page as it stood before the defects it was written from were fixed, it failed 17 of the 25
 it had then.
+
+Content cannot break the script, but it decides how big the picture is, and that has caught the
+check out once. The commit that added Nix Camp 2026, NixCon 2024 and Connor Baker's first pull
+request took River from 658px wide to 741px, past the 667px its box has in the check's 1400px
+window. Two checks then failed, and nobody ran them until the next change to the script. One
+had found a real defect: a view at the left edge of a River wider than its box came back from
+Subway in the middle, fixed by keeping the share (see "Toggle and responsive behaviour"). The
+other, the window narrowed part way, needs a River that fits the wider of its two boxes, and
+now goes from 1500px to 1400px; it will say so when River outgrows the 859px box a window of
+1408px or more gives it. So the check is also worth running when the history gains people or
+moments off the ribbon.
 
 ### Netlify interim
 
@@ -1050,6 +1065,12 @@ be reasonable if layout moved to build time.
   pointer then; pressing Enter on a focused moment while it morphs is meant to open nothing;
   and a mouse already holding the map when a keyboard press switches modes is meant to be let
   go.
+- **River wider than its box.** River is 741px wide. Beside the roster its box is 859px in a
+  window of 1408px or more, 667px from 1216px and 475px from 1024px, all measured, so in a
+  window from 1024px to 1407px River scrolls sideways and opens at its left edge, with the right
+  of the picture out of view. Whether it should open centred, or fitted to its box, has not been
+  decided. Before the commit that added Nix Camp 2026 and NixCon 2024 it was 658px and fitted
+  from 1216px up. It did not fit the 475px box then either.
 - **An id rule in the validator.** Nothing stops a `|` in a moment id, or a person slugged
   `spine`, and either would break placement: port ids are split on `|`, and the spine's edges
   are named `spine:<n>`, as a person's edges are named `<slug>:<n>`.

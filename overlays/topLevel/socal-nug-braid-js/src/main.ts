@@ -5,6 +5,7 @@ import { drawLoom, HIT } from "./loom-draw.ts";
 import { centreLoomIn, placeLoom } from "./loom-place.ts";
 import type { LoomPlaced } from "./loom-place.ts";
 import { ease, frameAt, MORPH_MS, morphBetween, scrollFor, sharesOf } from "./morph.ts";
+import type { Shares } from "./morph.ts";
 import { parseData } from "./parse.ts";
 import { placePopup } from "./popup.ts";
 import type { DocumentLike, ElementLike } from "./render.ts";
@@ -205,6 +206,11 @@ function boot(): void {
   let zoom = 1;
   /** The zoom was last set by Fit, so a switch arrives at the other mode's fit. */
   let fitted = false;
+  /**
+   * How far along and across the view was when the last switch carried it.
+   * The next switch falls back on it for an axis this mode cannot scroll.
+   */
+  let carried: Shares | undefined;
   /** The canvas as it was drawn, before any zoom. */
   let canvas = { width: 0, height: 0 };
 
@@ -306,7 +312,8 @@ function boot(): void {
       // nothing is painted, so the reader never sees the page in between.
       const box0 = rect(mount!);
       const scroll0 = { x: mount!.scrollLeft, y: mount!.scrollTop };
-      const shares = sharesOf(from.mode, scroll0, reachOf());
+      const shares = sharesOf(from.mode, scroll0, reachOf(), carried);
+      carried = shares;
       const rail0 = roster === null ? box0 : rect(roster);
       const cards0 = items.map(rect);
 

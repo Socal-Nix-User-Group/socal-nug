@@ -51,7 +51,8 @@ Each lives under `overlays/topLevel/` and runs with `nix run`:
   through and tapped. Linux only, needs the network, and
   is not part of `nix flake check`. Run it after changing the page's script (anything under
   `overlays/topLevel/socal-nug-braid-js/src/`), its stylesheet `sass/css/pages/origins.scss` or
-  its template `templates/origins.html`.
+  its template `templates/origins.html`, and after `data/moments.toml` gains people or moments
+  off the ribbon, which change the size of the picture.
 
 ## Deploys
 
