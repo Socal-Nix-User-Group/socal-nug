@@ -4,7 +4,7 @@ import { focusOrder, nextIndex } from "./focus.ts";
 import { drawLoom, HIT } from "./loom-draw.ts";
 import { centreLoomIn, placeLoom } from "./loom-place.ts";
 import type { LoomPlaced } from "./loom-place.ts";
-import { ease, frameAt, MORPH_MS, morphBetween, scrollFor, sharesOf } from "./morph.ts";
+import { ease, frameAt, MORPH_MS, morphBetween, OPENING, scrollFor, sharesOf } from "./morph.ts";
 import type { Shares } from "./morph.ts";
 import { parseData } from "./parse.ts";
 import { placePopup } from "./popup.ts";
@@ -223,7 +223,28 @@ function boot(): void {
   /** What opened the card, so focus can go back to it when the card closes. */
   let openedBy: PageElement | null = null;
 
-  async function draw(next: Mode): Promise<void> {
+  /**
+   * How far the box can scroll, found by asking it to go too far. The sizes
+   * it reports do not say: the room kept for a scrollbar is counted in them
+   * and cannot be scrolled into.
+   */
+  function reachOf(): { x: number; y: number } {
+    const at = { x: mount!.scrollLeft, y: mount!.scrollTop };
+    mount!.scrollLeft = 1e7;
+    mount!.scrollTop = 1e7;
+    const reach = { x: mount!.scrollLeft, y: mount!.scrollTop };
+    mount!.scrollLeft = at.x;
+    mount!.scrollTop = at.y;
+    return reach;
+  }
+
+  /**
+   * Draw `next`. Given a `view`, the box is scrolled to that share of the way
+   * along and across the new picture: where a first picture opens, or where
+   * a switch that does not travel carries the view to. Without one the box
+   * keeps the place it had, which is what a resize wants.
+   */
+  async function draw(next: Mode, view?: Shares): Promise<void> {
     // Layout is asynchronous and a reader can switch modes faster than ELK
     // lays out, so a drawing that was overtaken is dropped rather than
     // landing on top of the newer one.
@@ -243,6 +264,11 @@ function boot(): void {
     shown = placed;
     mount!.replaceChildren(drawLoom(placed, story, document), popup);
     sizeMap();
+    if (view !== undefined) {
+      const to = scrollFor(next, view, reachOf());
+      mount!.scrollLeft = to.x;
+      mount!.scrollTop = to.y;
+    }
 
     // The old nodes went with replaceChildren, so the card has nothing left to
     // point at.
@@ -265,7 +291,12 @@ function boot(): void {
       from === null || svg === undefined || morphing || window === undefined ||
       window.matchMedia("(prefers-reduced-motion: reduce)").matches
     ) {
-      return draw(next);
+      // No journey, but the view lands where the journey would have taken it.
+      if (from !== null) {
+        const here = { x: mount!.scrollLeft, y: mount!.scrollTop };
+        carried = sharesOf(from.mode, here, reachOf(), carried);
+      }
+      return draw(next, carried ?? OPENING);
     }
     morphing = true;
     const layout = document.getElementById("origins-layout");
@@ -295,19 +326,6 @@ function boot(): void {
         const b = e.getBoundingClientRect();
         return { x: b.left, y: b.top, w: b.width, h: b.height };
       };
-      // How far the box can scroll, found by asking it to go too far. The
-      // sizes it reports do not say: the room kept for a scrollbar is counted
-      // in them and cannot be scrolled into.
-      const reachOf = () => {
-        const at = { x: mount!.scrollLeft, y: mount!.scrollTop };
-        mount!.scrollLeft = 1e7;
-        mount!.scrollTop = 1e7;
-        const reach = { x: mount!.scrollLeft, y: mount!.scrollTop };
-        mount!.scrollLeft = at.x;
-        mount!.scrollTop = at.y;
-        return reach;
-      };
-
       // Where everything is now. From here to putting this picture back,
       // nothing is painted, so the reader never sees the page in between.
       const box0 = rect(mount!);
@@ -514,9 +532,10 @@ function boot(): void {
       morphing = false;
       if (flipped && !landed) {
         // The journey failed, or the two layouts do not pair up: the plain
-        // redraw for the mode the page now says it is in.
+        // redraw for the mode the page now says it is in, with the view
+        // where the journey was taking it.
         tidy();
-        await draw(next);
+        await draw(next, carried);
       } else if (landed && mount!.clientWidth !== shownAt) {
         // The window changed size on the way, which the resize handler let
         // pass while the morph ran.
@@ -994,7 +1013,7 @@ function boot(): void {
     showMode();
   }
 
-  draw(mode).then(() => {
+  draw(mode, OPENING).then(() => {
     // Shown once there is a picture to switch, so a reader whose layout
     // engine never arrived is not offered a control that does nothing. The
     // zoom and the legend go with it: there is nothing to zoom, and the

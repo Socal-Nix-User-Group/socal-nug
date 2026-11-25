@@ -390,6 +390,22 @@ async function run(): Promise<void> {
     );
   }
 
+  // --- the view opens in the middle of a picture wider than its box ------------
+  // Beside the roster the box is 475px in a window this wide, and River is far
+  // wider than that. Opened at its left edge it showed almost none of the
+  // ribbon.
+
+  await load("river", 1100, 1000);
+  {
+    const far = await reach();
+    const at = await mapAt();
+    check(
+      far.x > 0 && Math.abs(at.left - far.x / 2) <= 1 && at.top === 0,
+      "River wider than its box opens at the top, with as much out of sight on the left as on the right",
+      { reach: far, at },
+    );
+  }
+
   // --- the toggle shows which mode is on ---------------------------------------
 
   {
@@ -695,6 +711,22 @@ async function run(): Promise<void> {
       arrived && !moved,
       "with reduced motion asked for, switching modes is instant",
       { arrived, moved },
+    );
+  }
+  await load("river");
+  {
+    const from = await reach();
+    await tab.evaluate(`${MAP}.scrollTop = ${Math.round(0.5 * from.y)}`);
+    const was = await mapAt();
+    await pressMode("subway");
+    const arrived = await tab.waitFor(`${PICTURE}.classList.contains("is-subway")`, 15_000);
+    const to = await reach();
+    const is = await mapAt();
+    const want = from.y === 0 ? 0 : (was.top / from.y) * to.x;
+    check(
+      arrived && from.y > 0 && to.x > 0 && Math.abs(is.left - want) <= 1,
+      "with reduced motion asked for, a switch lands the same share of the way along the other map",
+      { from, was, to, is, want },
     );
   }
   await tab.send("Emulation.setEmulatedMedia", { features: [] });

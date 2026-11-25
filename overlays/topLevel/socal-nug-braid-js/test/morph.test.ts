@@ -4,7 +4,7 @@ import { labelWidth } from "../src/elk.ts";
 import { drawLoom, yearMarks } from "../src/loom-draw.ts";
 import { placeLoom, slotKey } from "../src/loom-place.ts";
 import type { LoomPlaced, Point } from "../src/loom-place.ts";
-import { ease, frameAt, morphBetween, scrollFor, sharesOf } from "../src/morph.ts";
+import { ease, frameAt, morphBetween, OPENING, scrollFor, sharesOf } from "../src/morph.ts";
 import type { Morph } from "../src/morph.ts";
 import { flow } from "../src/render.ts";
 import { apart, recorder } from "../smoke/inspect.ts";
@@ -195,6 +195,13 @@ test("shares: an axis with nowhere to scroll keeps the share the view arrived wi
   const out = sharesOf("river", pt(0, 185), pt(74, 500));
   const back = sharesOf("subway", scrollFor("subway", out, pt(900, 0)), pt(900, 0), out);
   assert.deepEqual(scrollFor("river", back, pt(74, 500)), pt(0, 185));
+});
+
+test("shares: a view opens at the start of the map, with as much out of sight on one side as the other", () => {
+  assert.deepEqual(scrollFor("river", OPENING, pt(74, 1970)), pt(37, 0));
+  assert.deepEqual(scrollFor("subway", OPENING, pt(4984, 30)), pt(0, 15));
+  // and it is what an axis with nowhere to scroll falls back on when no switch has carried the view
+  assert.deepEqual(sharesOf("river", pt(0, 0), pt(0, 0)), OPENING);
 });
 
 test("year marks are the lines and labels drawLoom draws, in both modes", () => {

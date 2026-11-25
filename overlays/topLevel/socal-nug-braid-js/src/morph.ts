@@ -304,8 +304,12 @@ export interface Shares {
 
 const held = (n: number) => Math.min(1, Math.max(0, n));
 
-/** Where a view that has not been carried anywhere is taken to be: the start, in the middle. */
-const NOWHERE: Shares = { along: 0, across: 0.5 };
+/**
+ * Where a view opens: at the start of the map, in the middle across it, so a
+ * picture wider than its box has as much out of sight on one side as on the
+ * other.
+ */
+export const OPENING: Shares = { along: 0, across: 0.5 };
 
 /**
  * `reach` is how far the box can scroll on each axis. Time runs down in River,
@@ -317,7 +321,7 @@ export function sharesOf(
   mode: Mode,
   scroll: Point,
   reach: Point,
-  arrived: Shares = NOWHERE,
+  arrived: Shares = OPENING,
 ): Shares {
   const river = mode === "river";
   const along = river ? [scroll.y, reach.y] : [scroll.x, reach.x];

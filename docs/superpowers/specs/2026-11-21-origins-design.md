@@ -651,6 +651,11 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   share the last switch carried: River can be wider than its box while Subway has nothing to
   scroll down, and a view at River's left edge comes back to River's left edge. A view no switch
   has carried counts as at the start along the map and in the middle across it.
+- That is also where the first picture opens: at the start of the map, with as much out of sight
+  on one side as on the other. A River wider than its box therefore opens centred, by Daniel's
+  choice. The ribbon runs from 467px to 560px across the 741px picture, so opened at its left
+  edge River showed 8px of it in a 475px box and none of it on a phone. A resize redraws the
+  picture and leaves the box scrolled where it was.
 - A view whose zoom was last set by Fit arrives at the other mode's fit, the zoom changing on
   the way. Fit is a different zoom in each mode, because the pictures are different shapes (19%
   in Subway and 32% in River in a 1400px window today), and carrying one across left the other
@@ -664,11 +669,13 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   left behind.
 - A reader whose system asks for reduced motion gets the instant switch. So does anyone whose
   two layouts do not pair up, an edge or a face in only one of them, which a layout that passed
-  the smoke check cannot be.
+  the smoke check cannot be. The instant switch lands the view the same share of the way along
+  and across as the morph would have. Before River opened centred it kept the box's scroll
+  position as a number of pixels, which would now open Subway part way in.
 - If anything fails once the page has been put in the new mode, whether before the first frame
   or in the middle of one, the switch ends in the ordinary picture for that mode with nothing of
-  the morph left on the page, and the next switch works. It keeps whatever scroll position the
-  box had when it failed. Before that fix a failure in a frame left the map answering nothing
+  the morph left on the page, and the next switch works. The view lands where the switch was
+  taking it. Before that fix a failure in a frame left the map answering nothing
   until the page was reloaded.
 - The arithmetic is in `src/morph.ts` and touches no page: given two layouts it says where
   everything is at any point between them, and it carries a scroll position across as shares.
@@ -927,7 +934,9 @@ is left set on the box, the layout or the cards; that the view lands the same sh
 along and a round trip returns; that a fitted view arrives fitted; that the mode and zoom
 buttons do nothing while it moves; that reduced motion makes it instant; and that a switch made
 to fail, in a frame and before the first one, still ends in the ordinary picture with the next
-switch working. Fifty-six checks, each named for what a visitor would
+switch working. Two more are about where the view is put without a morph: a River wider than
+its box opens centred, and the instant switch lands the same share of the way along.
+Fifty-eight checks, each named for what a visitor would
 notice and none naming a moment or a person, so the data can change under it as long as the
 picture stays about the size it is (see below). It needs the
 network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
@@ -1071,10 +1080,13 @@ be reasonable if layout moved to build time.
   go.
 - **River wider than its box.** River is 741px wide. Beside the roster its box is 859px in a
   window of 1408px or more, 667px from 1216px and 475px from 1024px, all measured, so in a
-  window from 1024px to 1407px River scrolls sideways and opens at its left edge, with the right
-  of the picture out of view. Whether it should open centred, or fitted to its box, has not been
-  decided. Before the commit that added Nix Camp 2026 and NixCon 2024 it was 658px and fitted
-  from 1216px up. It did not fit the 475px box then either.
+  window from 1024px to 1407px, and on a phone, River scrolls sideways. It opens centred (see
+  "Toggle and responsive behaviour"). The cost is the year numbers: they are drawn 6px in from
+  the picture's left edge, so wherever River is wider than its box none of them is in view
+  until the reader scrolls left, though the year lines still cross the picture. Keeping them at
+  the box's edge as the map scrolls has not been tried. Before the commit that added Nix Camp
+  2026 and NixCon 2024 River was 658px and fitted from 1216px up. It did not fit the 475px box
+  then either.
 - **An id rule in the validator.** Nothing stops a `|` in a moment id, or a person slugged
   `spine`, and either would break placement: port ids are split on `|`, and the spine's edges
   are named `spine:<n>`, as a person's edges are named `<slug>:<n>`.
