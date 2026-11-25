@@ -949,7 +949,9 @@ to scroll. Daniel chose the first.
   colour, in the list and in the popup alike, as their ovals do in the map. Before this the
   popup's edge was the trunk's colour for every moment.
 - A click on a link in a moment's card follows the link and picks nothing, as in a person's
-  card.
+  card. A link is only as wide as its words, in the list and in the popup. As first built it
+  stretched across the card, and a click on the blank beside it, meant for the card, followed
+  the link; the final review found it.
 - On a narrow screen a moment's card in its row is 19rem wide, as a person's is; 13rem was for
   the compact card.
 - **Where the popup stays.** A click, a tap or Enter on a face or a moment in the map opens
@@ -984,6 +986,19 @@ to scroll. Daniel chose the first.
   did. Read in the code and not tried in a browser: Space in place of Enter, a tap on a touch
   screen in a wide River window, and a switch from Subway to River with the popup open (a
   window widened with the popup open is tried, and closes it the same way).
+- **A limit found in review: beside the map is not always in sight.** The rail beside River is
+  as tall as the map, with the moments' list its lower half. Everything above was measured
+  with the map's top at the top of the window. As the page opens, not yet scrolled, the map's
+  top is about 400px down it (432px in a 1366 by 768 window, 402px at 1440 by 900 and 1920 by
+  1080), and the moments' list starts at 793px, 819px and 895px. A click on a moment in the map
+  then marks a card that is wholly below a 768px window, cut off at the bottom of a 900px one,
+  and at 1080px mostly below it once it is brought to the middle of its list. Nothing else
+  opens, so on a laptop the first click a visitor makes can show lit threads and no card. Once
+  the page is scrolled so the map's top is at the top of the window the card is whole at all
+  three sizes. The people's list is the upper half and is in sight either way. Three ways out
+  were put to Daniel on 2026-11-25: open the popup beside the map as well whenever the card
+  would not be wholly on screen; scroll the page to the card; or leave it. Not decided when
+  this was written.
 
 ### Member and guest treatment
 
@@ -1246,9 +1261,10 @@ under reduced motion; and a tap picking the moment, with nothing left lit once i
 Each check that could pass for want of anything to click also asserts that the pick it depends
 on happened.
 
-Seven are about the one card for a moment and where the popup stays. A moment's card in the
+Eight are about the one card for a moment and where the popup stays. A moment's card in the
 list says what its card in the map says, word for word and link for link; a click on a link in
-it picks nothing; in a narrow window it is as wide as a person's. Beside the map a click on a
+it picks nothing, and a click beside the link, on the card, picks the card and goes nowhere; in
+a narrow window it is as wide as a person's. Beside the map a click on a
 moment opens no card, marks its card in the list and glides the list to it, and its oval keeps
 the changed outline while it is picked; in a narrow window in River the click opens the popup;
 and a window widened until the lists are beside the map closes a popup that was open and keeps
@@ -1257,7 +1273,7 @@ focus to the card in the list, and Escape sends focus back, but not when the rea
 somewhere else, nor when it has left the card and come back. Every older check that opens the
 popup now runs in Subway, where the popup is, with the claim and the assertions it had.
 
-Ninety-two checks, each named for what a visitor would
+Ninety-three checks, each named for what a visitor would
 notice and none naming a moment or a person, so the data can change under it as long as the
 picture stays about the size it is (see below). It needs the
 network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
@@ -1421,6 +1437,10 @@ be reasonable if layout moved to build time.
   screen tall, so a card is usually clicked with the map out of sight above it. The map centres
   and the people light, but what the reader sees is the card marked. Scrolling the page up to
   the map on a pick was not asked for and has not been tried.
+- **A moment's card out of sight beside the map.** In River, with the page not yet scrolled
+  down to the map, a click on a moment marks a card below the bottom of a laptop's window and
+  opens nothing. Measured, and waiting on Daniel; see the last point under "One card for a
+  moment, and the popup only under the map".
 - **A pick that outlives its popup.** This is now only where the popup still opens, with the
   rail under the map. A click or a tap on a moment in the map picks it, and
   closing its popup with the X leaves the people lit and everyone else faint until Escape, a
