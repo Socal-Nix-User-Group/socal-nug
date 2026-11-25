@@ -1136,11 +1136,11 @@ be reasonable if layout moved to build time.
   expand it with who met whom.
 - **Who was at each meetup** is recorded whole, everyone in the group either there or away, for
   nine meetups: the seven Daniel checked against pictures (NUG #1, #2, #3, #4, #6, the June 2025
-  Mini NUG and NUG #17) and two Daniel gave from memory on 2026-11-24, NUG #5 and NUG #10, each
-  as a list of who was there with every other member not. For the other ten up to NUG #17
-  Daniel Baker and David Nuon are recorded, and Chris Tewfik, and at NUG #12 Tristan Ross and
-  Morgan Jones, and nothing is said about anyone else. The lists name only people who have a
-  profile; others were at many of these. Chris is recorded at every meetup
+  Mini NUG and NUG #17) and two Daniel gave on 2026-11-24, NUG #5 and NUG #10, the second from
+  a picture, each as a list of who was there with every other member not. For the other ten up
+  to NUG #17 Daniel Baker and David Nuon are recorded, and Chris Tewfik, and at NUG #12 Tristan
+  Ross and Morgan Jones, and nothing is said about anyone else. The lists name only people who
+  have a profile; others were at many of these. Chris is recorded at every meetup
   from NUG #5, where Chris joined, to NUG #17: there at NUG #6 and NUG #17, which Daniel knew
   of, and at NUG #7, #8, #10, #11, #12, #13 and the June 2025 Mini NUG, which Chris added,
   saying there were no others; so away from NUG #9, the April 2025 Mini NUG and NUG #14, #15
@@ -1148,8 +1148,9 @@ be reasonable if layout moved to build time.
   Joshua at each from NUG #2, where Joshua joined: there at NUG #4, and away from NUG #3,
   NUG #6, the June 2025 Mini NUG and NUG #17.
 - **Chris Tewfik at NUG #10.** Daniel's list for NUG #10 does not name Chris and says no other
-  member was there. Chris's own account, given earlier, has Chris at it. The record keeps Chris
-  there, under a `CONFIRM`, until one of the two says otherwise.
+  member was there. Chris's own account, given earlier, has Chris at it. Chris is not in
+  Daniel's picture of the meetup, and may have come late or left early. Daniel is asking Chris.
+  The record keeps Chris there, under a `CONFIRM`, until then.
 - **Connor Baker's first meetup** is recorded as NUG #7, as a guess. NUG #6 was first thought
   to be where Connor joined, but Connor is not in the pictures of it; Daniel thinks NUG #7 may
   have been the first.
