@@ -512,7 +512,9 @@ html[data-theme=dark] .origins-legend {
 
 // While anyone is lit or a moment is in play, the picture has three
 // strengths: whoever is lit at full, whoever a moment in play says nothing
-// about half way back, and everyone else stepped back. It is their thread,
+// about a quarter of the way back, and everyone else stepped back. Half way
+// was tried and read as stepped back: the unrecorded and the away are both
+// thin lines, told apart by strength alone. It is their thread,
 // their beads and their face. The unrecorded sit between because nothing
 // says they were there and nothing says they were not. The moments stay as
 // they are, since they belong to whoever is through them. The roster does
@@ -527,7 +529,7 @@ html[data-theme=dark] .origins-legend {
     .origins-thread.is-unsure,
     .origins-bead.is-unsure,
     .origins-root.is-unsure {
-        opacity: 0.625;
+        opacity: 0.75;
     }
 }
 

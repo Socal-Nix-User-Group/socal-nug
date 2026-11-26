@@ -450,11 +450,11 @@ class SiteBuild(unittest.TestCase):
         self.assertIn(
             '.origins-braid.is-morphing{overflow:hidden;pointer-events:none}', self.css)
 
-    def test_origins_dims_whoever_is_not_lit_and_the_unrecorded_half_way(self):
+    def test_origins_dims_whoever_is_not_lit_and_the_unrecorded_a_little(self):
         # in the picture only, and only threads, beads and faces: a moment
         # belongs to everyone through it, and the roster is a list being read.
         # The people whose attendance at a moment in play is not recorded
-        # step back half as far, since nothing says they were there and
+        # step back a little, since nothing says they were there and
         # nothing says they were not
         self.assertIn(
             '.origins-svg:has(.is-lit,.is-unsure) .origins-thread:not(.is-lit,.is-unsure),'
@@ -464,7 +464,7 @@ class SiteBuild(unittest.TestCase):
         self.assertIn(
             '.origins-svg:has(.is-lit,.is-unsure) .origins-thread.is-unsure,'
             '.origins-svg:has(.is-lit,.is-unsure) .origins-bead.is-unsure,'
-            '.origins-svg:has(.is-lit,.is-unsure) .origins-root.is-unsure{opacity:.625}',
+            '.origins-svg:has(.is-lit,.is-unsure) .origins-root.is-unsure{opacity:.75}',
             self.css)
 
     def test_origins_has_a_legend_hidden_until_the_script_runs(self):

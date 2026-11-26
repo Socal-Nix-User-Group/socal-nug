@@ -787,7 +787,7 @@ async function run(): Promise<void> {
       const unlit = k.confirmed.filter((slug) =>
         (now.threads[slug] ?? []).length === 0 || now.threads[slug].some((p) => !p.lit || !near(p.opacity, 1))
       );
-      const half = (p: { lit: boolean; opacity: string }) => !p.lit && near(p.opacity, 0.625);
+      const half = (p: { lit: boolean; opacity: string }) => !p.lit && near(p.opacity, 0.75);
       const changed = k.unsure.filter((slug) => !(now.threads[slug] ?? []).every(half));
       const witnessMarks = witness === null ? [] : [...(now.beads[witness] ?? []), ...(now.faces[witness] ?? [])];
       const witnessHalf = witness !== null && witnessMarks.length >= 2 && witnessMarks.every(half);
@@ -817,7 +817,7 @@ async function run(): Promise<void> {
     const clearAfterHover = await tab.waitFor(nothingLeft);
     check(
       meetup !== undefined && hovering.ok && clearAfterHover,
-      "hovering a meetup lights who was confirmed there, dims who was away or not yet in the group, and dims everyone else half as far",
+      "hovering a meetup lights who was confirmed there, dims who was away or not yet in the group, and dims everyone else a little",
       { moment: id, ...k, ...hovering, clearAfterHover },
     );
 
@@ -831,12 +831,12 @@ async function run(): Promise<void> {
     const clearAfterPick = await tab.waitFor(nothingLeft);
     check(
       meetup !== undefined && clicked && picking.ok && clearAfterPick,
-      "a click on a meetup's card lights who was confirmed there, dims who was away or not yet in the group, dims everyone else half as far, and letting go leaves nothing on anyone",
+      "a click on a meetup's card lights who was confirmed there, dims who was away or not yet in the group, dims everyone else a little, and letting go leaves nothing on anyone",
       { moment: id, clicked, ...picking, clearAfterPick },
     );
 
     // A meetup nobody is recorded at, and where nobody joined, lights nobody,
-    // and still draws the people in the group then half way back and
+    // and still draws the people in the group then a little way back and
     // everyone else further.
     const empty = story.moments.find((g) => g.moment.trunk && !g.through.some((p) => p.vouched));
     if (empty !== undefined) {
@@ -844,7 +844,7 @@ async function run(): Promise<void> {
       const settled = `(() => {
         const t = ${threads};
         return ${JSON.stringify(e.out)}.every((slug) => (t[slug] ?? []).every((p) => Math.abs(Number(p.opacity) - 0.25) <= 0.01)) &&
-          ${JSON.stringify(e.unsure)}.every((slug) => (t[slug] ?? []).every((p) => Math.abs(Number(p.opacity) - 0.625) <= 0.01));
+          ${JSON.stringify(e.unsure)}.every((slug) => (t[slug] ?? []).every((p) => Math.abs(Number(p.opacity) - 0.75) <= 0.01));
       })()`;
       await tab.move(5, 5);
       await sleep(300);
@@ -857,7 +857,7 @@ async function run(): Promise<void> {
       await sleep(300);
       const now = await tab.evaluate<Marks>(threads);
       const lit = await tab.evaluate<number>(`document.querySelectorAll("[data-person].is-lit").length`);
-      const notHalf = e.unsure.filter((slug) => (now[slug] ?? []).some((p) => !near(p.opacity, 0.625)));
+      const notHalf = e.unsure.filter((slug) => (now[slug] ?? []).some((p) => !near(p.opacity, 0.75)));
       const notBack = e.out.filter((slug) => (now[slug] ?? []).some((p) => !near(p.opacity, 0.25)));
       await tab.move(5, 5);
       const back = await tab.waitFor(
@@ -866,7 +866,7 @@ async function run(): Promise<void> {
       check(
         over && lit === 0 && e.unsure.length > 0 && e.out.length > 0 && notHalf.length === 0 &&
           notBack.length === 0 && back,
-        "hovering a meetup with nobody confirmed at it dims the people in the group half way and everyone else further",
+        "hovering a meetup with nobody confirmed at it dims the people in the group a little and everyone else further",
         { moment: empty.moment.id, over, lit, notHalf, notBack, back },
       );
     }

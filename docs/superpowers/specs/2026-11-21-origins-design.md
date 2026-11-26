@@ -1014,15 +1014,20 @@ section and an older one disagree, this one is right.
   neither record. Now a person comes out one of three ways. Confirmed there: lit, as before.
   Recorded away, or not through the moment at all (not yet in the group, or not named by a
   moment that is not a meetup): stepping back to a quarter strength, as before. Through it with
-  nothing recorded: not lit, their card in the list not tinted, and drawn half way between the
-  two, at 0.625. Daniel's reason is that the picture should tell "was there" from "nobody wrote
-  it down". As first built the unrecorded were left exactly as they were; Daniel tried it,
-  liked it, and asked for the half-way dimming the same day. A person hovered or picked is as
+  nothing recorded: not lit, their card in the list not tinted, and drawn between the two, at
+  three quarters strength. Daniel's reason is that the picture should tell "was there" from
+  "nobody wrote it down". As first built the unrecorded were left exactly as they were; Daniel
+  tried it, liked it, and asked for them to dim a little. Half way, 0.625, was built first and
+  read to Daniel as too close to stepping back: the unrecorded and the away are both thin
+  lines told apart by strength alone, where the confirmed are thicker as well as brighter.
+  Daniel chose 0.75 from pictures of 0.625, 0.75 and 0.85
+  (`.superpowers/sdd/origins-loom-pictures/unsure-strength.html`, outside the repository's
+  history). A person hovered or picked is as
   before. The three strengths hold whenever a moment is in play, so a meetup with nobody
-  confirmed at it lights nobody, draws the people in the group then at 0.625 and everyone else
+  confirmed at it lights nobody, draws the people in the group then at 0.75 and everyone else
   at a quarter; that last part was not asked for and follows from having three strengths. With
   one moment picked and another hovered, someone confirmed at either is lit, and someone
-  unrecorded at either and lit by neither is half way.
+  unrecorded at either and lit by neither is at 0.75.
 - How it is built: `litBy` in `src/pick.ts` returns the confirmed, `unsureAt` the unrecorded,
   and `relight()` sets a class for each; the stylesheet's dimming rule holds while anyone has
   either class, and gives the unrecorded their own strength. Nothing else sets either class.
@@ -1326,8 +1331,8 @@ Six came with the card's order and the lighting: a person's card saying who they
 their handle, links, what they do, when they joined and their own words, in the list and in
 the popup with the X clear of the name; a link to another site opening a new tab and one to
 this site staying in it; River's year numbers under their lines; a meetup lighting the
-confirmed, dimming the away and the not yet joined, and dimming everyone else half as far, by
-hover and by a pick; and a meetup with nobody confirmed dimming the group half way and
+confirmed, dimming the away and the not yet joined, and dimming everyone else a little, by
+hover and by a pick; and a meetup with nobody confirmed dimming the group a little and
 everyone else further. The checks that
 compare who is lit with the record now expect the confirmed.
 
