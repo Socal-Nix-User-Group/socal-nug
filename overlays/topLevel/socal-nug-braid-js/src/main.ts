@@ -609,10 +609,10 @@ function boot(): void {
         // where the journey was taking it.
         tidy();
         await draw(next, carried);
-      } else if (landed && mount!.clientWidth !== shownAt) {
-        // The window changed size on the way, which the resize handler let
-        // pass while the morph ran.
-        await draw(next);
+      } else if (landed) {
+        // The window may have changed size on the way, which the resize
+        // handler let pass while the morph ran. The mode is `next` by now.
+        await resized();
       }
     }
   }
@@ -1182,17 +1182,22 @@ function boot(): void {
         if (does === "in") zoomTo(stepZoom(zoom, 1));
         else if (does === "out") zoomTo(stepZoom(zoom, -1));
         else if (does === "reset") zoomTo(1);
-        else if (does === "fit") {
-          // The box is as tall as its picture up to a ceiling, so the room
-          // there is to fit into is the ceiling and not the box as it stands.
-          zoomTo(fitZoom(canvas, {
-            width: mount!.clientWidth,
-            height: parseFloat(getComputedStyle(mount!).maxHeight),
-          }));
-        }
+        else if (does === "fit") zoomTo(fitNow());
       });
     }
     showZoom();
+  }
+
+  /**
+   * The zoom at which the picture is whole in its box. The box is as tall as
+   * its picture up to a ceiling, so the room there is to fit into is the
+   * ceiling and not the box as it stands.
+   */
+  function fitNow(): number {
+    return fitZoom(canvas, {
+      width: mount!.clientWidth,
+      height: parseFloat(getComputedStyle(mount!).maxHeight),
+    });
   }
 
   // The plain wheel scrolls the map and then the page, as it always has.
@@ -1279,18 +1284,31 @@ function boot(): void {
     if (endsDrag) event.stopPropagation();
   }, true);
 
-  // The canvas is sized to its box, so a resized window needs a redraw. It
-  // needs no new layout though, only re-centring, which is why this can run
-  // on a drag at all. Settle first: a drag fires continuously, and the width
-  // that matters is the one it stops at.
+  /**
+   * Bring the picture in line with a box that has changed size.
+   *
+   * The canvas is sized to its box, so a new width needs a redraw. It needs
+   * no new layout though, only re-centring, which is why this can run on a
+   * drag at all. A zoom that Fit set was worked out for the box as it was,
+   * so it is worked out again for the box as it is. A change of height alone
+   * can undo a fit, the ceiling being a share of the window's height. Any
+   * other zoom is kept.
+   */
+  async function resized(): Promise<void> {
+    if (mount!.clientWidth !== shownAt) await draw(mode);
+    if (fitted) zoomTo(fitNow());
+  }
+
+  // Settle first: a drag fires continuously, and the size that matters is
+  // the one it stops at.
   if (window !== undefined) {
     let settling = 0;
     window.addEventListener("resize", () => {
       window.clearTimeout(settling);
       settling = window.setTimeout(() => {
-        // A morph that is running checks the width when it lands.
-        if (morphing || mount!.clientWidth === shownAt) return;
-        void draw(mode);
+        // A morph that is running looks at its box when it lands.
+        if (morphing) return;
+        void resized();
       }, RESIZE_SETTLE_MS);
     });
   }

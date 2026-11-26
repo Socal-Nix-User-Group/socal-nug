@@ -2262,6 +2262,40 @@ async function run(): Promise<void> {
     );
   }
 
+  await load("subway", 1400, 1000);
+  {
+    // The same for a fitted view. The zoom it lands at was worked out for the
+    // box as it was when the switch was pressed.
+    const whole = `${MAP}.scrollHeight <= ${MAP}.clientHeight && ${MAP}.scrollWidth <= ${MAP}.clientWidth`;
+    const fit = await zoomButton("fit");
+    await tab.click(fit.x, fit.y);
+    await tab.waitFor(whole);
+    await pressMode("river");
+    const moving = await tab.waitFor(MORPHING, 15_000);
+    await tab.size(1100, 700);
+    const landed = await landedIn("river");
+    await sleep(600);
+    const fitted = await tab.evaluate<boolean>(whole);
+    const width = await tab.evaluate<number>(pictureWidth);
+    const again = await zoomButton("fit");
+    await tab.click(again.x, again.y);
+    await sleep(300);
+    const afterFit = await tab.evaluate<number>(pictureWidth);
+    check(
+      moving && landed && fitted && Math.abs(afterFit - width) < 0.5,
+      "switching modes: a fitted view whose window got smaller while the map moved arrives fitted to the window as it is",
+      {
+        moving,
+        landed,
+        fitted,
+        width,
+        afterFit,
+        scroll: await tab.evaluate(`[${MAP}.scrollWidth, ${MAP}.scrollHeight]`),
+        box: await tab.evaluate(`[${MAP}.clientWidth, ${MAP}.clientHeight]`),
+      },
+    );
+  }
+
   await tab.send("Emulation.setEmulatedMedia", {
     features: [{ name: "prefers-reduced-motion", value: "reduce" }],
   });
@@ -2890,6 +2924,51 @@ async function run(): Promise<void> {
       "grab: in Subway a pressed mouse moves the map sideways with it",
       { from: start, to: await mapAt() },
     );
+  }
+
+  // What Fit fits is the box, and the box changes with the window: its width
+  // with the window's and its ceiling with the window's height. Both change
+  // here, because which of them decides a mode's fit depends on the shape of
+  // its picture. Fitted is what Fit's own check means by it, and that Fit
+  // has nothing left to do: a picture left smaller than its box is whole as
+  // well. A picture that is not too large for either box at the size it was
+  // drawn would never change size, and this would say it had not been fitted.
+  for (const mode of ["river", "subway"] as const) {
+    await load(mode, 1400, 1000);
+    const whole = `${MAP}.scrollHeight <= ${MAP}.clientHeight && ${MAP}.scrollWidth <= ${MAP}.clientWidth`;
+    const size = `(() => {
+      const b = ${PICTURE}.getBoundingClientRect();
+      return b.width + "x" + b.height;
+    })()`;
+    const fit = await zoomButton("fit");
+    await tab.click(fit.x, fit.y);
+    await tab.waitFor(whole);
+    for (
+      const [to, width, height] of [
+        ["smaller", 1100, 700],
+        ["larger", 1400, 1000],
+      ] as const
+    ) {
+      const before = await tab.evaluate<string>(size);
+      await tab.size(width, height);
+      const refitted = await tab.waitFor(`${whole} && ${size} !== ${JSON.stringify(before)}`);
+      const settled = await tab.evaluate<string>(size);
+      const again = await zoomButton("fit");
+      await tab.click(again.x, again.y);
+      await sleep(300);
+      const afterFit = await tab.evaluate<string>(size);
+      check(
+        refitted && afterFit === settled,
+        `zoom: a fitted ${mode === "river" ? "River" : "Subway"} is fitted again when the window gets ${to}`,
+        {
+          refitted,
+          before,
+          settled,
+          afterFit,
+          box: await tab.evaluate(`[${MAP}.clientWidth, ${MAP}.clientHeight]`),
+        },
+      );
+    }
   }
 
   // --- grab ------------------------------------------------------------------------------

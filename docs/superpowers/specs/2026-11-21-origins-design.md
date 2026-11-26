@@ -747,7 +747,8 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   text stays sharp because the picture is an SVG. Narrower than the box, the picture sits in the
   middle of it. A box whose picture is shorter than its ceiling is as short as the picture, so
   zooming out can shrink the box and bring up what is under it. The zoom is kept across a change
-  of mode and a resize, and is not remembered between visits.
+  of mode and a resize, unless Fit set it, in which case it follows the box (both are below). It
+  is not remembered between visits.
 - River puts the rail in a column beside the map; Subway, and any viewport narrower than 1024px,
   puts it underneath. The rail holds the people and the moments, each in a list that scrolls in
   its own box; how the two are arranged in each case is under "The two lists".
@@ -797,10 +798,21 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   the way. Fit is a different zoom in each mode, because the pictures are different shapes (19%
   in Subway and 32% in River in a 1400px window today), and carrying one across left the other
   too small. Any other zoom is carried across unchanged.
+- A view whose zoom was last set by Fit also stays fitted when the window changes size: once the
+  window has settled, the zoom is worked out again for the box as it is. Daniel reported on
+  2026-11-26 that it did not. Fit worked the zoom out once, when it was pressed, and a resize
+  redrew the picture at that zoom, so a narrower window left Subway wider than its box and a
+  wider one left it smaller than Fit would make it. A change of height alone did nothing at
+  all: the resize handler looked only at the box's width, and the box's ceiling is a share of
+  the window's height, so a shorter window left River, which is fitted by its height, taller
+  than its box. Any other zoom is kept through a resize as it was, and pressing another zoom
+  button or zooming with the wheel is what ends the fit.
 - While it runs the map answers no pointer and hides its overflow, and a press on either mode
   button or any zoom button does nothing. Ignoring a press, in place of turning round part way,
   is Daniel's choice. A window resized while it runs is dealt with when it lands: if the box is
-  not the width the landing was drawn for, the picture is redrawn for the width it is.
+  not the width the landing was drawn for, the picture is redrawn for the width it is, and a
+  fitted view, whose zoom was worked out for the box as it was when the switch was pressed, is
+  fitted to the box as it is.
 - When it lands, the picture in the box is the ordinary drawing for that mode, the one a fresh
   visit draws, and nothing the morph set on the box, the layout, the lists, the headings or the
   cards is left behind.
@@ -1529,7 +1541,13 @@ them (the card's description is not read, since it may say who missed it). Each 
 its moment in the page's data and fails if the data has none, so taking the only such record
 out of the data takes the three with it.
 
-A hundred and four checks, each named for what a visitor would
+Five are about a fitted view following its box: River and Subway, each fitted and then given a
+smaller window and a larger one, both sides changing, are fitted again each time, with nothing
+to scroll to and nothing left for Fit to do; and a fitted view whose window got smaller while
+the map was moving between modes arrives fitted to the window as it is. Each was seen to fail
+against the script as it was.
+
+A hundred and nine checks, each named for what a visitor would
 notice and none naming a moment or a person, so the data can change under it as long as the
 picture stays about the size it is (see below). It needs the
 network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
