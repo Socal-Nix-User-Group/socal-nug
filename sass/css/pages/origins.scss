@@ -593,11 +593,13 @@ html[data-theme=dark] .origins-legend {
 
 // --- the person card --------------------------------------------------------
 
+// The picture and the two lines beside it on top, and the rest under both at
+// the card's full width.
 .origins-card {
     position: relative;
     display: flex;
-    gap: 0.6rem;
-    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.1rem;
     padding: 0.5rem 1.6rem 0.5rem 0.6rem;
     // Square for now. The card treatment is getting redesigned.
     border-radius: 0;
@@ -637,7 +639,15 @@ html[data-theme=dark] .origins-legend {
     }
 }
 
-.origins-card-body {
+// The two lines are centred against the picture, which is the taller when
+// neither wraps.
+.origins-card-top {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+}
+
+.origins-card-who {
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
@@ -691,12 +701,12 @@ html[data-theme=dark] .origins-legend {
     margin: 0.2rem 0 0;
 }
 
-// Their own sites, on one line that wraps when the card is narrow.
+// The handle and their own sites, on one line that wraps when the card is
+// narrow.
 .origins-card-links {
     display: flex;
     flex-wrap: wrap;
     gap: 0 0.6rem;
-    margin-top: 0.2rem;
     font-size: 0.62rem;
 }
 

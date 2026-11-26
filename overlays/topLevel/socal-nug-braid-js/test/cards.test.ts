@@ -381,22 +381,26 @@ test("a person card links to their sites, each by its title", () => {
   assert.deepEqual(
     row.children.map((n) => [n.tag, n.text, n.attrs.href]),
     [
+      ["a", "@daniel", "https://example.com/daniel"],
       ["a", "djacu.dev", "https://djacu.dev/"],
       ["a", "Lessons", "https://example.com/lessons"],
     ],
   );
 });
 
-test("somebody with no links gets no empty row of them", () => {
+test("somebody with no links of their own gets a row with only their handle in it", () => {
   const { doc, made } = stubDocument();
   personCardFor(thread("daniel"), small, doc);
-  assert.equal(linksRow(made), undefined);
+  assert.deepEqual(
+    linksRow(made)!.children.map((n) => n.attrs.class),
+    ["origins-card-alias"],
+  );
 });
 
 // --- the order of a person's card --------------------------------------------
-// Who they are and what kind of person they are to the group, on one line;
-// then where to find them, what they do and when they joined; their own words
-// last.
+// The picture beside two lines: the name with the badge, and the handle with
+// their own links. Then, at the card's full width, what they do, their own
+// words and where they joined. The About page lays a member out the same way.
 
 const everything = {
   ...CAST.get("daniel")!,
@@ -405,27 +409,40 @@ const everything = {
   links: [{ title: "djacu.dev", url: "https://djacu.dev/" }],
 };
 const FULL_ORDER = [
-  "origins-card-head",
-  "origins-card-alias",
-  "origins-card-links",
+  "origins-card-top",
   "origins-card-desc",
-  "origins-card-join",
   "origins-card-quote",
+  "origins-card-join",
 ];
 const byClassName = (made: Node[], token: string) =>
   made.find((n) => (n.attrs.class ?? "").split(" ").includes(token))!;
-const bodyOrder = (made: Node[]) =>
-  byClassName(made, "origins-card-body").children.map((n) => (n.attrs.class ?? "").split(" ")[0]);
+const firstClasses = (n: Node) => n.children.map((c) => (c.attrs.class ?? "").split(" ")[0]);
+const cardOrder = (made: Node[]) => firstClasses(cardOf(made));
 
-test("a person's card says who they are, then their handle, their links, what they do, when they joined and their own words", () => {
+test("a person's card has their picture beside who they are and where to find them, then what they do, their own words and where they joined", () => {
   for (const dismissable of [true, false]) {
     const { doc, made } = stubDocument();
     personCardFor({ ...thread("daniel"), person: everything }, small, doc, dismissable);
-    assert.deepEqual(bodyOrder(made), FULL_ORDER);
+    assert.deepEqual(
+      cardOrder(made),
+      dismissable ? [...FULL_ORDER, "origins-dismiss"] : FULL_ORDER,
+    );
+    assert.deepEqual(
+      firstClasses(byClassName(made, "origins-card-top")),
+      ["origins-card-avatar", "origins-card-who"],
+    );
+    assert.deepEqual(
+      firstClasses(byClassName(made, "origins-card-who")),
+      ["origins-card-head", "origins-card-links"],
+    );
     const head = byClassName(made, "origins-card-head");
     assert.deepEqual(
       head.children.map((n) => [n.tag, n.attrs.class]),
       [["span", "origins-card-name"], ["span", "origins-badge is-member"]],
+    );
+    assert.deepEqual(
+      byClassName(made, "origins-card-links").children.map((n) => [n.tag, n.attrs.class, n.text]),
+      [["a", "origins-card-alias", "@daniel"], ["a", "origins-card-link", "djacu.dev"]],
     );
   }
 });
@@ -434,14 +451,24 @@ test("a person's card missing a part simply lacks it, in the same order otherwis
   const cases: Array<[string, Person, string]> = [
     ["origins-card-quote", { ...everything, quote: "" }, "daniel"],
     ["origins-card-desc", { ...everything, description: "" }, "daniel"],
-    ["origins-card-links", { ...everything, links: [] }, "daniel"],
     ["origins-card-join", { ...everything, slug: "rok", member: false }, "rok"],
   ];
   for (const [missing, who, slug] of cases) {
     const { doc, made } = stubDocument();
-    personCardFor({ ...thread(slug), person: who }, small, doc);
-    assert.deepEqual(bodyOrder(made), FULL_ORDER.filter((c) => c !== missing), missing);
+    personCardFor({ ...thread(slug), person: who }, small, doc, false);
+    assert.deepEqual(cardOrder(made), FULL_ORDER.filter((c) => c !== missing), missing);
   }
+  // Everyone has a handle, so the links row stays when they have no links of
+  // their own, and a missing picture leaves a blank face in its place.
+  const { doc, made } = stubDocument();
+  personCardFor({ ...thread("daniel"), person: { ...everything, links: [] } }, small, doc, false);
+  assert.deepEqual(cardOrder(made), FULL_ORDER);
+  assert.deepEqual(firstClasses(byClassName(made, "origins-card-links")), ["origins-card-alias"]);
+  assert.deepEqual(
+    firstClasses(byClassName(made, "origins-card-top")),
+    ["origins-card-avatar", "origins-card-who"],
+  );
+  assert.equal(byClassName(made, "origins-card-avatar").tag, "span");
 });
 
 test("a link in a card to another site opens a new tab, and the event page on this site stays in the tab", () => {

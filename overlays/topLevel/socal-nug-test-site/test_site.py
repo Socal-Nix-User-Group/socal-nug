@@ -182,7 +182,7 @@ class SiteBuild(unittest.TestCase):
         about = html.unescape((self.out / 'about' / 'index.html').read_text())
         for person in linked:
             for link in person['links']:
-                anchor = (f'<a class="mr-3" href="{link["url"]}" target="_blank" rel="noopener">'
+                anchor = (f'<a class="about-link" href="{link["url"]}" target="_blank" rel="noopener">'
                           f'{link["title"]}</a>')
                 self.assertTrue(anchor in about, f'not on the About page: {anchor}')
 
@@ -220,14 +220,102 @@ class SiteBuild(unittest.TestCase):
         members = [p for p in data['people'] if p['member']]
         about = html.unescape((self.out / 'about' / 'index.html').read_text())
         for person in members:
-            handle = (f'<a href="{person["profileUrl"]}" target="_blank" rel="noopener">'
+            handle = (f'<a class="about-handle" href="{person["profileUrl"]}" target="_blank" rel="noopener">'
                       f'{person["alias"]}</a>')
             self.assertTrue(handle in about, f'not on the About page: {handle}')
-        anchors = re.findall(r'<a class="mr-3"[^>]*>', about)
+        anchors = re.findall(r'<a class="about-link"[^>]*>', about)
         self.assertTrue(anchors, 'no member links on the About page')
         for anchor in anchors:
             self.assertIn('target="_blank"', anchor)
             self.assertIn('rel="noopener"', anchor)
+
+    def about_profiles(self):
+        """Each member's profile on the About page by name, from its box onwards."""
+        about = html.unescape((self.out / 'about' / 'index.html').read_text())
+        profiles = {}
+        for part in about.split('<div class="about-profile')[1:]:
+            names = re.findall(r'<h4 class="title is-4">(.*?)</h4>', part)
+            self.assertEqual(len(names), 1, part[:200])
+            profiles[names[0]] = part
+        return profiles
+
+    def joined_at(self, data):
+        """The engine's join line for everyone, worked out here from the Origins data.
+
+        As joinLineFor has it: the earliest meetup naming the person, by the
+        start of its date and then by id, with its date at the precision given.
+        """
+        months = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+                  'August', 'September', 'October', 'November', 'December']
+
+        def written(date):
+            parts = date.split('-')
+            if len(parts) == 1:
+                return parts[0]
+            month = months[int(parts[1]) - 1]
+            if len(parts) == 2:
+                return f'{month} {parts[0]}'
+            return f'{int(parts[2])} {month} {parts[0]}'
+
+        meetups = sorted((m for m in data['moments'] if m['trunk']),
+                         key=lambda m: ((m['date'] + '-01-01')[:10], m['id']))
+        joins = {}
+        for m in meetups:
+            for slug in m['people']:
+                joins.setdefault(slug, f'Joined at {m["title"]}, {written(m["date"])}')
+        return joins
+
+    def test_each_member_on_about_is_in_a_box_of_their_own(self):
+        about = (self.out / 'about' / 'index.html').read_text()
+        boxed = re.findall(
+            r'<div class="column is-half-desktop is-full-mobile">\s*<div class="about-profile content"',
+            about)
+        self.assertEqual(len(boxed), len(self.MEMBERS))
+        self.assertEqual(list(self.about_profiles()), self.MEMBERS)
+
+    def test_every_member_on_about_carries_the_member_badge(self):
+        profiles = self.about_profiles()
+        self.assertEqual(list(profiles), self.MEMBERS)
+        for name, profile in profiles.items():
+            self.assertEqual(profile.count('<span class="about-badge">Member</span>'), 1, name)
+
+    def test_a_member_on_about_says_where_they_joined_as_the_origins_card_does(self):
+        _, data = self.origins_data()
+        joins = self.joined_at(data)
+        profiles = self.about_profiles()
+        members = [p for p in data['people'] if p['member']]
+        self.assertTrue(any(p['slug'] in joins for p in members), 'no member joined at a meetup')
+        for person in members:
+            profile = profiles[person['name']]
+            if person['slug'] in joins:
+                line = f'<p class="about-join">{joins[person["slug"]]}</p>'
+                self.assertIn(line, profile, person['name'])
+            else:
+                self.assertNotIn('about-join', profile, person['name'])
+
+    def test_a_member_on_about_reads_in_the_same_order_as_their_origins_card(self):
+        # name, badge, handle, own links, description, quote, where they joined
+        _, data = self.origins_data()
+        joins = self.joined_at(data)
+        full = [p for p in data['people']
+                if p['member'] and p['quote'] and p['description'] and p['links']
+                and p['slug'] in joins]
+        self.assertTrue(full, 'no member profile carries every part')
+        profiles = self.about_profiles()
+        for person in full:
+            profile = profiles[person['name']]
+            parts = [
+                f'<h4 class="title is-4">{person["name"]}</h4>',
+                '<span class="about-badge">Member</span>',
+                f'<a class="about-handle" href="{person["profileUrl"]}"',
+                *(f'<a class="about-link" href="{link["url"]}"' for link in person['links']),
+                f'<p class="about-desc">{person["description"]}</p>',
+                f'<blockquote>{person["quote"]}</blockquote>',
+                f'<p class="about-join">{joins[person["slug"]]}</p>',
+            ]
+            at = [profile.find(part) for part in parts]
+            self.assertNotIn(-1, at, (person['name'], parts, at))
+            self.assertEqual(at, sorted(at), (person['name'], parts, at))
 
     def test_a_guest_has_a_page_but_is_not_in_the_members_grid(self):
         # the filter is proved with a probe as well, so it does not rest on

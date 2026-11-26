@@ -201,8 +201,12 @@ export function personCardFor(
     "data-hue": String(hueFor(story.threads.indexOf(thread))),
   });
 
+  // The picture beside two lines, who they are and where to find them. What
+  // they do, their own words and where they joined run under both at the
+  // card's full width, as a member's profile does on the About page.
+  const top = el(doc, "div", { class: "origins-card-top" });
   if (person.imageUrl !== "") {
-    card.appendChild(
+    top.appendChild(
       el(doc, "img", {
         class: "origins-card-avatar",
         src: person.imageUrl,
@@ -213,7 +217,7 @@ export function personCardFor(
       }),
     );
   } else {
-    card.appendChild(
+    top.appendChild(
       el(
         doc,
         "span",
@@ -223,9 +227,7 @@ export function personCardFor(
     );
   }
 
-  // Who they are and where to find them first, then what they do and when
-  // they joined, and their own words last.
-  const body = el(doc, "div", { class: "origins-card-body" });
+  const who = el(doc, "div", { class: "origins-card-who" });
   // The badge on the name's line: member or guest is part of who they are.
   const head = el(doc, "div", { class: "origins-card-head" });
   head.appendChild(
@@ -239,10 +241,13 @@ export function personCardFor(
       person.member ? "Member" : "Guest",
     ),
   );
-  body.appendChild(head);
+  who.appendChild(head);
+  // The handle, which goes to their GitHub, and then their own sites, all on
+  // one line that wraps. Everyone has a handle, so the line is always there.
   // A link to another site opens a new tab, so the map stays as the reader
   // left it. A moment's event page is on this site and stays in the tab.
-  body.appendChild(
+  const links = el(doc, "div", { class: "origins-card-links" });
+  links.appendChild(
     el(
       doc,
       "a",
@@ -255,33 +260,37 @@ export function personCardFor(
       person.alias,
     ),
   );
-
-  if (person.links.length > 0) {
-    // Their own sites, on one line that wraps. Plain links like the alias
-    // above them, which goes to their GitHub.
-    const links = el(doc, "div", { class: "origins-card-links" });
-    for (const link of person.links) {
-      links.appendChild(
-        el(doc, "a", {
-          class: "origins-card-link",
-          href: link.url,
-          rel: "noopener",
-          target: "_blank",
-        }, link.title),
-      );
-    }
-    body.appendChild(links);
+  for (const link of person.links) {
+    links.appendChild(
+      el(doc, "a", {
+        class: "origins-card-link",
+        href: link.url,
+        rel: "noopener",
+        target: "_blank",
+      }, link.title),
+    );
   }
+  who.appendChild(links);
+  top.appendChild(who);
+  card.appendChild(top);
 
   if (person.description !== "") {
-    body.appendChild(
+    card.appendChild(
       el(doc, "p", { class: "origins-card-desc" }, person.description),
+    );
+  }
+
+  if (person.quote !== "") {
+    // Their words, marked up as theirs. A description is prose about
+    // somebody and reads as the site talking; a quote reads as them.
+    card.appendChild(
+      el(doc, "blockquote", { class: "origins-card-quote" }, person.quote),
     );
   }
 
   const join = joinLineFor(thread, story.moments);
   if (join !== null) {
-    body.appendChild(
+    card.appendChild(
       el(
         doc,
         "span",
@@ -291,15 +300,6 @@ export function personCardFor(
     );
   }
 
-  if (person.quote !== "") {
-    // Their words, marked up as theirs. A description is prose about
-    // somebody and reads as the site talking; a quote reads as them.
-    body.appendChild(
-      el(doc, "blockquote", { class: "origins-card-quote" }, person.quote),
-    );
-  }
-
-  card.appendChild(body);
   if (dismissable) card.appendChild(dismissFor(doc));
   return card;
 }

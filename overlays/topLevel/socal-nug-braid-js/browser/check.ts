@@ -1069,8 +1069,8 @@ async function run(): Promise<void> {
   }
 
   // One builder makes the card in the list and the card in the popup, so the
-  // order is looked at in both, and in the popup the X has to keep clear of
-  // the name and the badge on the line it shares with them.
+  // arrangement is looked at in both, and in the popup the X has to keep
+  // clear of the name and the badge.
   await load("river");
   {
     const story = await storyOf();
@@ -1089,18 +1089,24 @@ async function run(): Promise<void> {
           const b = e.getBoundingClientRect();
           return { top: b.top, bottom: b.bottom, left: b.left, right: b.right };
         };
+        const face = box(".origins-card-avatar");
         const name = box(".origins-card-name");
         const badge = box(".origins-badge");
-        const after = [".origins-card-alias", ".origins-card-links", ".origins-card-desc", ".origins-card-join", ".origins-card-quote"].map(box);
+        const handle = box(".origins-card-alias");
+        const link = box(".origins-card-link");
+        const under = [".origins-card-desc", ".origins-card-quote", ".origins-card-join"].map(box);
         const x = box(".origins-dismiss");
-        if (name === null || badge === null || after.includes(null)) return { ok: false, name, badge, after };
-        const oneLine = badge.top < name.bottom && badge.bottom > name.top && badge.left >= name.right;
-        const head = Math.max(name.bottom, badge.bottom);
-        const tops = [head, ...after.map((b) => b.top)];
-        const down = after.every((b, i) => b.top >= (i === 0 ? head : after[i - 1].bottom) - 1);
+        if ([face, name, badge, handle, link, ...under].includes(null)) {
+          return { ok: false, face, name, badge, handle, link, under };
+        }
+        const beside = [name, badge, handle, link].every((b) => b.left >= face.right);
+        const oneLine = handle.top < link.bottom && handle.bottom > link.top && link.left >= handle.right;
+        const below = under.every((b, i) =>
+          Math.abs(b.left - face.left) <= 1 && b.top >= (i === 0 ? face.bottom : under[i - 1].bottom) - 1
+        );
         const apart = (a, b) => a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top;
         const clear = x === null || (apart(x, name) && apart(x, badge));
-        return { ok: oneLine && down && clear, oneLine, down, clear, name, badge, tops };
+        return { ok: beside && oneLine && below && clear, beside, oneLine, below, clear, face, name, badge, handle, link, under };
       })()`);
     const listed = await laidOut(`document.querySelector(${JSON.stringify(PERSON_CARD(id))})`);
     await load("subway");
@@ -1112,8 +1118,110 @@ async function run(): Promise<void> {
     }
     check(
       id !== "" && listed.ok && popped?.ok === true,
-      "a person's card says who they are, then their handle, their links, what they do, when they joined and their own words",
+      "a person's card has their name, badge, handle and links beside the picture, and what they do, their own words and where they joined under it",
       { person: id, listed, popped },
+    );
+  }
+
+  // The About page writes a member's profile in its template, and the
+  // Origins page builds the card in its script, each from the same data. A
+  // member the two disagree about is what this is for, so every member is
+  // read on both, each part with its words and its address, in the order the
+  // page has them. Quote marks the stylesheet adds are not text.
+  await load("river");
+  {
+    const story = await storyOf();
+    const members = story.threads.filter((t) => t.person.member).map((t) => t.person.slug);
+    type Part = [string, string, string | null];
+    const read = (profiles: string, parts: Record<string, string>) =>
+      tab.evaluate<Record<string, Part[] | null>>(`(() => {
+        const parts = ${JSON.stringify(parts)};
+        const out = {};
+        for (const slug of ${JSON.stringify(members)}) {
+          const c = document.querySelector(${JSON.stringify(profiles)} + '[data-person="' + slug + '"]');
+          if (c === null) { out[slug] = null; continue; }
+          out[slug] = [...c.querySelectorAll(Object.values(parts).join(", "))].map((e) => [
+            Object.keys(parts).find((k) => e.matches(parts[k])),
+            e.textContent,
+            e.getAttribute("href"),
+          ]);
+        }
+        return out;
+      })()`);
+    const origins = await read("#origins-roster .origins-card", {
+      name: ".origins-card-name",
+      badge: ".origins-badge",
+      handle: ".origins-card-alias",
+      link: ".origins-card-link",
+      description: ".origins-card-desc",
+      quote: ".origins-card-quote",
+      joined: ".origins-card-join",
+    });
+    await tab.goto(`${server.origin}/about/`);
+    const about = await read(".about-profile", {
+      name: ".about-head .title",
+      badge: ".about-badge",
+      handle: ".about-handle",
+      link: ".about-link",
+      description: ".about-desc",
+      quote: ".about-profile blockquote",
+      joined: ".about-join",
+    });
+    const differ = members.filter((slug) =>
+      origins[slug] === null || about[slug] === null ||
+      JSON.stringify(origins[slug]) !== JSON.stringify(about[slug])
+    );
+    check(
+      members.length > 0 && differ.length === 0,
+      "the About page and the Origins page say the same about every member",
+      { members: members.length, differ: differ.map((slug) => ({ slug, origins: origins[slug], about: about[slug] })) },
+    );
+  }
+
+  // Each profile is a box of its own, in either theme, and the two boxes of a
+  // row line up top and bottom however much each member has to say.
+  await tab.size(1400, 1000);
+  await tab.goto(`${server.origin}/about/`);
+  {
+    const boxes = (theme: string) =>
+      tab.evaluate<{ ok: boolean } & Record<string, unknown>>(`(() => {
+        document.documentElement.setAttribute("data-theme", ${JSON.stringify(theme)});
+        const clear = (c) => c === "transparent" || c === "rgba(0, 0, 0, 0)";
+        const page = [document.body, document.documentElement]
+          .map((e) => getComputedStyle(e).backgroundColor)
+          .find((c) => !clear(c));
+        const names = document.querySelectorAll(".columns h4.title").length;
+        const all = [...document.querySelectorAll(".about-profile")].map((e) => {
+          const b = e.getBoundingClientRect();
+          return {
+            top: b.top + scrollY, bottom: b.bottom + scrollY, left: b.left, right: b.right,
+            background: getComputedStyle(e).backgroundColor,
+          };
+        });
+        const shaded = all.every((b) => !clear(b.background) && b.background !== page);
+        const apart = (a, b) => a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top;
+        const overlaps = [];
+        const uneven = [];
+        let rows = 0;
+        all.forEach((a, i) => all.slice(i + 1).forEach((b, j) => {
+          if (!apart(a, b)) overlaps.push([i, i + 1 + j]);
+          if (a.top < b.bottom && b.top < a.bottom) {
+            rows += 1;
+            if (Math.abs(a.top - b.top) > 1 || Math.abs(a.bottom - b.bottom) > 1) uneven.push([i, i + 1 + j]);
+          }
+        }));
+        return {
+          ok: all.length > 0 && all.length === names && shaded && overlaps.length === 0 && rows > 0 && uneven.length === 0,
+          boxes: all.length, names, page, background: all[0]?.background, shaded, overlaps, rows, uneven,
+        };
+      })()`);
+    const light = await boxes("light");
+    const dark = await boxes("dark");
+    await tab.evaluate(`document.documentElement.removeAttribute("data-theme")`);
+    check(
+      light.ok && dark.ok,
+      "About: every profile is in its own box, and the boxes of a row are the same height",
+      { light, dark },
     );
   }
 

@@ -1,0 +1,99 @@
+// --- a member's profile ------------------------------------------------------
+// The arrangement of a person's card on the Origins page, in this page's own
+// look: the picture beside the name and the handle, and the description, the
+// quote and where they joined under both at the profile's full width.
+
+// A box a little off the page, in Bulma's own shades so it follows the theme.
+// The column is stretched to its row, and the box fills it, so the two boxes
+// of a row are the same height.
+.about-profile {
+    height: 100%;
+    padding: 1rem 1.25rem;
+    background: var(--bulma-scheme-main-bis);
+}
+
+// Centred against the picture, which is the taller unless the links wrap.
+.about-top {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.content .about-picture {
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+.about-who {
+    min-width: 0;
+}
+
+.about-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.content .about-head .title {
+    margin: 0;
+}
+
+// Zola compiles every file under sass/ on its own as well as through
+// style.scss, so style.scss's theme mixins are not in scope here. The colours
+// are the Origins badge's, whose class this does not share.
+.about-badge {
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    background: #5277c3;
+    color: #fff;
+
+    @media (prefers-color-scheme: dark) {
+        html:not([data-theme=light]) & {
+            background: #7b9ddf;
+            color: var(--bulma-scheme-main);
+        }
+    }
+    html[data-theme=dark] & {
+        background: #7b9ddf;
+        color: var(--bulma-scheme-main);
+    }
+}
+
+// The handle and their own sites on one line that wraps.
+.about-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 1rem;
+    margin-top: 0.15rem;
+}
+
+.about-handle {
+    font-weight: 700;
+}
+
+.content.about-profile > .about-desc,
+.content.about-profile > blockquote,
+.content.about-profile > .about-join {
+    margin: 0.5rem 0 0;
+}
+
+.content.about-profile > .about-top + * {
+    margin-top: 0.75rem;
+}
+
+// Bulma gives a quote's box 1.25em by 1.5em of padding, which is more than a
+// line or two of somebody's words needs.
+.content.about-profile > blockquote {
+    padding: 0.5em 0.9em;
+}
+
+.about-join {
+    font-size: 0.85rem;
+    opacity: 0.7;
+}
