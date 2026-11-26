@@ -1820,9 +1820,12 @@ be reasonable if layout moved to build time.
   nine meetups: the seven Daniel checked against pictures (NUG #1, #2, #3, #4, #6, the June 2025
   Mini NUG and NUG #17) and two Daniel gave on 2026-11-24, NUG #5 and NUG #10, the second from
   a picture, each as a list of who was there with every other member not. For the other ten up
-  to NUG #17 Daniel Baker and David Nuon are recorded, and Chris Tewfik, and at NUG #12 Tristan
-  Ross and Morgan Jones, and nothing is said about anyone else. The lists name only people who
-  have a profile; others were at many of these. Chris is recorded at every meetup
+  to NUG #17 Daniel Baker and David Nuon are recorded, and Chris Tewfik and Samuel Raumin, and
+  at NUG #12 Tristan Ross and Morgan Jones, and nothing is said about anyone else. Samuel is
+  recorded at every meetup from NUG #1, where Samuel joined, to NUG #17: there at NUG #1 and
+  NUG #3 and away from the rest, the two Mini NUGs included, since Daniel said on 2026-11-26
+  that Samuel has been to no NUG event besides those already recorded. The lists name only
+  people who have a profile; others were at many of these. Chris is recorded at every meetup
   from NUG #5, where Chris joined, to NUG #17: there at NUG #6 and NUG #17, which Daniel knew
   of, and at NUG #7, #8, #11, #12, #13 and the June 2025 Mini NUG, which Chris added,
   saying there were no others; so away from NUG #9, the April 2025 Mini NUG and NUG #14, #15
@@ -1830,6 +1833,10 @@ be reasonable if layout moved to build time.
   settled on 2026-11-25 that Chris was not there, and the record has Chris away from it. Joshua Campbell was added after the seven were recorded, and Daniel then placed
   Joshua at each from NUG #2, where Joshua joined: there at NUG #4, and away from NUG #3,
   NUG #6, the June 2025 Mini NUG and NUG #17.
+- **Two records Daniel corrected on 2026-11-26.** Connor Baker was listed at NixCon 2022 and
+  was not at it. David Nuon was listed at Nix Camp 2024 and was not at it; Rob Hernandez was.
+  With these and Samuel Raumin's absences the picture is 601 by 3324 in River and 6724 by 451
+  in Subway by the smoke check, with no finding.
 - **Connor Baker's first meetup** is recorded as NUG #7, as a guess. NUG #6 was first thought
   to be where Connor joined, but Connor is not in the pictures of it; Daniel thinks NUG #7 may
   have been the first.

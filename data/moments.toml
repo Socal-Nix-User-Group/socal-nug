@@ -136,7 +136,9 @@ id = "nixcon-2022"
 date = "2022-10-20"
 title = "NixCon"
 avatar = "/images/moments/nixcon-2022.png"
-people = ["daniel-baker", "connor-baker"]
+# Connor Baker was listed here at first and was not at it. Daniel corrected
+# it on 2026-11-26.
+people = ["daniel-baker"]
 links = [{ title = "NixCon 2022", url = "https://2022.nixcon.org/" }]
 
 # --- Convergence -----------------------------------------------------------
@@ -301,7 +303,9 @@ id = "nix-camp-2024"
 date = "2024-09-02"
 title = "Nix Camp"
 avatar = "/images/moments/nix-camp.png"
-people = ["daniel-baker", "david-nuon", "matthew-croughan"]
+# David Nuon was listed here at first and was not at it; Rob Hernandez was.
+# Daniel corrected it on 2026-11-26.
+people = ["daniel-baker", "rob-hernandez", "matthew-croughan"]
 links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
 
 # Nobody from the group is thought to have been at this one. It is here
@@ -459,14 +463,19 @@ links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
 # #4, #6, the Mini NUG of June 2025 and NUG #17. Daniel later gave the whole
 # of two more, NUG #5 and NUG #10, the second from a picture. For those nine
 # the record is whole: everyone in the group at the time is `there` or
-# `away`. For the rest Daniel and David are recorded, and Chris Tewfik
-# (below), and at NUG #12 Tristan Ross and Morgan Jones, and nothing is said
-# about anyone else.
+# `away`. For the rest Daniel and David are recorded, and Chris Tewfik and
+# Samuel Raumin (below), and at NUG #12 Tristan Ross and Morgan Jones, and
+# nothing is said about anyone else.
 #
 # Chris Tewfik is recorded at every meetup from NUG #5, the first, to
 # NUG #17. Daniel knew of NUG #6 and NUG #17. Chris added NUG #7, #8, #10,
 # #11, #12, #13 and the Mini NUG of June 2025, and said there were no
 # others, so Chris is `away` at the rest.
+#
+# Samuel Raumin is recorded at every meetup from NUG #1, the first, to
+# NUG #17. Samuel was at NUG #1 and NUG #3. Daniel said on 2026-11-26 that
+# Samuel has been to no NUG event besides those already recorded, so Samuel
+# is `away` at the rest, the two Mini NUGs included.
 #
 # Joshua Campbell was added after the seven were recorded, and Daniel then
 # placed Joshua at each of them from NUG #2, the first.
@@ -554,17 +563,19 @@ away = ["jared-baur", "samuel-raumin", "joshua-campbell"]
 id = "nug-7-attendance"
 event = "2024-08-01"
 there = ["daniel-baker", "david-nuon", "chris-tewfik"]
+away = ["samuel-raumin"]
 
 [[moment]]
 id = "nug-8-attendance"
 event = "2024-09-19"
 there = ["daniel-baker", "david-nuon", "chris-tewfik"]
+away = ["samuel-raumin"]
 
 [[moment]]
 id = "nug-9-attendance"
 event = "2024-11-02"
 there = ["daniel-baker", "david-nuon"]
-away = ["chris-tewfik"]
+away = ["samuel-raumin", "chris-tewfik"]
 
 # Chris Tewfik was not at NUG #10. Chris's earlier account had Chris at it,
 # Daniel's list and picture of the meetup did not, and Daniel settled it on
@@ -589,12 +600,13 @@ away = ["samuel-raumin", "kyle-risse", "chris-tewfik"]
 id = "mini-nug-2025-04-10-attendance"
 event = "2025-04-10"
 there = ["daniel-baker", "david-nuon"]
-away = ["chris-tewfik"]
+away = ["samuel-raumin", "chris-tewfik"]
 
 [[moment]]
 id = "nug-11-attendance"
 event = "2025-05-03"
 there = ["daniel-baker", "david-nuon", "chris-tewfik"]
+away = ["samuel-raumin"]
 
 [[moment]]
 id = "mini-nug-2025-06-04-attendance"
@@ -621,29 +633,31 @@ there = [
   "morgan-jones",
   "chris-tewfik",
 ]
+away = ["samuel-raumin"]
 
 [[moment]]
 id = "nug-13-attendance"
 event = "2025-12-04"
 there = ["daniel-baker", "david-nuon", "chris-tewfik"]
+away = ["samuel-raumin"]
 
 [[moment]]
 id = "nug-14-attendance"
 event = "2026-04-11"
 there = ["daniel-baker", "david-nuon"]
-away = ["chris-tewfik"]
+away = ["samuel-raumin", "chris-tewfik"]
 
 [[moment]]
 id = "nug-15-attendance"
 event = "2026-06-27"
 there = ["daniel-baker", "david-nuon"]
-away = ["chris-tewfik"]
+away = ["samuel-raumin", "chris-tewfik"]
 
 [[moment]]
 id = "nug-16-attendance"
 event = "2026-09-12"
 there = ["daniel-baker", "david-nuon"]
-away = ["chris-tewfik"]
+away = ["samuel-raumin", "chris-tewfik"]
 
 [[moment]]
 id = "nug-17-attendance"
