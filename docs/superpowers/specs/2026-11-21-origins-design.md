@@ -1383,6 +1383,10 @@ be reasonable if layout moved to build time.
   meetup guessed at (Connor Baker's first, below), "I think everyone was there" on the three
   SCaLE moments, and "I believe David and I were at every single NUG event" over the attendance
   records.
+- **A description on a meetup's card.** A meetup's card has none: the template builds a meetup
+  from its event post and the records anchored to it, and carries no blurb across, though the
+  card would show one. Daniel wants meetups to have descriptions eventually, and on 2026-11-25
+  chose to add that when the first description is ready, not before.
 - **Who met whom at SCaLE 20x.** The moment was "Nix booth at SCaLE 20x" and is now "SCaLE 20x",
   the whole conference, by Daniel's decision, so that everyone who was at SCaLE that year is
   through it whether or not they were at the booth. Joshua Campbell is on it for that reason;
