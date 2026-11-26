@@ -1013,15 +1013,19 @@ section and an older one disagree, this one is right.
   was not recorded away, and at a meetup that is nearly everyone, since most attendance is in
   neither record. Now a person comes out one of three ways. Confirmed there: lit, as before.
   Recorded away, or not through the moment at all (not yet in the group, or not named by a
-  moment that is not a meetup): stepping back, as before. Through it with nothing recorded: no
-  change at all, neither lit nor faint, their card in the list not tinted. Daniel's reason is
-  that the picture should tell "was there" from "nobody wrote it down". A person hovered or
-  picked is as before. A moment with nobody confirmed at it lights nobody, so nothing steps
-  back and the picture stays as it was. With one moment picked and another hovered, someone
-  confirmed at either is lit, and someone unrecorded at either and lit by neither is left alone.
+  moment that is not a meetup): stepping back to a quarter strength, as before. Through it with
+  nothing recorded: not lit, their card in the list not tinted, and drawn half way between the
+  two, at 0.625. Daniel's reason is that the picture should tell "was there" from "nobody wrote
+  it down". As first built the unrecorded were left exactly as they were; Daniel tried it,
+  liked it, and asked for the half-way dimming the same day. A person hovered or picked is as
+  before. The three strengths hold whenever a moment is in play, so a meetup with nobody
+  confirmed at it lights nobody, draws the people in the group then at 0.625 and everyone else
+  at a quarter; that last part was not asked for and follows from having three strengths. With
+  one moment picked and another hovered, someone confirmed at either is lit, and someone
+  unrecorded at either and lit by neither is half way.
 - How it is built: `litBy` in `src/pick.ts` returns the confirmed, `unsureAt` the unrecorded,
-  and `relight()` sets a class for each; the stylesheet's rule that dims whoever is not lit
-  leaves out the unrecorded. Nothing else sets either class.
+  and `relight()` sets a class for each; the stylesheet's dimming rule holds while anyone has
+  either class, and gives the unrecorded their own strength. Nothing else sets either class.
 - **A person's card, in a new order**: name with the membership badge on the same line, handle,
   links, description, when they joined, quote. It was name, handle, quote, description, links,
   badge, joined. The same eight things; one builder for the list and the popup.
@@ -1322,8 +1326,9 @@ Six came with the card's order and the lighting: a person's card saying who they
 their handle, links, what they do, when they joined and their own words, in the list and in
 the popup with the X clear of the name; a link to another site opening a new tab and one to
 this site staying in it; River's year numbers under their lines; a meetup lighting the
-confirmed, dimming the away and the not yet joined, and leaving everyone else as they were, by
-hover and by a pick; and a meetup with nobody confirmed changing nothing. The checks that
+confirmed, dimming the away and the not yet joined, and dimming everyone else half as far, by
+hover and by a pick; and a meetup with nobody confirmed dimming the group half way and
+everyone else further. The checks that
 compare who is lit with the record now expect the confirmed.
 
 Ninety-nine checks, each named for what a visitor would
