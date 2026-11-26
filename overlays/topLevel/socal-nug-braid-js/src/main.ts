@@ -235,8 +235,8 @@ function boot(): void {
    */
   let popupFor: Pick | null = null;
   /**
-   * The card in a list the keyboard last sent focus to, beside the map, so
-   * Escape can send it back to the map while it is still there.
+   * The card in a list the keyboard last sent focus to, in a wide window,
+   * so Escape can send it back to the map while it is still there.
    */
   let sentTo: PageElement | null = null;
 
@@ -771,21 +771,30 @@ function boot(): void {
   }
 
   /**
-   * The lists are beside the map rather than under it. Read from where they
-   * are each time it is asked: the window can be resized and the mode
-   * switched between one click and the next.
+   * The lists are columns that scroll down, as they are in a window 1024px
+   * or wider in either mode, and not the rows that scroll sideways of a
+   * narrower one. Read from where two of the moments' cards are each time
+   * it is asked: the window can be resized between one click and the next,
+   * and it is the stylesheet that says how wide a window has rows. With
+   * fewer than two moments there is no telling, and the card opens in the
+   * map, where it is always in sight.
    */
-  function beside(): boolean {
+  function inColumns(): boolean {
     if (roster === null) return false;
-    const map = mount!.getBoundingClientRect();
-    return roster.getBoundingClientRect().left >= map.left + map.width;
+    const [first, second] = roster.querySelectorAll(".origins-moments-item");
+    if (first === undefined || second === undefined) return false;
+    const above = first.getBoundingClientRect();
+    return second.getBoundingClientRect().top >= above.top + above.height;
   }
 
   /**
-   * Beside the map the list's card says all the popup would, so what was
-   * clicked is picked and its list glides to it, and nothing opens. From
-   * the keyboard focus goes on to the card, as it would have gone into the
-   * popup, without scrolling anything: the list is already gliding there.
+   * In a wide window the list's card says all the popup would, beside the
+   * map or under it, so what was clicked is picked and its list glides to
+   * it, and nothing opens. Under the map the card may be a scroll of the
+   * page away, which is Daniel's choice: one rule for every wide window.
+   * From the keyboard focus goes on to the card, as it would have gone into
+   * the popup, without scrolling anything: the list is already gliding
+   * there.
    */
   function showInList(pick: Pick, byKeyboard: boolean): void {
     const card = pickInMap(pick);
@@ -898,7 +907,7 @@ function boot(): void {
       letGoInMap(pick);
       return;
     }
-    if (beside()) {
+    if (inColumns()) {
       showInList(pick, byKeyboard);
       return;
     }
@@ -922,7 +931,7 @@ function boot(): void {
       letGoInMap(pick);
       return;
     }
-    if (beside()) {
+    if (inColumns()) {
       showInList(pick, byKeyboard);
       return;
     }
@@ -1018,8 +1027,9 @@ function boot(): void {
     }
 
     // Hovering a moment lights the threads of everyone confirmed at it;
-    // clicking it picks it, and opens its card where the lists are under the
-    // map. Hover is for "who was in this", click is for "tell me about it",
+    // clicking it picks it, and opens its card in a narrow window, where the
+    // lists are rows. Hover is for "who was in this", click is for "tell me
+    // about it",
     // which is the part worth dwelling on. A second click lets go of it, so
     // the second click of a double click is not one, as in the lists: it
     // would let go of what the first had just picked.
@@ -1040,9 +1050,9 @@ function boot(): void {
         relight();
       });
       // A moment's avatar carries its moment's id too, and a click on it is a
-      // click on the moment: it picks the moment, and where the lists are
-      // under the map the card opens beside the oval either way, not on top
-      // of the moment's own name.
+      // click on the moment: it picks the moment, and where the card opens
+      // it opens beside the oval either way, not on top of the moment's own
+      // name.
       const oval = mount!.querySelectorAll(`.origins-node[data-moment="${id}"]`)[0] ?? node;
       node.addEventListener("click", (e) => {
         if ((e.detail ?? 0) > 1) return;
@@ -1050,9 +1060,8 @@ function boot(): void {
       });
     }
 
-    // A face picks its person, and opens their card where the lists are
-    // under the map; beside the map the person's card in the list is the
-    // one it shows.
+    // A face picks its person, and opens their card in a narrow window; in
+    // a wide one the person's card in the list is the one it shows.
     for (const root of mount!.querySelectorAll(".origins-root")) {
       root.addEventListener("click", (e) => {
         if ((e.detail ?? 0) > 1) return;

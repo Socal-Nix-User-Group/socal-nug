@@ -1077,6 +1077,29 @@ to scroll. Daniel chose the first.
   were put to Daniel on 2026-11-25: open the popup beside the map as well whenever the card
   would not be wholly on screen; scroll the page to the card; or leave it. Daniel chose to
   leave it: people can be expected to scroll down.
+- **Only in a narrow window, from 2026-11-26.** After trying several picks, Daniel asked why a
+  card opens in Subway on a big screen, where the list under the map shows the same card. Two
+  rules were put to Daniel: open the card only when the list's card would not be whole on
+  screen, or never open it in a window 1024px or wider. Daniel chose the second, as the
+  simpler and more predictable. Where this bullet and the ones above disagree about Subway in
+  a wide window, this one is right.
+  - A click, a tap or Enter on a face or a moment in the map opens the popup only where the
+    lists are rows: in a window narrower than 1024px, in either mode. In a wider window
+    nothing opens in Subway either. The click picks, the list under the map glides to the
+    card, and Enter moves focus to the card, as beside River.
+  - The script tells which by whether two of the moments' cards are one above the other, read
+    afresh at every click, and still not by repeating the stylesheet's breakpoint. With fewer
+    than two moments it cannot tell, and opens the popup.
+  - What it costs, measured that day in Subway. As the page opens, the lists are wholly below
+    the fold in every window up to 1920 by 1080, so a first click lights the threads and shows
+    no card until the reader scrolls down. With the map at the top of the window, a card in
+    the middle of its list is whole from 1440 by 900 up and cut off at 1366 by 768. That is
+    the trade Daniel made for River the day before, and it was put to Daniel with the choice.
+  - From the keyboard, Enter moves focus to a card that may be below the fold, and nothing
+    scrolls to it, where the popup used to open in sight with focus on its X. A screen reader
+    reads the card either way; a sighted reader using the keyboard has to scroll. This follows
+    from the rule and was not put to Daniel as a question of its own.
+  - The popup's code stays for narrow windows and phones.
 
 ### The card's order, links, years and who a moment lights
 
@@ -1254,8 +1277,9 @@ Escape does to a pick, this one is right.
 - **A click** on a card in either list, or on a face or a moment in the map, picks it if it was
   not picked and lets go of it if it was. Nothing else that is picked changes.
 - **Adding** does what picking one thing did. From a list, the map scrolls to put the thing in
-  its middle. From the map, the thing's card is marked and its list glides to it, and where the
-  rail is under the map its popup opens. The popup shows one thing, the one last added from the
+  its middle. From the map, the thing's card is marked and its list glides to it, and in a
+  window narrower than 1024px its popup opens (the popup left wider windows later the same
+  day; see "Only in a narrow window"). The popup shows one thing, the one last added from the
   map.
 - **Letting go of one** moves nothing: the map and the lists stay where they are and nothing
   opens. Clicked in the map, it closes the popup if the popup is that thing's and leaves
@@ -1272,14 +1296,14 @@ Escape does to a pick, this one is right.
 - **A double click is one click**, in the map as in the lists. In the map the second click of a
   double click used to pick the same thing again, which showed nothing; now it would let go of
   what the first had just picked.
-- **Keyboard.** Enter on a target in the map is a click there: it adds or lets go. Adding
-  beside the map moves focus to the card in the list, as before, and letting go leaves focus
+- **Keyboard.** Enter on a target in the map is a click there: it adds or lets go. Adding in
+  a wide window moves focus to the card in the list, as before, and letting go leaves focus
   where it is. Escape pressed with focus on the card Enter sent it to sends focus back to the
   map and lets go of nothing. It is the only way back to the map by keyboard, and if it let go
-  as well, a keyboard could never add a second pick beside the map. Pressed anywhere else,
-  Escape lets go of everything, as before. So beside the map a keyboard reader presses Escape
-  twice to let go where once did. Under the map nothing changes: Enter on the popup's X closes
-  it and leaves what is picked, and Escape closes it and lets go of everything. A held Enter
+  as well, a keyboard could never add a second pick there. Pressed anywhere else, Escape lets
+  go of everything, as before. So in a wide window a keyboard reader presses Escape twice to
+  let go where once did. In a narrow one nothing changes: Enter on the popup's X closes it
+  and leaves what is picked, and Escape closes it and lets go of everything. A held Enter
   or Space is one press. A held key repeats, and each repeat used to pick the same thing again,
   which showed nothing; counted as presses now, they would let go of it and pick it back by
   turns.
@@ -1658,7 +1682,16 @@ person's badge, organizer, member or guest. It wants an organizer in the data, s
 one it would not show that an organizer is called one. It was seen to fail against the script
 as it was, which called the three organizers members.
 
-A hundred and twenty-four checks, each named for what a visitor would
+Two are about Subway in a wide window, where no card opens in the map: a click on a moment
+marks its card and glides the list under the map to it, without moving the page or the map,
+and Enter on a moment moves focus to its card in the list, with Escape sending it back. The
+first is an older check restated, which used to want the popup. Both were seen to fail against
+the script as it was. Every check that needs the popup now runs in a window 1000px wide,
+where it opens in either mode: eleven blocks that ran in Subway at 1400px, and one at
+1700px. Moved, they passed against the script as it was before they were run against the new
+one, so the move is not what makes them pass.
+
+A hundred and twenty-five checks, each named for what a visitor would
 notice and none naming a moment or a person, so the data can change under it as long as the
 picture stays about the size it is (see below). It needs the
 network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
@@ -1880,12 +1913,14 @@ be reasonable if layout moved to build time.
   arrangement. The rail with JavaScript off was measured and takes no room. A card
   clicked with the layout engine blocked was read and not tried: it is picked and has nowhere
   to scroll to.
-- **Several picked at once, beyond what was tried.** Headless Chromium only, and Daniel has not
-  tried it. Five calls in it were the controller's, listed in its section. Nothing on the page
-  says how many things are picked or lets go of them all with a button, which every click
-  adding makes more likely to be wanted. Under the map the open popup can be over the moment
+- **Several picked at once, beyond what was tried.** Headless Chromium only. Daniel tried it
+  on 2026-11-26 and asked for the popup to leave wide windows, which is what "Only in a narrow
+  window" records. Five calls in it were the controller's, listed in its section. Nothing on
+  the page says how many things are picked or lets go of them all with a button, which every
+  click adding makes more likely to be wanted. Where the popup opens it can be over the moment
   next to the one it belongs to, so adding a neighbour means closing the popup with its X
-  first, which leaves the pick; this was seen in Subway at 1400px. On a phone-sized screen the
+  first, which leaves the pick; this was seen in Subway at 1400px, while the popup still
+  opened there. On a phone-sized screen the
   popup is wider than the room beside a pill and is held on screen over it: at 390px by 844px
   it covered its own pill for every moment whose card opened, in both modes. A tap therefore
   cannot let go of a moment while its card is open; the X, the moment's card in the list and
@@ -1953,6 +1988,9 @@ be reasonable if layout moved to build time.
   on a thing lets go of that one, and a click on empty map or Escape lets go of all of them.
   People and moments were picked together by mouse, from the lists and from the map. By
   keyboard and by touch, two moments were.
+- In a window 1024px or wider a click or Enter on a moment in the map opens no card in either
+  mode: its card in the list is marked and the list glides to it. In a narrower one, 1000px
+  in Subway and 900px in River, the card opens in the map as it did. Headless Chromium.
 - Pressing the other mode's button moves the picture, the box and the cards of both lists to
   their places in the other mode in a little over a second. The picture and the box were seen
   to in Chromium and in Firefox; the lists, since the moments' list was added, in Chromium

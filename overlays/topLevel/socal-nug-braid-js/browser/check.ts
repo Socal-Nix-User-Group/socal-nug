@@ -88,6 +88,14 @@ async function load(
   await tab.evaluate(`document.fonts.ready.then(() => true)`);
 }
 
+/**
+ * A window narrower than 1024px, where the lists are rows under the map and
+ * a click in the map opens the card there, in either mode. In a wider one
+ * nothing opens. Wide enough still that the card has room beside what was
+ * clicked, which a phone does not give it.
+ */
+const NARROW = [1000, 1000] as const;
+
 /** The middle of the first element matching, scrolled into view. */
 const centreOf = (selector: string): Promise<Point> =>
   tab.evaluate(`(() => {
@@ -989,8 +997,8 @@ async function run(): Promise<void> {
   }
 
   // The list's card and the popup's are one card, the popup's with an X. In
-  // Subway, where the lists are under the map and the popup opens.
-  await load("subway");
+  // a narrow window, where the popup opens.
+  await load("subway", ...NARROW);
   {
     const story = await storyOf();
     const id = story.moments.map((g) => g.moment).find((m) =>
@@ -1225,7 +1233,7 @@ async function run(): Promise<void> {
         return { ok: beside && oneLine && below && clear, beside, oneLine, below, clear, face, name, badge, handle, link, under };
       })()`);
     const listed = await laidOut(`document.querySelector(${JSON.stringify(PERSON_CARD(id))})`);
-    await load("subway");
+    await load("subway", ...NARROW);
     let popped: ({ ok: boolean } & Record<string, unknown>) | null = null;
     if (id !== "") {
       const face = await centreOf(FACE(id));
@@ -1390,7 +1398,7 @@ async function run(): Promise<void> {
     // A moment with a page on this site, so its popup card holds a link that
     // stays in the tab.
     const id = story.moments.map((g) => g.moment).find((m) => (m.permalink ?? "") !== "")?.id ?? "";
-    await load("subway");
+    await load("subway", ...NARROW);
     let popup: Link[] = [];
     if (id !== "") {
       const at = await centreOf(OVAL(id));
@@ -1455,9 +1463,9 @@ async function run(): Promise<void> {
   }
 
   // Whether the map's own card was shut after each click on a card in a
-  // list, and the click picked the card. In Subway, where the lists are under
-  // the map and a click in the map opens the popup.
-  await load("subway");
+  // list, and the click picked the card. In a narrow window, where a click
+  // in the map opens the popup.
+  await load("subway", ...NARROW);
   {
     const story = await storyOf();
     const shutAfter: Array<{ shut: boolean; picked: boolean }> = [];
@@ -1573,6 +1581,8 @@ async function run(): Promise<void> {
     );
   }
 
+  // Subway in a wide window, where the lists are under the map. Nothing opens
+  // there either: the card is in the list, a scroll of the page away at most.
   await load("subway");
   {
     const id = await momentPastItsList();
@@ -1580,7 +1590,7 @@ async function run(): Promise<void> {
     const down = `${MOMENTS}.scrollTop`;
     let before: unknown = null;
     let after: unknown = null;
-    let opened = false;
+    let opened = true;
     let picked = false;
     let middle: ({ ok: boolean } & Record<string, unknown>) | null = null;
     let glide: { start: number; first: number; last: number } | null = null;
@@ -1591,18 +1601,18 @@ async function run(): Promise<void> {
       await tab.click(at.x, at.y);
       // Straight after the click: a list that glides has not arrived yet.
       const first = await tab.evaluate<number>(down);
-      opened = await tab.waitFor(popupOpen);
       await listSettles(MOMENTS);
+      opened = await tab.evaluate<boolean>(popupOpen);
       glide = { start, first, last: await tab.evaluate<number>(down) };
       after = await tab.evaluate(where);
       picked = await tab.evaluate<boolean>(has(MOMENT_CARD(id), "is-picked"));
       middle = await midList(MOMENT_CARD(id), MOMENTS);
     }
     check(
-      id !== null && opened && picked && middle?.ok === true && glide !== null &&
+      id !== null && !opened && picked && middle?.ok === true && glide !== null &&
         glide.last !== glide.start && glide.first !== glide.last &&
         JSON.stringify(after) === JSON.stringify(before),
-      "a click on a moment in the map marks its card and glides its list until the card is in the middle of it, without moving the page or the map",
+      "under the map in a wide window, a click on a moment opens no card, marks its card and glides its list until the card is in the middle of it, without moving the page or the map",
       { moment: id, opened, picked, middle, glide, before, after },
     );
   }
@@ -1764,10 +1774,10 @@ async function run(): Promise<void> {
     check(all, "a click on empty map, and Escape, each let go of everything picked", seen);
   }
 
-  // In Subway, where the lists are under the map and a click in the map
-  // opens the popup. The two moments are the first and the last someone was
-  // at, far enough apart that the card of one is not over the other.
-  await load("subway");
+  // In a narrow window, where a click in the map opens the popup. The two
+  // moments are the first and the last someone was at, far enough apart that
+  // the card of one is not over the other.
+  await load("subway", ...NARROW);
   {
     const story = await storyOf();
     const ids = peopled(story);
@@ -1855,7 +1865,7 @@ async function run(): Promise<void> {
   // A card in a list is outside the map, and a click outside the map closes
   // whatever card is open there, as it always has: also when the click lets
   // go of something else and the open card is not that thing's.
-  await load("subway");
+  await load("subway", ...NARROW);
   {
     const story = await storyOf();
     const ids = peopled(story);
@@ -1879,7 +1889,7 @@ async function run(): Promise<void> {
     })`);
     check(
       a !== b && inList && opened && both && again && after.shut && after.a && !after.b,
-      "under the map, a click on a picked card in a list lets go of it and closes the card that is open, whoever's it is",
+      "in a narrow window, a click on a picked card in a list lets go of it and closes the card that is open, whoever's it is",
       { inTheList: b, inTheMap: a, opened, both, ...after },
     );
   }
@@ -2805,10 +2815,10 @@ async function run(): Promise<void> {
   }
 
   // --- cards and focus ----------------------------------------------------------
-  // The popup's own checks run in Subway, where the lists are under the map
-  // and a click in the map opens it.
+  // The popup's own checks run in a narrow window, where a click in the map
+  // opens it.
 
-  await load("subway");
+  await load("subway", ...NARROW);
   {
     const dot = await centreOf(SIDE_DOT);
     await tab.click(dot.x, dot.y);
@@ -2841,7 +2851,7 @@ async function run(): Promise<void> {
   // A click on a person's card in the list closes it already. A moment's card
   // carries its moment's id as the map's pills do, and a click on a pill swaps
   // the card rather than closing it.
-  await load("subway");
+  await load("subway", ...NARROW);
   {
     const dot = await centreOf(SIDE_DOT);
     await tab.click(dot.x, dot.y);
@@ -2861,7 +2871,7 @@ async function run(): Promise<void> {
     );
   }
 
-  await load("subway");
+  await load("subway", ...NARROW);
   {
     let inBraid = false;
     for (let presses = 0; presses < 60 && !inBraid; presses += 1) {
@@ -3135,6 +3145,45 @@ async function run(): Promise<void> {
     );
   }
 
+  // Subway in a wide window has the lists under the map and still opens no
+  // card: the keyboard is sent to the card in the list, as it is beside
+  // River.
+  await load("subway");
+  {
+    await tab.move(5, 5);
+    let inBraid = false;
+    for (let presses = 0; presses < 60 && !inBraid; presses += 1) {
+      await tab.key("Tab");
+      inBraid = await tab.evaluate(
+        `/origins-(root|node)/.test(document.activeElement.getAttribute("class") || "")`,
+      );
+    }
+    const onMoment = `document.activeElement.matches("#origins-braid .origins-node")`;
+    for (let presses = 0; presses < 60 && inBraid; presses += 1) {
+      if (await tab.evaluate<boolean>(onMoment)) break;
+      await tab.key("ArrowDown");
+    }
+    const id = await tab.evaluate<string | null>(
+      `(${onMoment} ? document.activeElement.dataset.moment : null)`,
+    );
+    await tab.evaluate(`window.__opener = document.activeElement`);
+    await tab.key("Enter");
+    await sleep(300);
+    const sent = await tab.evaluate<{ opened: boolean; onCard: boolean; picked: boolean }>(`({
+      opened: ${popupOpen},
+      onCard: document.activeElement === document.querySelector(${JSON.stringify(MOMENT_CARD(id ?? ""))}),
+      picked: ${has(PILL(id ?? ""), "is-picked")},
+    })`);
+    await tab.key("Escape");
+    await sleep(300);
+    const back = await tab.evaluate<boolean>(`document.activeElement === window.__opener`);
+    check(
+      inBraid && id !== null && !sent.opened && sent.onCard && sent.picked && back,
+      "under the map in a wide window, Enter on a moment opens no card and moves focus to its card in the list, and Escape sends focus back",
+      { inBraid, moment: id, ...sent, back },
+    );
+  }
+
   // A face in the picture is named to a screen reader with what its person's
   // badge says. Without an organizer in the data it would not show that an
   // organizer is called one, so it wants one.
@@ -3186,7 +3235,7 @@ async function run(): Promise<void> {
     });
   }
 
-  await load("subway");
+  await load("subway", ...NARROW);
   {
     const stroke = `getComputedStyle(document.querySelector(${JSON.stringify(`${SIDE_DOT} .origins-oval`)})).stroke`;
     const dot = await centreOf(SIDE_DOT);
@@ -3210,11 +3259,11 @@ async function run(): Promise<void> {
   // everything else when the mode changes. Both need a moment in the history
   // that carries one.
 
-  // A window wide enough that the card has room to open on the right of the
-  // moment. Where it has room on neither side it is held on screen, in the
-  // same place whatever was clicked, and that would show nothing. In Subway,
-  // where the lists are under the map and the card opens.
-  await load("subway", 1700, 1000);
+  // A narrow window, where the card opens, and one still wide enough that it
+  // has room to open on the right of the moment. Where it has room on
+  // neither side it is held on screen, in the same place whatever was
+  // clicked, and that would show nothing.
+  await load("subway", ...NARROW);
   {
     // the moment with an avatar whose oval is furthest left
     const id = await tab.evaluate<string | null>(`(() => {
@@ -3565,10 +3614,9 @@ async function run(): Promise<void> {
     );
   }
 
-  // In Subway, where the lists are under the map and a click in the map
-  // opens the card, so a drag that opened one would show. The map moves
-  // sideways there.
-  await load("subway");
+  // In Subway in a narrow window, where a click in the map opens the card,
+  // so a drag that opened one would show. The map moves sideways there.
+  await load("subway", ...NARROW);
   {
     await tab.evaluate(`${MAP}.scrollIntoView({ block: "start" })`);
     // Starting on a moment and ending on whatever is there: the map moves
