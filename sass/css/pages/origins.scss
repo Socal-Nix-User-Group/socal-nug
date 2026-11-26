@@ -513,11 +513,12 @@ html[data-theme=dark] .origins-legend {
 // While anyone is lit, everyone who is not steps back: their thread, their
 // beads and their face. The moments stay as they are, since they belong to
 // whoever is through them. The roster does not dim: it is a list being read,
-// and its lit card already says who.
+// and its lit card already says who. Whoever a lit moment's record says
+// nothing about does not step back either: nothing says they were elsewhere.
 .origins-svg:has(.is-lit) {
-    .origins-thread:not(.is-lit),
-    .origins-bead:not(.is-lit),
-    .origins-root:not(.is-lit) {
+    .origins-thread:not(.is-lit, .is-unsure),
+    .origins-bead:not(.is-lit, .is-unsure),
+    .origins-root:not(.is-lit, .is-unsure) {
         opacity: 0.25;
     }
 }

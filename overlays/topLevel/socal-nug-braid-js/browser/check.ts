@@ -302,19 +302,19 @@ async function storyOf(): Promise<Story> {
   return buildStory(data.moments, data.people);
 }
 
-/** Everyone who was at a moment and not away, by slug, in order. */
+/** Everyone confirmed at a moment, by slug, in order: who it lights. */
 const cameTo = (story: Story, id: string): string[] =>
   [
     ...new Set(
       (story.moments.find((g) => g.moment.id === id)?.through ?? [])
-        .filter((p) => !p.away)
+        .filter((p) => p.vouched)
         .map((p) => p.slug),
     ),
   ].sort();
 
-/** The moments someone was at and not away. */
+/** The moments someone is confirmed at. */
 const peopled = (story: Story): string[] =>
-  story.moments.filter((g) => g.through.some((p) => !p.away)).map((g) => g.moment.id);
+  story.moments.filter((g) => g.through.some((p) => p.vouched)).map((g) => g.moment.id);
 
 const FACE = (slug: string) => `#origins-braid .origins-root[data-person="${slug}"]`;
 const OVAL = (id: string) => `#origins-braid .origins-node[data-moment="${id}"] .origins-oval`;
@@ -658,9 +658,9 @@ async function run(): Promise<void> {
       await tab.evaluate<string>(`document.getElementById("origins-data").textContent`),
     ));
     const gathering = buildStory(data.moments, data.people).moments
-      .find((g) => g.through.some((p) => !p.away));
+      .find((g) => g.through.some((p) => p.vouched));
     const id = gathering?.moment.id ?? "";
-    const want = [...new Set((gathering?.through ?? []).filter((p) => !p.away).map((p) => p.slug))]
+    const want = [...new Set((gathering?.through ?? []).filter((p) => p.vouched).map((p) => p.slug))]
       .sort();
     const card = `#origins-roster .origins-detail-card[data-moment="${id}"]`;
     const oval = `#origins-braid .origins-node[data-moment="${id}"] .origins-oval`;
@@ -728,6 +728,116 @@ async function run(): Promise<void> {
       "mouse: a moment's card is tinted while the pointer is on it",
       { away, over, back },
     );
+  }
+
+  // A meetup knows three kinds of person: confirmed there, recorded away or
+  // not yet in the group, and in the group with nothing recorded. Only the
+  // first is lit, the second steps back, and the third is left as it was.
+  await load("river");
+  {
+    const story = await storyOf();
+    const kinds = (id: string) => {
+      const g = story.moments.find((m) => m.moment.id === id);
+      const through = g?.through ?? [];
+      return {
+        confirmed: through.filter((p) => p.vouched).map((p) => p.slug),
+        unsure: through.filter((p) => !p.vouched && !p.away).map((p) => p.slug),
+        out: story.threads.map((t) => t.person.slug)
+          .filter((slug) => !through.some((p) => p.slug === slug && !p.away)),
+      };
+    };
+    const meetup = story.moments.find((g) => {
+      const k = kinds(g.moment.id);
+      return g.moment.trunk && k.confirmed.length > 0 && k.unsure.length > 0 && k.out.length > 0;
+    });
+    const id = meetup?.moment.id ?? "";
+    const k = kinds(id);
+    /** Each person's threads in the map: whether each is lit, and its opacity. */
+    const threads = `(() => {
+      const out = {};
+      for (const p of ${MAP}.querySelectorAll("path.origins-thread")) {
+        (out[p.dataset.person] ??= []).push({ lit: p.classList.contains("is-lit"), opacity: getComputedStyle(p).opacity });
+      }
+      return out;
+    })()`;
+    const tints = `(${JSON.stringify(k.unsure.map(PERSON_CARD))}).map((s) => getComputedStyle(document.querySelector(s)).backgroundColor)`;
+    const stepped = `(() => {
+      const t = ${threads};
+      return ${JSON.stringify(k.out)}.every((slug) => (t[slug] ?? []).every((p) => Number(p.opacity) < 0.5));
+    })()`;
+    type Threads = Record<string, Array<{ lit: boolean; opacity: string }>>;
+    const judge = (before: Threads, now: Threads, tintsBefore: string[], tintsNow: string[]) => {
+      const unlit = k.confirmed.filter((slug) => (now[slug] ?? []).length === 0 || now[slug].some((p) => !p.lit));
+      const changed = k.unsure.filter((slug) =>
+        (now[slug] ?? []).some((p, i) => p.lit || p.opacity !== before[slug]?.[i]?.opacity)
+      );
+      const undimmed = k.out.filter((slug) => (now[slug] ?? []).some((p) => !(Number(p.opacity) < 0.5)));
+      const tinted = JSON.stringify(tintsNow) !== JSON.stringify(tintsBefore);
+      return {
+        ok: unlit.length === 0 && changed.length === 0 && undimmed.length === 0 && !tinted,
+        unlit,
+        changed,
+        undimmed,
+        tinted,
+      };
+    };
+    const nothingLeft = `(document.querySelectorAll(".is-lit, .is-unsure, .is-picked").length === 0 && [...${MAP}.querySelectorAll(".origins-thread, .origins-bead, .origins-root")].every((e) => getComputedStyle(e).opacity === "1"))`;
+
+    await tab.move(5, 5);
+    await sleep(300);
+    const before = await tab.evaluate<Threads>(threads);
+    const tintsBefore = await tab.evaluate<string[]>(tints);
+    const pill = await centreOf(OVAL(id));
+    await tab.move(pill.x, pill.y);
+    await tab.waitFor(stepped);
+    await sleep(300);
+    const hovering = judge(before, await tab.evaluate<Threads>(threads), tintsBefore, await tab.evaluate<string[]>(tints));
+    await tab.move(5, 5);
+    const clearAfterHover = await tab.waitFor(nothingLeft);
+    check(
+      meetup !== undefined && hovering.ok && clearAfterHover,
+      "hovering a meetup lights who was confirmed there, dims who was away or not yet in the group, and leaves everyone else as they were",
+      { moment: id, ...k, ...hovering, clearAfterHover },
+    );
+
+    const clicked = await clickCard(MOMENT_CARD(id));
+    await mapSettles();
+    await tab.move(5, 5);
+    await tab.waitFor(stepped);
+    await sleep(300);
+    const picking = judge(before, await tab.evaluate<Threads>(threads), tintsBefore, await tab.evaluate<string[]>(tints));
+    await tab.key("Escape");
+    const clearAfterPick = await tab.waitFor(nothingLeft);
+    check(
+      meetup !== undefined && clicked && picking.ok && clearAfterPick,
+      "a click on a meetup's card lights who was confirmed there, dims who was away or not yet in the group, leaves everyone else as they were, and letting go leaves nothing on anyone",
+      { moment: id, clicked, ...picking, clearAfterPick },
+    );
+
+    // A meetup nobody is recorded at, and where nobody joined, lights nobody,
+    // so nobody steps back either.
+    const empty = story.moments.find((g) => g.moment.trunk && !g.through.some((p) => p.vouched));
+    if (empty !== undefined) {
+      const opacities = `[...${MAP}.querySelectorAll(".origins-thread, .origins-bead, .origins-root")].map((e) => getComputedStyle(e).opacity).join()`;
+      await tab.move(5, 5);
+      await sleep(300);
+      const was = await tab.evaluate<string>(opacities);
+      const at = await centreOf(OVAL(empty.moment.id));
+      await tab.move(at.x, at.y);
+      // Its card in the list is lit while the pointer is on its pill, which
+      // says the hover arrived.
+      const over = await tab.waitFor(has(MOMENT_CARD(empty.moment.id), "is-lit"));
+      await sleep(500);
+      const now = await tab.evaluate<{ lit: number; same: boolean }>(
+        `({ lit: document.querySelectorAll("[data-person].is-lit").length, same: ${opacities} === ${JSON.stringify(was)} })`,
+      );
+      await tab.move(5, 5);
+      check(
+        over && now.lit === 0 && now.same,
+        "hovering a meetup with nobody confirmed at it changes nothing",
+        { moment: empty.moment.id, over, ...now },
+      );
+    }
   }
 
   // The list's card and the popup's are one card, the popup's with an X. In
@@ -2583,8 +2693,8 @@ async function run(): Promise<void> {
     const opened = await tab.waitFor(popupOpen);
     await sleep(300);
     const picked = await tab.evaluate<boolean>(has(PILL(id), "is-picked"));
-    // Everything lit is someone who was there and not away, and everyone
-    // who was there and not away is lit.
+    // Everything lit is someone confirmed there, and everyone confirmed
+    // there is lit.
     const lit = await tab.evaluate<Array<string | null>>(
       `[...document.querySelectorAll(".is-lit")].map((e) => e.getAttribute("data-person"))`,
     );

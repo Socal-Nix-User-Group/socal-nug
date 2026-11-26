@@ -7,7 +7,7 @@ import type { LoomPlaced } from "./loom-place.ts";
 import { ease, frameAt, MORPH_MS, morphBetween, OPENING, scrollFor, sharesOf } from "./morph.ts";
 import type { Shares } from "./morph.ts";
 import { parseData } from "./parse.ts";
-import { centred, framed, litBy, toggled } from "./pick.ts";
+import { centred, framed, litBy, toggled, unsureAt } from "./pick.ts";
 import type { Pick } from "./pick.ts";
 import { placePopup } from "./popup.ts";
 import type { DocumentLike, ElementLike } from "./render.ts";
@@ -631,16 +631,26 @@ function boot(): void {
   let over: string | null = null;
 
   /**
-   * Set what is lit, outlined and picked, in the map and in the lists, from
-   * the four above. The only place those classes are set: hover and a pick
-   * light the same people, and either ending must leave what the other lit.
+   * Set what is lit, outlined, picked and left unsure, in the map and in the
+   * lists, from the four above. The only place those classes are set: hover
+   * and a pick light the same people, and either ending must leave what the
+   * other lit.
    */
   function relight(): void {
     const lit = new Set([...hovered, ...litBy(story, picked)]);
     const person = picked?.kind === "person" ? picked.id : undefined;
     const moment = picked?.kind === "moment" ? picked.id : undefined;
+    // Whoever the moments in play say nothing about is left as they were,
+    // not stepping back with those the record puts elsewhere. Someone lit by
+    // another moment in play is lit, not unsure.
+    const unsure = new Set(
+      [over, hot, moment ?? null]
+        .flatMap((id) => (id === null ? [] : [...unsureAt(story, id)]))
+        .filter((slug) => !lit.has(slug)),
+    );
     for (const node of mount!.querySelectorAll("[data-person]")) {
       node.classList.toggle("is-lit", lit.has(node.dataset.person ?? ""));
+      node.classList.toggle("is-unsure", unsure.has(node.dataset.person ?? ""));
     }
     for (const pill of mount!.querySelectorAll(".origins-node")) {
       pill.classList.toggle("is-hot", pill.dataset.moment === hot);
@@ -956,15 +966,15 @@ function boot(): void {
       });
     }
 
-    // Hovering a moment lights the threads of everyone through it who was not
-    // away; clicking it picks it, and opens its card where the lists are
-    // under the map. Hover is for "who was in this", click is for "tell me
-    // about it", which is the part worth dwelling on.
+    // Hovering a moment lights the threads of everyone confirmed at it;
+    // clicking it picks it, and opens its card where the lists are under the
+    // map. Hover is for "who was in this", click is for "tell me about it",
+    // which is the part worth dwelling on.
     for (const node of mount!.querySelectorAll("[data-moment]")) {
       const id = node.dataset.moment;
       const gathering = story.moments.find((m) => m.moment.id === id);
       if (gathering === undefined) continue;
-      const who = gathering.through.filter((p) => !p.away).map((p) => p.slug);
+      const who = gathering.through.filter((p) => p.vouched).map((p) => p.slug);
       node.addEventListener("pointerenter", (e) => {
         if (!hovers(e)) return;
         for (const slug of who) hovered.add(slug);
@@ -1077,7 +1087,7 @@ function boot(): void {
     for (const card of roster.querySelectorAll(".origins-detail-card")) {
       const gathering = story.moments.find((m) => m.moment.id === card.dataset.moment)!;
       const id = gathering.moment.id;
-      const who = gathering.through.filter((p) => !p.away).map((p) => p.slug);
+      const who = gathering.through.filter((p) => p.vouched).map((p) => p.slug);
       card.addEventListener("pointerenter", (event) => {
         if (!hovers(event)) return;
         for (const slug of who) hovered.add(slug);

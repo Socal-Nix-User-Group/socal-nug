@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { centred, framed, litBy, toggled } from "../src/pick.ts";
+import { centred, framed, litBy, toggled, unsureAt } from "../src/pick.ts";
 import { story } from "./story-fixture.ts";
 
 test("a click on a card picks it, and a second click on the same card picks nothing", () => {
@@ -13,16 +13,22 @@ test("a click on a card picks it, and a second click on the same card picks noth
   assert.deepEqual(toggled({ kind: "person", id: "x" }, { kind: "moment", id: "x" }), { kind: "moment", id: "x" });
 });
 
-test("a picked person lights that person, a picked moment everyone who was at it and not away, and nothing lights nobody", () => {
+test("a picked person lights that person, a picked moment whoever is confirmed at it, and nothing lights nobody", () => {
   assert.deepEqual([...litBy(story, null)], []);
   assert.deepEqual([...litBy(story, { kind: "person", id: "mica" })], ["mica"]);
   assert.deepEqual([...litBy(story, { kind: "moment", id: "camp" })].sort(), ["daniel", "rob"]);
-  // nug3: rob is recorded away from it, and everyone else in the group then is through it
-  const nug3 = litBy(story, { kind: "moment", id: "nug3" });
-  assert.equal(nug3.has("rob"), false);
-  assert.equal(nug3.has("daniel"), true);
+  // nug3: daniel is recorded there, rob away, and nothing is recorded for david, jared and mica
+  assert.deepEqual([...litBy(story, { kind: "moment", id: "nug3" })], ["daniel"]);
+  // nug1: jared joined there, and nothing is recorded for anyone else
+  assert.deepEqual([...litBy(story, { kind: "moment", id: "nug1" })], ["jared"]);
   // a moment the story does not have lights nobody
   assert.deepEqual([...litBy(story, { kind: "moment", id: "nowhere" })], []);
+});
+
+test("the people unsure at a moment are those through it neither confirmed nor away", () => {
+  assert.deepEqual([...unsureAt(story, "nug3")].sort(), ["david", "jared", "mica"]);
+  assert.deepEqual([...unsureAt(story, "camp")], []);
+  assert.deepEqual([...unsureAt(story, "nowhere")], []);
 });
 
 test("centring puts the point in the middle of the box, and stops where the box stops scrolling", () => {

@@ -13,13 +13,29 @@ export function toggled(current: Pick | null, clicked: Pick): Pick | null {
     : clicked;
 }
 
-/** The slugs of everyone lit while `pick` stands: the person, or whoever was at the moment and not away. */
+/**
+ * The slugs of everyone lit while `pick` stands: the person, or whoever the
+ * record confirms at the moment. Someone the record says nothing about is
+ * not lit, since nothing says they were there.
+ */
 export function litBy(story: Story, pick: Pick | null): ReadonlySet<string> {
   if (pick === null) return new Set();
   if (pick.kind === "person") return new Set([pick.id]);
   const gathering = story.moments.find((g) => g.moment.id === pick.id);
   return new Set(
-    (gathering?.through ?? []).filter((p) => !p.away).map((p) => p.slug),
+    (gathering?.through ?? []).filter((p) => p.vouched).map((p) => p.slug),
+  );
+}
+
+/**
+ * The slugs of the people through moment `id` the record says nothing about:
+ * neither confirmed there nor away. They are left as they were while the
+ * moment is lit, neither lit nor stepping back, since nothing says which.
+ */
+export function unsureAt(story: Story, id: string): ReadonlySet<string> {
+  const gathering = story.moments.find((g) => g.moment.id === id);
+  return new Set(
+    (gathering?.through ?? []).filter((p) => !p.vouched && !p.away).map((p) => p.slug),
   );
 }
 
