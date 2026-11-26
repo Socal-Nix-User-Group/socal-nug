@@ -2329,6 +2329,34 @@ async function run(): Promise<void> {
   }
   await load("river");
   {
+    const whole = `${MAP}.scrollHeight <= ${MAP}.clientHeight && ${MAP}.scrollWidth <= ${MAP}.clientWidth`;
+    const fit = await zoomButton("fit");
+    await tab.click(fit.x, fit.y);
+    await tab.waitFor(whole);
+    await pressMode("subway");
+    const arrived = await tab.waitFor(`${PICTURE}.classList.contains("is-subway")`, 15_000);
+    await sleep(300);
+    const fitted = await tab.evaluate<boolean>(whole);
+    const width = await tab.evaluate<number>(pictureWidth);
+    const again = await zoomButton("fit");
+    await tab.click(again.x, again.y);
+    await sleep(300);
+    const afterFit = await tab.evaluate<number>(pictureWidth);
+    check(
+      arrived && fitted && Math.abs(afterFit - width) < 0.5,
+      "with reduced motion asked for, a fitted view arrives fitted, with nothing to scroll to and nothing for Fit to do",
+      {
+        arrived,
+        fitted,
+        width,
+        afterFit,
+        scroll: await tab.evaluate(`[${MAP}.scrollWidth, ${MAP}.scrollHeight]`),
+        box: await tab.evaluate(`[${MAP}.clientWidth, ${MAP}.clientHeight]`),
+      },
+    );
+  }
+  await load("river");
+  {
     const story = await storyOf();
     const far = await furthest(Object.fromEntries(peopled(story).map((id) => [id, OVAL(id)])));
     const id = far?.id ?? "";

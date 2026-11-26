@@ -820,7 +820,12 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   two layouts do not pair up, an edge or a face in only one of them, which a layout that passed
   the smoke check cannot be. The instant switch lands the view the same share of the way along
   and across as the morph would have. Before River opened centred it kept the box's scroll
-  position as a number of pixels, which would now open Subway part way in.
+  position as a number of pixels, which would now open Subway part way in. A fitted view
+  arrives fitted by the instant switch as well. It did not until 2026-11-26: only the morph
+  worked the other mode's fit out, so with reduced motion a fitted River became a Subway at
+  River's zoom, half as wide again as its box. Every draw now fits a fitted view to the picture
+  it draws and the box it draws it in, which is also what refits one after a resize that
+  changes the box's width.
 - If anything fails once the page has been put in the new mode, whether before the first frame
   or in the middle of one, the switch ends in the ordinary picture for that mode with nothing of
   the morph left on the page, and the next switch works. The view lands where the switch was
@@ -1541,13 +1546,14 @@ them (the card's description is not read, since it may say who missed it). Each 
 its moment in the page's data and fails if the data has none, so taking the only such record
 out of the data takes the three with it.
 
-Five are about a fitted view following its box: River and Subway, each fitted and then given a
+Six are about a fitted view following its box: River and Subway, each fitted and then given a
 smaller window and a larger one, both sides changing, are fitted again each time, with nothing
-to scroll to and nothing left for Fit to do; and a fitted view whose window got smaller while
-the map was moving between modes arrives fitted to the window as it is. Each was seen to fail
-against the script as it was.
+to scroll to and nothing left for Fit to do; a fitted view whose window got smaller while the
+map was moving between modes arrives fitted to the window as it is; and with reduced motion
+asked for, a fitted view arrives fitted in the other mode. Each was seen to fail against the
+script as it was.
 
-A hundred and nine checks, each named for what a visitor would
+A hundred and ten checks, each named for what a visitor would
 notice and none naming a moment or a person, so the data can change under it as long as the
 picture stays about the size it is (see below). It needs the
 network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
@@ -1831,7 +1837,11 @@ be reasonable if layout moved to build time.
   to in Chromium and in Firefox; the lists, since the moments' list was added, in Chromium
   only. From the top
   of River it lands at the start of Subway and from the bottom at the end. After Fit it lands
-  fitted. With the system asking for reduced motion it switches at once.
+  fitted. With the system asking for reduced motion it switches at once, and after Fit lands
+  fitted then too.
+- After Fit, making the window narrower, wider, shorter or taller leaves the whole map in its
+  box with nothing to scroll to, at the size pressing Fit again would give, in both modes, in
+  headless Chromium. At any other zoom a resize leaves the zoom as it was.
 - Adding a new profile with `member = true` and a moment referencing it makes a new thread appear
   with no other edit.
 - A moment that is not a meetup, dated after the group began, draws the threads of the people it

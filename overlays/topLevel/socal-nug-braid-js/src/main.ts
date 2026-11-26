@@ -273,7 +273,12 @@ function boot(): void {
     canvas = { width: placed.width, height: placed.height };
     shown = placed;
     mount!.replaceChildren(drawLoom(placed, story, document), popup);
+    // A view fitted to its box is fitted to this picture in this box. The
+    // zoom it had was for another: the other mode's picture is a different
+    // shape, and a box that changed width is a different size.
+    if (fitted) zoom = fitNow();
     sizeMap();
+    showZoom();
     if (view !== undefined) {
       const to = scrollFor(next, view, reachOf());
       mount!.scrollLeft = to.x;
@@ -1289,14 +1294,14 @@ function boot(): void {
    *
    * The canvas is sized to its box, so a new width needs a redraw. It needs
    * no new layout though, only re-centring, which is why this can run on a
-   * drag at all. A zoom that Fit set was worked out for the box as it was,
-   * so it is worked out again for the box as it is. A change of height alone
-   * can undo a fit, the ceiling being a share of the window's height. Any
-   * other zoom is kept.
+   * drag at all. A redraw fits a fitted view to the box as it is. A change
+   * of height alone redraws nothing and can still undo a fit, the ceiling
+   * being a share of the window's height, so the zoom Fit set is worked out
+   * again here. Any other zoom is kept.
    */
   async function resized(): Promise<void> {
     if (mount!.clientWidth !== shownAt) await draw(mode);
-    if (fitted) zoomTo(fitNow());
+    else if (fitted) zoomTo(fitNow());
   }
 
   // Settle first: a drag fires continuously, and the size that matters is
