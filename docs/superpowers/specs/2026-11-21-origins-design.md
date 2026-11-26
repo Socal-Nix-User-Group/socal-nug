@@ -200,6 +200,13 @@ runner dependency under any of these options.
 - `content/origins.md`, `template = "origins.html"`, served at `/origins/`.
 - Nav item "Origins" in `partials/base.navigation.html`, after "About Us".
 - Title and description chosen for link previews, since this is a page people will share.
+- The page opens with one paragraph: nobody set out to start a group, people found Nix
+  separately, and some of those paths crossed. A second paragraph ("This is where they
+  crossed, and where they keep crossing. It grows every time somebody new turns up.") was
+  dropped at Daniel's request on 2026-11-26. It was where the page's own words said the
+  picture keeps growing, which the note on the name below asks for; the description for link
+  previews still says "and the ones still joining". Daniel means to add to the first
+  paragraph, and what goes there is not settled.
 
 "Timeline" was rejected as a name: it describes the thing the page deliberately is not. "History"
 was rejected as institutional and as a collision with the Blog and the anniversary post. "How We
@@ -253,6 +260,16 @@ links = [{ title = "...", url = "https://..." }]  # their own sites
   that open in the same tab, like the alias beside them. The titles in the data are the sites'
   host names, which is a habit and not a rule. `profiles.json` requires a title and a url on each
   entry, and the engine's parser rejects an entry without them.
+
+A member's profile may also say `organizer = true` under `[extra]`. That member's badge then
+says "Organizer" in place of "Member", on their Origins card and on the About grid; nothing
+else about them changes, and the badge is still drawn as a member's. Daniel asked for it on
+2026-11-26 for Daniel Baker, David Nuon and Rob Hernandez. It is a flag and not free text, so
+the badge stays one of three words. The alternative, a field holding the badge's word, was
+rejected as an invitation to a different tag for everyone. The page's data carries
+`organizer` for every person, false when the profile does not say. On a guest it does nothing.
+What a screen reader says for a face in the picture is still "member" or "guest", which is
+what the face's ring shows.
 
 There are two guests in the data. Matthew Croughan organizes Nix Camp and is at every one, was
 at SCaLE 20x and 21x, and has been at every NixCon since 2024. Thomas Bereknyei, added on
@@ -1092,9 +1109,9 @@ section and an older one disagree, this one is right.
   the links row, the handle first in it), then the description, the quote, the joined line and
   the popup's X. On About `templates/about.html` writes `div.about-profile` with the same
   parts in About's look (the 128px picture, the Bulma title), styled by
-  `sass/css/pages/about.scss`. The badge on About always says "Member", since only members are
-  listed there; it was in every mock-up Daniel chose from, and Daniel confirmed wanting it on
-  2026-11-26.
+  `sass/css/pages/about.scss`. The badge on About says "Member", since only members are
+  listed there, or "Organizer" for a member whose profile says so (see "People"); it was in
+  every mock-up Daniel chose from, and Daniel confirmed wanting it on 2026-11-26.
 
 - **Where a member joined is worked out twice.** The engine has it from the story
   (`joinLineFor`); the About template works it out from the same data the Origins template
@@ -1199,6 +1216,8 @@ Several signals, so it does not depend on colour alone:
 | Card bar      | Solid, thread colour           | Dashed, grey               |
 | Thread stroke | Solid                          | Dashed and thinner         |
 | Badge         | Filled, "Member"               | Dashed outline, "Guest"    |
+
+A member who organizes the group has the member's badge with the word "Organizer" in it.
 
 Colour identifies individual threads only while there are few enough to tell apart. The palette
 has twelve hues, in light and dark versions; the first twelve threads in thread order each take
@@ -1362,7 +1381,10 @@ In `checks/default.nix`:
   About grid, and proves the About filter with a guest probe as well. It checks that every
   member's own links are in the data block and on the About grid, and that every member's quote
   is on the About grid as a quotation. It checks that a member's profile on About has its parts
-  in the arrangement's order, that every profile is in its box and carries the badge, and that
+  in the arrangement's order, that every profile is in its box and carries one badge, saying
+  "Organizer" for a member the page's data says organizes the group and "Member" for any
+  other, that the data says of everyone whether they organize it and of no guest that they
+  do, and that
   every member's joined line is the one the rule gives from the Origins page's data. It checks
   that every moment's avatar in the data block is a file the built site serves.
 
@@ -1600,7 +1622,12 @@ be reasonable if layout moved to build time.
   nor a quote, and Matthew Croughan has a quote and no description. Everyone else has a
   description; Daniel Baker, Jared Baur, Mica, Connor Baker, Matthew Croughan and Morgan Jones
   have a quote, and only Daniel Baker, David Nuon, Samuel Raumin and Chris Tewfik have links.
-  Jared Baur's "First contact" has no blurb, though the other three have one. Tristan Ross and
+  Jared Baur's "First contact" has no blurb, though the other four have one. Tristan Ross's
+  was added on 2026-11-26: the first commit in Tristan's dotfiles that sets up NixOS, dated
+  1 August 2022 in the commit's own Pacific time (a reader in UTC is shown 2 August), with
+  Tristan's account of why. The blurb takes "Void" in that account to be Void Linux, which
+  nothing in the repository's history says either way. It took the picture to 48 moments, 593
+  by 3336 in River and 6728 by 478 in Subway by the smoke check, with no finding. Tristan Ross and
   Thomas Bereknyei's "Paths cross" of July 2024 has none: Daniel has no details of it yet.
   Several conference and camp moments have none.
 - **Seven `CONFIRM` markers** in `data/moments.toml`: two dates given as approximations, one
@@ -1721,7 +1748,11 @@ be reasonable if layout moved to build time.
 - **Validator rejections with no fixture.** `braid-data` has no fixture for a dated moment with no
   title, a well-formed date that does not exist, a moment with no `id`, or `links` that is not a
   list, so nothing shows those rejections still work.
-- **Safari** has not been tried. The page has been checked in Firefox and Chromium.
+- **Safari** has not been tried. The page has been checked in Firefox and Chromium. Daniel
+  looked at Origins and About in both on 2026-11-26, after the one arrangement of a person,
+  the About boxes and the absence at Nix Vegas 2025, and found them good. The scrollbars of the
+  map and the lists are white in Firefox's dark theme; Daniel has seen that and is content
+  with it.
 - **A failed mode switch** leaves the old picture on screen under the new mode's name, and the
   new mode remembered. Left alone on purpose, by Daniel's decision.
 - **Integration.** The branch is more than fifty commits and has never been reviewed as a whole.
