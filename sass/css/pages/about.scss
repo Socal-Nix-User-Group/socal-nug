@@ -3,13 +3,14 @@
 // look: the picture beside the name and the handle, and the description, the
 // quote and where they joined under both at the profile's full width.
 
-// A box a little off the page, in Bulma's own shades so it follows the theme.
-// The column is stretched to its row, and the box fills it, so the two boxes
-// of a row are the same height.
+// A box off the page, in Bulma's own background shade so it follows the
+// theme. The shade one step nearer the page's was too faint to tell one
+// profile from the next on a white page. The column is stretched to its row,
+// and the box fills it, so the two boxes of a row are the same height.
 .about-profile {
     height: 100%;
     padding: 1rem 1.25rem;
-    background: var(--bulma-scheme-main-bis);
+    background: var(--bulma-background);
 }
 
 // Centred against the picture, which is the taller unless the links wrap.
@@ -88,9 +89,12 @@
 }
 
 // Bulma gives a quote's box 1.25em by 1.5em of padding, which is more than a
-// line or two of somebody's words needs.
+// line or two of somebody's words needs. It also fills it with the shade the
+// profile's box has, so here the quote takes the page's own colour and stays
+// a box within the box.
 .content.about-profile > blockquote {
     padding: 0.5em 0.9em;
+    background: var(--bulma-scheme-main);
 }
 
 .about-join {

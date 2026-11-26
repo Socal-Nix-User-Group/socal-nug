@@ -1305,7 +1305,9 @@ async function run(): Promise<void> {
   }
 
   // Each profile is a box of its own, in either theme, and the two boxes of a
-  // row line up top and bottom however much each member has to say.
+  // row line up top and bottom however much each member has to say. A quote
+  // is a box inside its profile's: Bulma fills a quote with one of the shades
+  // a profile's box could take, and a quote the same shade as its box is lost.
   await tab.size(1400, 1000);
   await tab.goto(`${server.origin}/about/`);
   {
@@ -1325,6 +1327,11 @@ async function run(): Promise<void> {
           };
         });
         const shaded = all.every((b) => !clear(b.background) && b.background !== page);
+        const quotes = [...document.querySelectorAll(".about-profile blockquote")].map((q) => ({
+          quote: getComputedStyle(q).backgroundColor,
+          box: getComputedStyle(q.closest(".about-profile")).backgroundColor,
+        }));
+        const lost = quotes.filter((q) => clear(q.quote) || q.quote === q.box);
         const apart = (a, b) => a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top;
         const overlaps = [];
         const uneven = [];
@@ -1337,8 +1344,10 @@ async function run(): Promise<void> {
           }
         }));
         return {
-          ok: all.length > 0 && all.length === names && shaded && overlaps.length === 0 && rows > 0 && uneven.length === 0,
+          ok: all.length > 0 && all.length === names && shaded && overlaps.length === 0 && rows > 0 && uneven.length === 0 &&
+            quotes.length > 0 && lost.length === 0,
           boxes: all.length, names, page, background: all[0]?.background, shaded, overlaps, rows, uneven,
+          quotes: quotes.length, lost,
         };
       })()`);
     const light = await boxes("light");
@@ -1346,7 +1355,7 @@ async function run(): Promise<void> {
     await tab.evaluate(`document.documentElement.removeAttribute("data-theme")`);
     check(
       light.ok && dark.ok,
-      "About: every profile is in its own box, and the boxes of a row are the same height",
+      "About: every profile is in its own box, the boxes of a row are the same height, and a quote is a box inside its profile's",
       { light, dark },
     );
   }
