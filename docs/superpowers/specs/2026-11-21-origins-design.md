@@ -363,9 +363,9 @@ not resolve to a file in `content/events/`.
   card. It came with the three blurbs. Each of those moments already had a blurb of a
   sentence or two (who was at the booth at SCaLE 20x and who met whom, the days NixCon North
   America ran, why Daniel Baker missed Nix Vegas), and that is kept as a second paragraph
-  under Daniel's text. Whether those sentences stay is Daniel's to say; keeping them is the
-  controller's call, made because one of them Daniel asked for by name the same day and
-  another records the meeting the page is about.
+  under Daniel's text. Keeping them was the controller's call, made because one of them
+  Daniel asked for by name the same day and another records the meeting the page is about.
+  Daniel saw them on 2026-11-26 and said the second paragraphs are good.
 - In the page's JSON a meetup carries `people` (who joined there), `there` and `away`, each an
   array, empty when nothing is recorded. Existing records need no change, and the picture is
   complete with no `there` or `away` anywhere.
