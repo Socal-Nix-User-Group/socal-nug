@@ -16,7 +16,12 @@
 # no bead, which says only that they were in the group then, except at the
 # meetup they joined at, where they always have the ringed bead. Nobody can
 # be recorded at a meetup before the one they joined at, or away from the
-# one they joined at.
+# one they joined at. A dated moment that is not a meetup may carry `away`
+# and never `there`: its `people` already say who was there. `away` draws the
+# same at it as at a meetup: the thread breaks either side of the oval with a
+# hollow bead in their place inside it. Nobody can be both in `people` and in
+# `away` on one moment, or away from a moment dated before any moment they
+# are at.
 #
 # `date` accepts YYYY, YYYY-MM or YYYY-MM-DD. Write the precision you actually
 # have; it is never padded, and the page displays what is written here.
@@ -331,6 +336,7 @@ people = [
   "kyle-risse",
   "thomas-bereknyei",
 ]
+away = ["daniel-baker"]
 links = [{ title = "Nix Vegas 2025", url = "https://nix.vegas/2025/" }]
 
 [[moment]]

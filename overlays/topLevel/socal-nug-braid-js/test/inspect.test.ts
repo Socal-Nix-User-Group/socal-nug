@@ -350,13 +350,13 @@ test("a hop to or from a side moment is not measured", () => {
  * meetup its person is away from it stops short of the oval's right end and
  * starts again from there.
  */
-function drawable(): LoomPlaced {
+function drawable(s: Story = story, base: LoomPlaced = fake): LoomPlaced {
   const boxes = new Map<string, Box>();
   const moments = new Map<string, Point>();
   const slots = new Map<string, Point>();
   const labels = new Map<string, PlacedLabel>();
-  story.moments.forEach((g, row) => {
-    const size = fake.boxes.get(g.moment.id)!;
+  s.moments.forEach((g, row) => {
+    const size = base.boxes.get(g.moment.id)!;
     const box = { ...size, x: 200 - size.width / 2, y: 40 + 60 * row - size.height / 2 };
     const at = { x: 200, y: 40 + 60 * row };
     boxes.set(g.moment.id, box);
@@ -365,8 +365,8 @@ function drawable(): LoomPlaced {
     labels.set(g.moment.id, { x: box.x - 8, y: at.y + 4, anchor: "end", text: shown(g.moment.title) });
   });
   const roots = new Map<string, Point>();
-  story.threads.forEach((t, k) => roots.set(t.person.slug, { x: 25, y: 70 + 60 * k }));
-  const edges = story.threads.flatMap((t, k) => {
+  s.threads.forEach((t, k) => roots.set(t.person.slug, { x: 25, y: 70 + 60 * k }));
+  const edges = s.threads.flatMap((t, k) => {
     const ids = [rootId(t.person.slug), ...t.path.map((g) => g.moment.id)];
     const things = [
       roots.get(t.person.slug)!,
@@ -385,12 +385,12 @@ function drawable(): LoomPlaced {
       points: [things[i], { x: gutter, y: things[i].y }, { x: gutter, y: to.y }, to],
     }));
   });
-  return { ...fake, width: 640, height: 560, boxes, moments, slots, labels, roots, edges };
+  return { ...base, width: 640, height: 560, boxes, moments, slots, labels, roots, edges };
 }
 
-function drawn(placed: LoomPlaced) {
+function drawn(placed: LoomPlaced, s: Story = story) {
   const { doc, made } = recorder();
-  drawLoom(placed, story, doc);
+  drawLoom(placed, s, doc);
   return made;
 }
 
@@ -475,6 +475,66 @@ test("a hollow bead where nobody is recorded away is an engine finding, and is n
   assert.deepEqual(found.map((f) => f.message).sort(), [
     `mica has a hollow bead at ${(+bead.attrs.cx).toFixed(0)},${(+bead.attrs.cy).toFixed(0)} and is not recorded away there`,
     "mica is vouched for at nug2 and has no bead there",
+  ]);
+});
+
+// Mica is recorded away from a conference Rob and Daniel are at, between two
+// meetups. Two more rows than the fixture, so a taller canvas.
+const awayConf = buildStory(
+  [
+    ...MOMENTS,
+    at("conf", "2024-09", ["rob", "daniel"], false, { away: ["mica"] }),
+    at("nug5", "2024-10", [], true),
+  ],
+  PEOPLE,
+);
+const awayFake = await placeLoom(awayConf, "river", fakeLoomLayout);
+const awayDrawable = () => ({ ...drawable(awayConf, awayFake), height: 700 });
+
+test("a clean drawing with someone away from a moment that is not a meetup has no findings", () => {
+  const placed = awayDrawable();
+  const made = drawn(placed, awayConf);
+  assert.deepEqual(
+    withClass(made, "is-away").map((b) => b.attrs["data-person"]),
+    ["rob", "mica"],
+  );
+  assert.deepEqual(inspectDrawing(awayConf, placed, made), []);
+});
+
+test("a thread inside the box of a moment that is not a meetup its person is recorded away from is one engine finding and no layout finding", () => {
+  const placed = awayDrawable();
+  const conf = placed.boxes.get("conf")!;
+  for (const [x, y] of [[conf.x + conf.width / 2, conf.y + conf.height / 2], [conf.x + 1, conf.y + 1]]) {
+    const made = drawn(placed, awayConf);
+    const thread = withClass(made, "origins-thread").find((p) => p.attrs["data-person"] === "mica")!;
+    thread.attrs.d = goesTo(x, y);
+    const found = inspectDrawing(awayConf, placed, made);
+    assert.equal(found.length, 1, JSON.stringify(found));
+    assert.equal(found[0].kind, "engine");
+    assert.equal(found[0].message, `mica's thread runs through conf, which they are recorded away from, near ${x.toFixed(0)},${y.toFixed(0)}`);
+  }
+});
+
+test("an absence from a moment that is not a meetup with no hollow bead at its slot, or a hollow bead there for someone it names, is an engine finding", () => {
+  const placed = awayDrawable();
+  const missing = drawn(placed, awayConf);
+  const micas = withClass(missing, "is-away").find((b) => b.attrs["data-person"] === "mica")!;
+  missing.splice(missing.indexOf(micas), 1);
+  assert.deepEqual(inspectDrawing(awayConf, placed, missing), [
+    { kind: "engine", message: "mica is recorded away from conf and has no hollow bead there" },
+  ]);
+  // Rob's filled bead at the conference, which names Rob, drawn hollow instead.
+  const made = drawn(placed, awayConf);
+  const conf = placed.slots.get(slotKey("conf", "rob"))!;
+  const bead = withClass(made, "origins-bead").find((b) =>
+    b.attrs["data-person"] === "rob" && +b.attrs.cx === conf.x && +b.attrs.cy === conf.y
+  )!;
+  bead.attrs.class = "origins-bead is-away";
+  const found = inspectDrawing(awayConf, placed, made);
+  assert.ok(found.every((f) => f.kind === "engine"), JSON.stringify(found));
+  assert.deepEqual(found.map((f) => f.message).sort(), [
+    `rob has a hollow bead at ${(+bead.attrs.cx).toFixed(0)},${(+bead.attrs.cy).toFixed(0)} and is not recorded away there`,
+    "rob is vouched for at conf and has no bead there",
   ]);
 });
 

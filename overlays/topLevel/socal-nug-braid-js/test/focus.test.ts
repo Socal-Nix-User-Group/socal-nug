@@ -117,6 +117,23 @@ test("a moment that is not a meetup and names nobody stops at its date", () => {
   assert.equal(describeGathering(empty), "quiet, February 2023");
 });
 
+test("a moment that is not a meetup counts who was there, not who was away", () => {
+  const s = buildStory(
+    [
+      storyAt("founded", "2023-04", ["rob", "daniel", "david"], true),
+      storyAt("conf", "2023-06", ["rob", "daniel"], false, { away: ["david"] }),
+      storyAt("camp", "2023-07", ["rob"], false, { away: ["daniel"] }),
+      storyAt("quiet", "2023-08", [], false, { away: ["rob"] }),
+    ],
+    STORY_PEOPLE,
+  );
+  const m = (id: string) => s.moments.find((x) => x.moment.id === id)!;
+  assert.equal(describeGathering(m("conf")), "conf, June 2023, 2 people");
+  assert.equal(describeGathering(m("camp")), "camp, July 2023, 1 person");
+  // with nobody at it, it stops at its date as a moment that names nobody does
+  assert.equal(describeGathering(m("quiet")), "quiet, August 2023");
+});
+
 test("a member and a guest are described as what they are", () => {
   assert.equal(describePerson(person("rob")), "ROB, member");
   assert.equal(describePerson(person("rob", false)), "ROB, guest");

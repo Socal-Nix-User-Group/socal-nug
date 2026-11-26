@@ -134,9 +134,10 @@ export function detailFor(
     );
   };
   // A thread through a meetup says "in the group then", not "was there", so
-  // a meetup names only who joined there and who the record confirms. Who
-  // was away is said by their thread breaking either side of the oval, with
-  // a hollow bead in their slot.
+  // a meetup names only who joined there and who the record confirms. Any
+  // other moment names the people it lists. Who was away from either is said
+  // by their thread breaking either side of the oval, with a hollow bead in
+  // their slot, and never on the card.
   if (moment.trunk) {
     line("Joined here: ", namesOf(
       gathering.through.filter((p) => p.joined).map((p) => p.slug),

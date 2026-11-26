@@ -79,8 +79,9 @@ function toLinks(raw: unknown, owner: string): readonly Link[] | undefined {
 }
 
 /**
- * A meetup's attendance: slugs of who the record vouches for, or who it says
- * was away. Absent and empty both come back as undefined.
+ * A moment's attendance: slugs of who the record vouches for at a meetup, or
+ * who it says was away from any moment. Absent and empty both come back as
+ * undefined.
  */
 function toSlugs(
   raw: unknown,

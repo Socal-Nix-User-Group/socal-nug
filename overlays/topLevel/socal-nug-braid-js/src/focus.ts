@@ -75,16 +75,21 @@ export function nextIndex(
   }
 }
 
-/** What a screen reader says for a gathering: a meetup says how many are in the group. */
+/**
+ * What a screen reader says for a gathering: a meetup says how many are in the
+ * group, any other moment how many were at it. Someone away from a moment is
+ * through it but was not there, so they are not counted.
+ */
 export function describeGathering(gathering: Gathering): string {
   const { moment } = gathering;
   const when = `${moment.title}, ${formatFuzzyDate(moment.date)}`;
-  if (!moment.trunk && gathering.through.length === 0) return when;
+  const there = gathering.through.filter((p) => !p.away).length;
+  if (!moment.trunk && there === 0) return when;
   const count = moment.trunk
     ? `${gathering.inGroup} in the group`
-    : gathering.through.length === 1
+    : there === 1
       ? "1 person"
-      : `${gathering.through.length} people`;
+      : `${there} people`;
   return `${when}, ${count}`;
 }
 

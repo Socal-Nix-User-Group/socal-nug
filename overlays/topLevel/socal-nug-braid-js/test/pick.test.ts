@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { centred, framed, litBy, toggled, unsureAt } from "../src/pick.ts";
-import { story } from "./story-fixture.ts";
+import { buildStory } from "../src/story.ts";
+import { at, MOMENTS, PEOPLE, story } from "./story-fixture.ts";
 
 test("a click on a card picks it, and a second click on the same card picks nothing", () => {
   const rob = { kind: "person", id: "rob" } as const;
@@ -29,6 +30,16 @@ test("the people unsure at a moment are those through it neither confirmed nor a
   assert.deepEqual([...unsureAt(story, "nug3")].sort(), ["david", "jared", "mica"]);
   assert.deepEqual([...unsureAt(story, "camp")], []);
   assert.deepEqual([...unsureAt(story, "nowhere")], []);
+});
+
+test("a moment that is not a meetup lights the people it names and not someone away from it, and leaves nobody unsure", () => {
+  const s = buildStory(
+    [...MOMENTS, at("conf", "2024-09", ["rob", "daniel"], false, { away: ["mica"] })],
+    PEOPLE,
+  );
+  assert.ok(s.moments.find((m) => m.moment.id === "conf")!.through.some((p) => p.slug === "mica"));
+  assert.deepEqual([...litBy(s, { kind: "moment", id: "conf" })].sort(), ["daniel", "rob"]);
+  assert.deepEqual([...unsureAt(s, "conf")], []);
 });
 
 test("centring puts the point in the middle of the box, and stops where the box stops scrolling", () => {

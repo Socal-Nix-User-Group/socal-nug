@@ -76,6 +76,54 @@ test("a thread runs on to a last meetup its person was away from, and passes the
   const conf = s.moments.find((m) => m.moment.id === "conf")!;
   assert.ok(conf.passing.some((p) => p.slug === "mica"));
 });
+// --- away from a moment that is not a meetup ---------------------------------
+// Rob and Daniel are at a conference and Mica is recorded away from it. Mica
+// is through it as at a meetup: in a slot, on the thread, not passing it by.
+
+const awayConf = buildStory(
+  [...MOMENTS, at("conf", "2024-09", ["rob", "daniel"], false, { away: ["mica"] })],
+  PEOPLE,
+);
+const conf = awayConf.moments.find((m) => m.moment.id === "conf")!;
+
+test("someone away from a moment that is not a meetup is through it in slot order, marked away, and everyone it names is vouched for", () => {
+  assert.deepEqual(conf.through.map((p) => [p.slug, p.slot, p.away, p.vouched, p.joined]), [
+    ["rob", 0, false, true, false],
+    ["daniel", 1, false, true, false],
+    ["mica", 2, true, false, false],
+  ]);
+  assert.equal(conf.onRibbon, false);
+});
+test("someone away from a moment does not pass it by, and it is on their thread", () => {
+  assert.ok(!conf.passing.some((p) => p.slug === "mica"));
+  const mica = awayConf.threads.find((t) => t.person.slug === "mica")!;
+  assert.ok(mica.path.some((x) => x.moment.id === "conf"));
+});
+test("a moment that names everyone in the group but those away from it is on the ribbon, each in their own slot", () => {
+  const s = buildStory(
+    [...MOMENTS, at("retreat", "2023-08", ["rob", "daniel", "david", "jared"], false, { away: ["mica"] })],
+    PEOPLE,
+  );
+  const retreat = s.moments.find((m) => m.moment.id === "retreat")!;
+  assert.equal(retreat.onRibbon, true);
+  assert.equal(retreat.slots, 5);
+  assert.deepEqual(retreat.through.map((p) => p.slug), ["rob", "daniel", "david", "jared", "mica"]);
+  for (const p of retreat.through) assert.equal(p.slot, s.order.indexOf(p.slug), p.slug);
+  assert.deepEqual(retreat.passing, []);
+});
+test("someone both named at and away from a moment that is not a meetup is through it once, away", () => {
+  const s = buildStory(
+    [...MOMENTS, at("conf", "2024-09", ["rob", "daniel", "mica"], false, { away: ["mica"] })],
+    PEOPLE,
+  );
+  const both = s.moments.find((m) => m.moment.id === "conf")!;
+  assert.deepEqual(both.through.map((p) => [p.slug, p.slot, p.away, p.vouched]), [
+    ["rob", 0, false, true],
+    ["daniel", 1, false, true],
+    ["mica", 2, true, false],
+  ]);
+});
+
 test("threads come in the people map's order, and someone in no moment has none", () => {
   assert.deepEqual(story.threads.map((t) => t.person.slug), ["rob", "daniel", "david", "jared", "mica", "connor"]);
 });

@@ -2,11 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { MOMENT_AVATAR } from "../src/elk.ts";
 import { drawLoom } from "../src/loom-draw.ts";
-import { placeLoom, slotKey } from "../src/loom-place.ts";
+import { AWAY_GAP, placeLoom, slotKey } from "../src/loom-place.ts";
 import { buildStory } from "../src/story.ts";
 import type { DocumentLike, ElementLike } from "../src/render.ts";
 import { fakeLoomLayout } from "./fake-loom-elk.ts";
-import { at, marked, PEOPLE, story } from "./story-fixture.ts";
+import { at, marked, MOMENTS, PEOPLE, story } from "./story-fixture.ts";
 
 interface Node {
   tag: string;
@@ -269,6 +269,40 @@ test("there is a hollow bead at the slot of everyone away from a meetup, in thei
     assert.deepEqual(
       hollow.map((b) => [b.tag, b.attrs.class, b.attrs["data-person"], b.attrs["data-hue"], Number(b.attrs.cx), Number(b.attrs.cy), b.attrs.r]),
       away.map((a) => ["circle", "origins-bead is-away", a.slug, "0", a.at.x, a.at.y, "2.6"]),
+      mode,
+    );
+  }
+});
+
+test("a thread breaks at a moment that is not a meetup its person is away from, AWAY_GAP either side of it, with a hollow bead at their slot there", async () => {
+  // Mica is recorded away from a conference Rob and Daniel are at, between two meetups.
+  const s = buildStory(
+    [
+      ...MOMENTS,
+      at("conf", "2024-09", ["rob", "daniel"], false, { away: ["mica"] }),
+      at("nug5", "2024-10", [], true),
+    ],
+    PEOPLE,
+  );
+  for (const mode of ["river", "subway"] as const) {
+    const p = await placeLoom(s, mode, fakeLoomLayout);
+    const { doc, made: drawn } = stubDocument();
+    drawLoom(p, s, doc);
+    const box = p.boxes.get("conf")!;
+    const slot = p.slots.get(slotKey("conf", "mica"))!;
+    const path = withClass(drawn, "origins-thread").find((n) => n.attrs["data-person"] === "mica")!;
+    const points = anchors(path.attrs.d);
+    const second = points.findIndex((q, i) => i > 0 && q.move);
+    assert.ok(second > 0, `${mode}: Mica's thread does not break`);
+    const [stop, start] = mode === "river"
+      ? [{ x: slot.x, y: box.y - AWAY_GAP }, { x: slot.x, y: box.y + box.height + AWAY_GAP }]
+      : [{ x: box.x - AWAY_GAP, y: slot.y }, { x: box.x + box.width + AWAY_GAP, y: slot.y }];
+    assert.deepEqual([points[second - 1].x, points[second - 1].y], [stop.x, stop.y], mode);
+    assert.deepEqual([points[second].x, points[second].y], [start.x, start.y], mode);
+    const rob = p.slots.get(slotKey("nug3", "rob"))!;
+    assert.deepEqual(
+      withClass(drawn, "is-away").map((b) => [b.attrs["data-person"], Number(b.attrs.cx), Number(b.attrs.cy)]),
+      [["rob", rob.x, rob.y], ["mica", slot.x, slot.y]],
       mode,
     );
   }

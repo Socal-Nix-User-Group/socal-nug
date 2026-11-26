@@ -54,7 +54,10 @@ export interface Moment {
   readonly links?: readonly Link[];
   /** Slugs of the members a meetup's records vouch for being there. */
   readonly there?: readonly string[];
-  /** Slugs of the members a meetup's records say were not there. */
+  /**
+   * Slugs of the people the moment's records say were not there, at a meetup
+   * or any other moment.
+   */
   readonly away?: readonly string[];
 }
 

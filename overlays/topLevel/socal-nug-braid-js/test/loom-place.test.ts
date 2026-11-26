@@ -19,7 +19,7 @@ import {
 } from "../src/loom-place.ts";
 import { buildStory } from "../src/story.ts";
 import { fakeLoomLayout } from "./fake-loom-elk.ts";
-import { marked, MOMENTS, PEOPLE, story } from "./story-fixture.ts";
+import { at, marked, MOMENTS, PEOPLE, story } from "./story-fixture.ts";
 
 const placed = await placeLoom(story, "river", fakeLoomLayout);
 
@@ -89,6 +89,36 @@ test("a thread stops AWAY_GAP short of a meetup its person is away from and star
     // and the other ends of those edges are carried to the slot as ever
     assert.deepEqual(into.points[0], p.slots.get(slotKey("camp", "rob")), mode);
     assert.deepEqual(out.points.at(-1), p.slots.get(slotKey("scale", "rob")), mode);
+  }
+});
+
+// Mica is recorded away from a conference Rob and Daniel are at, between two
+// meetups, so Mica's thread arrives at it and goes on from it.
+const awayConf = buildStory(
+  [
+    ...MOMENTS,
+    at("conf", "2024-09", ["rob", "daniel"], false, { away: ["mica"] }),
+    at("nug5", "2024-10", [], true),
+  ],
+  PEOPLE,
+);
+
+test("a thread stops AWAY_GAP short of a moment that is not a meetup its person is away from and starts again AWAY_GAP after it, at their slot across it", async () => {
+  for (const mode of ["river", "subway"] as const) {
+    const p = await placeLoom(awayConf, mode, fakeLoomLayout);
+    const box = p.boxes.get("conf")!;
+    const slot = p.slots.get(slotKey("conf", "mica"))!;
+    assert.ok(slot !== undefined, mode);
+    const mica = p.edges.filter((e) => e.meta.slug === "mica");
+    const into = mica.find((e) => e.to === "conf")!;
+    const out = mica.find((e) => e.from === "conf")!;
+    const [stop, start] = mode === "river"
+      ? [{ x: slot.x, y: box.y - AWAY_GAP }, { x: slot.x, y: box.y + box.height + AWAY_GAP }]
+      : [{ x: box.x - AWAY_GAP, y: slot.y }, { x: box.x + box.width + AWAY_GAP, y: slot.y }];
+    assert.deepEqual(into.points.slice(-2), [{ x: 7, y: 7 }, stop], mode);
+    assert.deepEqual(out.points.slice(0, 2), [start, { x: 7, y: 7 }], mode);
+    assert.deepEqual(into.points[0], p.slots.get(slotKey("nug4", "mica")), mode);
+    assert.deepEqual(out.points.at(-1), p.slots.get(slotKey("nug5", "mica")), mode);
   }
 });
 

@@ -82,7 +82,7 @@ export type Layout = (graph: ElkGraph) => Promise<ElkGraph>;
 const BASELINE = 11;
 
 /**
- * How far short of a meetup's box a thread stops, and how far after it the
+ * How far short of a moment's box a thread stops, and how far after it the
  * thread starts again, when its person is away from it. Half the thread's
  * width of that is its round cap.
  */
@@ -196,9 +196,9 @@ export function loomPlacedFrom(
   };
   // The node an edge end is on: a port's node, or a face's own id.
   const nodeOf = (end: string): string => end.split("|")[0];
-  // An end at a meetup its person is away from is not carried on to the slot.
+  // An end at a moment its person is away from is not carried on to the slot.
   // It is pulled back off the box instead, AWAY_GAP along time, at the slot
-  // across it, so the thread breaks either side of the meetup.
+  // across it, so the thread breaks either side of the moment.
   const awayAt = (end: string): boolean => {
     const [node, , slug] = end.split("|");
     return gatherings.get(node)?.through.find((p) => p.slug === slug)?.away ?? false;

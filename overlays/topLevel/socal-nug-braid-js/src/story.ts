@@ -13,7 +13,7 @@ export interface Passage {
   readonly slot: number;
   /** The record says they were there. */
   readonly vouched: boolean;
-  /** The record says they were not there. Only ever true at a meetup. */
+  /** The record says they were not there, at a meetup or any other moment. */
   readonly away: boolean;
   /** This is the meetup they joined at. */
   readonly joined: boolean;
@@ -21,7 +21,10 @@ export interface Passage {
 
 export interface Gathering {
   readonly moment: Moment;
-  /** A meetup, or a moment everyone in the group at its date is through. */
+  /**
+   * A meetup, or a moment everyone in the group at its date is through, those
+   * it lists away included.
+   */
   readonly onRibbon: boolean;
   /** How many slots its oval has. Never less than 1. */
   readonly slots: number;
@@ -78,9 +81,15 @@ export function buildStory(
     [...joinIndex].filter(([, joined]) => joined <= index).map(([slug]) => slug);
 
   // Everyone in the group is through a meetup, those the record lists away
-  // from it included: they keep their slot and their thread stays in it.
+  // from it included: they keep their slot and their thread stays in it. Any
+  // other moment has the people it names and the people it lists away, each
+  // once, so a thread breaks at a moment its person missed as at a meetup.
   const through = seq.map((moment, index) =>
-    moment.trunk ? members(index) : moment.people.filter((slug) => people.has(slug))
+    moment.trunk
+      ? members(index)
+      : [...new Set([...moment.people, ...(moment.away ?? [])])].filter((slug) =>
+        people.has(slug)
+      )
   );
 
   const firstMoment = new Map<string, number>();
@@ -107,7 +116,7 @@ export function buildStory(
     const onRibbon =
       moment.trunk || (inGroup > 0 && group.every((s) => here.includes(s)));
     const there = moment.there ?? [];
-    const away = moment.trunk ? moment.away ?? [] : [];
+    const away = moment.away ?? [];
     const visitors = here.filter((slug) => !group.includes(slug));
     const slotOf = (slug: string) =>
       onRibbon

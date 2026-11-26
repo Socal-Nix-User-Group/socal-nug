@@ -133,7 +133,7 @@ export function drawLoom(
   // open space composite their anti-aliased edges twice and leave a seam. A
   // person's edges share their ends, each ending at the slot the next starts
   // from, so they join end to end; where one does not (an edge the layout
-  // left out, or a meetup they are away from, where the thread stops short
+  // left out, or a moment they are away from, where the thread stops short
   // of the oval and starts again after it), a new subpath starts.
   for (const thread of story.threads) {
     const edges = placed.edges.filter((e) => e.meta.slug === thread.person.slug);

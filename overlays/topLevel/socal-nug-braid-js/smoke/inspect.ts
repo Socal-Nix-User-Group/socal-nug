@@ -150,9 +150,9 @@ export function inspectPlacement(story: Story, placed: LoomPlaced): Finding[] {
 
   // A hop from one stop on the ribbon to the next stays in the ribbon: no
   // point of it is more than a slot outside its two ends, across the time
-  // axis. Someone away from a meetup stops at it like everyone else. A hop
-  // that skips a moment on the ribbon is someone going around a meetup they
-  // are not yet part of, and is meant to step out.
+  // axis. Someone away from a moment on the ribbon stops at it like everyone
+  // else. A hop that skips a moment on the ribbon is someone going around a
+  // meetup they are not yet part of, and is meant to step out.
   const stops = new Map(ribbonStops(story, placed).map((s) => [s.node, s]));
   const meetups = story.moments.flatMap((g, i) => (g.onRibbon ? [i] : []));
   const acrossOf = (p: Point) => (placed.mode === "river" ? p.x : p.y);
@@ -436,7 +436,7 @@ function rectReach(
 
 /**
  * Whether the drawn picture holds up: everything is on the canvas, no thread
- * runs through an oval or a face that is not its own or into a meetup its
+ * runs through an oval or a face that is not its own or into a moment its
  * person is recorded away from, no label is on a face or an oval or under a
  * thread, every filled bead is inside its oval and exactly where the record
  * vouches for the person, and every hollow bead is exactly where the record
@@ -610,15 +610,14 @@ export function inspectDrawing(
       }`,
     });
   };
-  // Every recorded absence: someone in the group the record lists away from
-  // a meetup. Their thread breaks either side of it, so no part of it is in
-  // the meetup's box, and a hollow bead sits in their slot.
+  // Every recorded absence: someone the record lists away from a moment they
+  // are through, a meetup or any other. Their thread breaks either side of
+  // it, so no part of it is in the moment's box, and a hollow bead sits in
+  // their slot.
   const absences = story.moments.flatMap((g) =>
-    g.moment.trunk
-      ? (g.moment.away ?? [])
-        .filter((slug) => g.through.some((p) => p.slug === slug))
-        .map((slug) => ({ id: g.moment.id, slug }))
-      : []
+    (g.moment.away ?? [])
+      .filter((slug) => g.through.some((p) => p.slug === slug))
+      .map((slug) => ({ id: g.moment.id, slug }))
   );
 
   for (const path of made) {

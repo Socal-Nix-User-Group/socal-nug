@@ -119,6 +119,32 @@ test("nobody is recorded there or away before the meetup they joined at, or away
   }
 });
 
+test("every history has someone away from a moment that is not a meetup, off the ribbon and on it", () => {
+  for (const { name, story } of every) {
+    const awayFrom = story.moments.filter((g) => !g.moment.trunk && g.through.some((p) => p.away));
+    assert.ok(awayFrom.some((g) => !g.onRibbon), `${name}: none off the ribbon`);
+    // on the ribbon because of the absence: without whoever is away, the moment
+    // would not account for the whole group
+    assert.ok(
+      awayFrom.some((g) => g.onRibbon && g.through.filter((p) => !p.away).length < g.inGroup),
+      `${name}: none on the ribbon`,
+    );
+  }
+});
+
+test("nobody is away from a moment that names them, or from one before their first", () => {
+  for (const { name, story } of every) {
+    const index = new Map(story.moments.map((g, i) => [g.moment.id, i]));
+    const first = new Map(story.threads.map((t) => [t.person.slug, index.get(t.path[0].moment.id)!]));
+    story.moments.forEach((g, i) => {
+      for (const slug of g.moment.away ?? []) {
+        assert.ok(!g.moment.people.includes(slug), `${name}: ${slug} named at and away from ${g.moment.id}`);
+        assert.ok(first.get(slug)! < i, `${name}: ${slug} away from ${g.moment.id}, at or before their first`);
+      }
+    });
+  }
+});
+
 test("every date is a month or a day, and every id is its own", () => {
   const raw = history(3, 2) as { moments: { id: string; date: string }[] };
   for (const m of raw.moments) {

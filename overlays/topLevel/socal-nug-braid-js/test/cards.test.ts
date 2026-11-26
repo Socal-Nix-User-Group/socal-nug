@@ -328,6 +328,18 @@ test("another moment's card lists the people it names, with no prefix", () => {
   assert.ok(textOf(detailFor(g("camp"), PEOPLE, doc)).includes("DANIEL, ROB"));
 });
 
+test("the card of a moment that is not a meetup names nobody who was away from it", () => {
+  const s = buildStory(
+    [...MOMENTS, at("conf", "2024-09", ["rob", "daniel"], false, { away: ["mica"] })],
+    PEOPLE,
+  );
+  const conf = s.moments.find((m) => m.moment.id === "conf")!;
+  assert.deepEqual(conf.through.filter((p) => p.away).map((p) => p.slug), ["mica"]);
+  const text = textOf(detailFor(conf, PEOPLE, doc));
+  assert.ok(text.includes("ROB, DANIEL"), text);
+  assert.ok(!text.includes("MICA"), text);
+});
+
 // --- a person's own words ----------------------------------------------------
 // A description is prose about somebody; a quote is what they said. They are
 // different things and the card shows them differently, so they are separate

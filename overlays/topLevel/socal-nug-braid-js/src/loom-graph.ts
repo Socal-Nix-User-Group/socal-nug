@@ -15,8 +15,8 @@ import type { Story } from "./story.ts";
  * The story as a graph for the Eclipse Layout Kernel.
  *
  * Every moment is a node as wide as the people through it, pinned to its own
- * layer by date. Each person through it, someone the record lists away from a
- * meetup included, has a port on the side time comes from and another on the
+ * layer by date. Each person through it, someone the record lists away from
+ * it included, has a port on the side time comes from and another on the
  * side it leaves by, at their slot, so ELK keeps their threads apart instead
  * of attaching every edge at about the same point.
  *
@@ -178,7 +178,7 @@ export function loomGraphFor(story: Story, mode: Mode): LoomGraph {
       },
     });
 
-    // Each stop is a moment they are through, a meetup they are away from
+    // Each stop is a moment they are through, a moment they are away from
     // included, or a pass-through they run straight through, in date order.
     const stops = story.moments.flatMap((g) =>
       g.through.some((p) => p.slug === slug)

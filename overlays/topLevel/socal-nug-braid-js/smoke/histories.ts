@@ -33,8 +33,9 @@ interface RawMoment {
   trunk: boolean;
   /** On a gathering beside the meetups, as a conference carries its own mark. */
   avatar?: string;
-  /** On a meetup, as the page carries them: who the record says was there, and away. */
+  /** On a meetup, as the page carries it: who the record says was there. */
   there?: string[];
+  /** On any moment, as the page carries it: who the record says was away. */
   away?: string[];
 }
 
@@ -193,6 +194,29 @@ export function history(seed: number, years: number): unknown {
       title: "Guest visit",
       people: ["g0", pool[pick(0, pool.length - 1)]],
       trunk: false,
+    });
+  }
+
+  // Someone away from a moment that is not a meetup, twice, drawn after the
+  // guest so everything above is as it was for a seed. One moment names part
+  // of the rest of the group and stays off the ribbon; the other names all of
+  // it, and the absence puts it on the ribbon. Each is the month after an
+  // even-numbered meetup other than the stretch's, where the group has at
+  // least four members, so the part leaves someone out besides whoever is
+  // away. Whoever is away joined at an earlier meetup and is not named.
+  const evens = all.filter((n) => n % 2 === 0 && n !== stretch);
+  for (const whole of [false, true]) {
+    const n = evens[pick(0, evens.length - 1)];
+    const pool = membersAt(n);
+    const away = pool[pick(0, pool.length - 1)];
+    const rest = pool.filter((slug) => slug !== away);
+    moments.push({
+      id: whole ? "away-whole" : "away-part",
+      date: month(meetupMonth(n) + 1),
+      title: whole ? "Away from the whole" : "Away from a part",
+      people: whole ? rest : rest.slice(0, pick(1, rest.length - 2)),
+      trunk: false,
+      away: [away],
     });
   }
 

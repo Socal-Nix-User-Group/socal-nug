@@ -872,6 +872,120 @@ async function run(): Promise<void> {
     }
   }
 
+  // Someone the record lists away from a moment that is not a meetup is drawn
+  // there as at a meetup: their thread breaks at its pill, with a hollow bead
+  // in their slot inside it.
+  {
+    const missing: Record<string, unknown[]> = {};
+    let absences = 0;
+    for (const mode of ["river", "subway"] as const) {
+      await load(mode);
+      const story = await storyOf();
+      const away = story.moments.filter((g) => !g.moment.trunk).flatMap((g) =>
+        g.through.filter((p) => p.away).map((p) => ({ oval: OVAL(g.moment.id), slug: p.slug }))
+      );
+      absences += away.length;
+      missing[mode] = await tab.evaluate<unknown[]>(`${JSON.stringify(away)}.filter(({ oval: selector, slug }) => {
+        const oval = document.querySelector(selector);
+        if (oval === null) return true;
+        const o = oval.getBoundingClientRect();
+        return ![...${MAP}.querySelectorAll('circle.origins-bead.is-away[data-person="' + slug + '"]')].some((b) => {
+          const r = b.getBoundingClientRect();
+          const x = r.left + r.width / 2;
+          const y = r.top + r.height / 2;
+          return x > o.left && x < o.right && y > o.top && y < o.bottom;
+        });
+      })`);
+    }
+    check(
+      absences > 0 && Object.values(missing).every((m) => m.length === 0),
+      "someone recorded away from a moment that is not a meetup has a hollow bead in its pill",
+      { absences, missing },
+    );
+  }
+
+  // Hovering such a moment lights who was at it, and draws someone away from
+  // it as far back as someone who was never there: not lit, and not half way
+  // back like someone the record says nothing about.
+  await load("river");
+  {
+    const story = await storyOf();
+    const moment = story.moments.find((g) =>
+      !g.moment.trunk && g.through.some((p) => p.away) && g.through.some((p) => p.vouched)
+    );
+    const through = moment?.through ?? [];
+    const id = moment?.moment.id ?? "";
+    const named = through.filter((p) => p.vouched).map((p) => p.slug).sort();
+    const away = through.filter((p) => p.away).map((p) => p.slug);
+    const elsewhere = story.threads.map((t) => t.person.slug)
+      .filter((slug) => !through.some((p) => p.slug === slug));
+    const threads = `(() => {
+      const out = {};
+      for (const p of ${MAP}.querySelectorAll("path.origins-thread")) {
+        out[p.dataset.person] = { lit: p.classList.contains("is-lit"), unsure: p.classList.contains("is-unsure"), opacity: Number(getComputedStyle(p).opacity) };
+      }
+      return out;
+    })()`;
+    type Drawn = Record<string, { lit: boolean; unsure: boolean; opacity: number }>;
+    const settled = `(() => {
+      const t = ${threads};
+      return ${JSON.stringify([...away, ...elsewhere])}.every((slug) => t[slug] !== undefined && Math.abs(t[slug].opacity - 0.25) <= 0.01);
+    })()`;
+    await tab.move(5, 5);
+    await sleep(300);
+    let now: Drawn = {};
+    if (moment !== undefined) {
+      const pill = await centreOf(OVAL(id));
+      await tab.move(pill.x, pill.y);
+      await tab.waitFor(settled);
+      await sleep(300);
+      now = await tab.evaluate<Drawn>(threads);
+    }
+    await tab.move(5, 5);
+    const unlit = named.filter((slug) => now[slug] === undefined || !now[slug].lit || Math.abs(now[slug].opacity - 1) > 0.01);
+    const outside = elsewhere.find((slug) => now[slug] !== undefined);
+    const wrong = away.filter((slug) =>
+      now[slug] === undefined || now[slug].lit || now[slug].unsure || outside === undefined ||
+      Math.abs(now[slug].opacity - now[outside].opacity) > 0.01
+    );
+    check(
+      moment !== undefined && away.length > 0 && unlit.length === 0 && wrong.length === 0,
+      "hovering a moment that is not a meetup lights who was at it and dims someone away from it as far as someone who was never there",
+      {
+        moment: id,
+        named,
+        away,
+        unlit,
+        wrong,
+        drawn: Object.fromEntries([...named, ...away, outside ?? ""].map((slug) => [slug, now[slug]])),
+      },
+    );
+  }
+
+  // Such a moment's card and what a screen reader says for its pill leave out
+  // whoever was away from it.
+  await load("river");
+  {
+    const story = await storyOf();
+    const moment = story.moments.find((g) => !g.moment.trunk && g.through.some((p) => p.away));
+    const id = moment?.moment.id ?? "";
+    const there = (moment?.through ?? []).filter((p) => !p.away).length;
+    const names = (moment?.through ?? []).filter((p) => p.away).map((p) =>
+      story.threads.find((t) => t.person.slug === p.slug)!.person.name
+    );
+    const said = await tab.evaluate<{ card: string | null; label: string | null }>(`({
+      card: document.querySelector(${JSON.stringify(MOMENT_CARD(id))})?.textContent ?? null,
+      label: document.querySelector(${JSON.stringify(PILL(id))})?.getAttribute("aria-label") ?? null,
+    })`);
+    const count = there === 1 ? "1 person" : `${there} people`;
+    check(
+      moment !== undefined && names.length > 0 && said.card !== null && said.label !== null &&
+        names.every((name) => !said.card!.includes(name)) && said.label.endsWith(`, ${count}`),
+      "a moment that is not a meetup neither names nor counts someone away from it",
+      { moment: id, away: names, count, ...said },
+    );
+  }
+
   // The list's card and the popup's are one card, the popup's with an X. In
   // Subway, where the lists are under the map and the popup opens.
   await load("subway");
