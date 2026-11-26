@@ -200,13 +200,19 @@ runner dependency under any of these options.
 - `content/origins.md`, `template = "origins.html"`, served at `/origins/`.
 - Nav item "Origins" in `partials/base.navigation.html`, after "About Us".
 - Title and description chosen for link previews, since this is a page people will share.
-- The page opens with one paragraph: nobody set out to start a group, people found Nix
-  separately, and some of those paths crossed. A second paragraph ("This is where they
-  crossed, and where they keep crossing. It grows every time somebody new turns up.") was
-  dropped at Daniel's request on 2026-11-26. It was where the page's own words said the
-  picture keeps growing, which the note on the name below asks for; the description for link
-  previews still says "and the ones still joining". Daniel means to add to the first
-  paragraph, and what goes there is not settled.
+- The page opens with one paragraph, in Daniel's choice of words. It keeps the first two
+  sentences the page had (nobody set out to start a group; people found Nix separately and
+  some of those paths crossed) and goes on to say that we rarely know who we will meet or
+  where an ordinary decision leads, that strangers become acquaintances and then friends, and
+  that looking back shows how the threads came to be intertwined. Daniel wrote notes for it
+  and settled the paragraph on 2026-11-26; one article was corrected and nothing else. It is
+  meant to read with feeling, more as poetry than as description, and is not to be made
+  plainer.
+- It replaced a second paragraph ("This is where they crossed, and where they keep crossing.
+  It grows every time somebody new turns up."), which Daniel had dropped as mannered. That
+  paragraph was where the page's own words said the picture keeps growing, which the note on
+  the name below asks for. The new opening does not say it; the description for link
+  previews still says "and the ones still joining".
 
 "Timeline" was rejected as a name: it describes the thing the page deliberately is not. "History"
 was rejected as institutional and as a collision with the Blog and the anniversary post. "How We
