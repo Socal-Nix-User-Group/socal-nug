@@ -837,7 +837,8 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   moment that is not a meetup lists the people it names. A meetup's card says "Joined here:" with
   the names of who joined there, and "Confirmed there:" with anyone else the record vouches for,
   in place of who was there, because a thread through a meetup says only that its person was in
-  the group then. No card lists who was away, a meetup's or any other moment's.
+  the group then. No card lists who was away among its people, a meetup's or any other
+  moment's; a description may say it in the author's words.
 - **Why the rail went.** Once the lanes were wide enough to read, River needed every pixel of its
   width, and a 20rem column beside it was the first thing to give. That was under the lane
   allocator. ELK's River is much narrower, and the roster came back beside it in a different
@@ -1140,15 +1141,19 @@ section and an older one disagree, this one is right.
     follows that a moment that names nobody and lists the whole group away is a row of hollow
     beads on the ribbon.
   - Away from a moment that comes before any the person is at is rejected by the validator.
-  - The card and the spoken label of a moment that is not a meetup leave out who was away
-    from it. Daniel decided that for a meetup's card and label; it is extended here.
+  - The card's line of people and the spoken label of a moment that is not a meetup leave out
+    who was away from it. Daniel decided that for a meetup's card and label; it is extended
+    here. The card's description is the author's own words and may say who missed it and why:
+    Daniel asked for the reason to be in the description of Nix Vegas 2025, and the record's
+    `blurb` gives it. It was first put in a comment on the record, which was not what Daniel
+    meant by adding the context.
 
   What changed in the engine is two lines of the story (`src/story.ts`), who is through a
   moment that is not a meetup and that `away` is read on any moment, and the count in
   `describeGathering` (`src/focus.ts`), which leaves out whoever was away. Placement, drawing,
   the morph and the lighting already worked from a passage's `away`. Hovering or picking such a
   moment therefore lights who was at it and draws whoever was away from it at a quarter
-  strength, with everyone who was never there. Its card names only the people at it, and what
+  strength, with everyone who was never there. Its card lists only the people at it, and what
   a screen reader says for its pill counts only them ("Nix Vegas, 7 August 2025, 5 people").
   In the picture Daniel's thread now leaves the ribbon for Nix Vegas 2025, breaks either side
   of its pill around a hollow bead, and returns. The smoke check has the picture at 549 by 3226
@@ -1460,7 +1465,8 @@ shade inside its profile's.
 Three are about being away from a moment that is not a meetup: whoever the record lists away
 from one has a hollow bead in its pill, in both modes; hovering it lights who was at it and
 draws whoever was away as far back as someone who was never there, not lit and not half way;
-and its card does not name them and its pill's spoken label does not count them. Each finds
+and its card's line of people does not list them and its pill's spoken label does not count
+them (the card's description is not read, since it may say who missed it). Each finds
 its moment in the page's data and fails if the data has none, so taking the only such record
 out of the data takes the three with it.
 
@@ -1715,7 +1721,8 @@ be reasonable if layout moved to build time.
   shows all four marks either way.
 - An `away` entry on a moment that is not a meetup brings that person's thread to it, broken
   either side of its pill around a hollow bead; Nix Vegas 2025 is the first with one. Its card
-  does not name them, and hovering it leaves them as faint as someone who was never there.
+  does not list them among its people, though its description says Daniel Baker missed it,
+  and hovering it leaves them as faint as someone who was never there.
 - With JavaScript disabled the page shows no picture, by the trade recorded under Accessibility.
 - The picture is reachable and operable by keyboard alone: one Tab into it, arrows through the
   story, Enter to open a card, Escape to close, focus back where it started.
