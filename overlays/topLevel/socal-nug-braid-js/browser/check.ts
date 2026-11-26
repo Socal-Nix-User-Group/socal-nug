@@ -732,7 +732,8 @@ async function run(): Promise<void> {
 
   // A meetup knows three kinds of person: confirmed there, recorded away or
   // not yet in the group, and in the group with nothing recorded. Only the
-  // first is lit, the second steps back, and the third is left as it was.
+  // first is lit, the second steps back, and the third steps back half as
+  // far: nothing says they were there, and nothing says they were not.
   await load("river");
   {
     const story = await storyOf();
@@ -752,31 +753,52 @@ async function run(): Promise<void> {
     });
     const id = meetup?.moment.id ?? "";
     const k = kinds(id);
-    /** Each person's threads in the map: whether each is lit, and its opacity. */
-    const threads = `(() => {
+    /** Each person's marks of one kind in the map: whether each is lit, and its opacity. */
+    const marks = (selector: string) => `(() => {
       const out = {};
-      for (const p of ${MAP}.querySelectorAll("path.origins-thread")) {
+      for (const p of ${MAP}.querySelectorAll(${JSON.stringify(selector)})) {
         (out[p.dataset.person] ??= []).push({ lit: p.classList.contains("is-lit"), opacity: getComputedStyle(p).opacity });
       }
       return out;
     })()`;
+    const threads = marks("path.origins-thread");
+    const near = (opacity: string, want: number) => Math.abs(Number(opacity) - want) <= 0.01;
+    // One unrecorded person with a bead somewhere and a face, whose bead and
+    // face are looked at as well as their thread.
+    const witness = await tab.evaluate<string | null>(
+      `${JSON.stringify(k.unsure)}.find((slug) =>
+        ${MAP}.querySelector('.origins-bead[data-person="' + slug + '"]') !== null &&
+        ${MAP}.querySelector('.origins-root[data-person="' + slug + '"]') !== null) ?? null`,
+    );
     const tints = `(${JSON.stringify(k.unsure.map(PERSON_CARD))}).map((s) => getComputedStyle(document.querySelector(s)).backgroundColor)`;
+    // The transition has run its course once everyone out of it is at 0.25.
     const stepped = `(() => {
       const t = ${threads};
-      return ${JSON.stringify(k.out)}.every((slug) => (t[slug] ?? []).every((p) => Number(p.opacity) < 0.5));
+      return ${JSON.stringify(k.out)}.every((slug) => (t[slug] ?? []).every((p) => Math.abs(Number(p.opacity) - 0.25) <= 0.01));
     })()`;
-    type Threads = Record<string, Array<{ lit: boolean; opacity: string }>>;
-    const judge = (before: Threads, now: Threads, tintsBefore: string[], tintsNow: string[]) => {
-      const unlit = k.confirmed.filter((slug) => (now[slug] ?? []).length === 0 || now[slug].some((p) => !p.lit));
-      const changed = k.unsure.filter((slug) =>
-        (now[slug] ?? []).some((p, i) => p.lit || p.opacity !== before[slug]?.[i]?.opacity)
+    type Marks = Record<string, Array<{ lit: boolean; opacity: string }>>;
+    const look = async () => ({
+      threads: await tab.evaluate<Marks>(threads),
+      beads: await tab.evaluate<Marks>(marks(".origins-bead")),
+      faces: await tab.evaluate<Marks>(marks(".origins-root")),
+      tints: await tab.evaluate<string[]>(tints),
+    });
+    const judge = (now: Awaited<ReturnType<typeof look>>, tintsBefore: string[]) => {
+      const unlit = k.confirmed.filter((slug) =>
+        (now.threads[slug] ?? []).length === 0 || now.threads[slug].some((p) => !p.lit || !near(p.opacity, 1))
       );
-      const undimmed = k.out.filter((slug) => (now[slug] ?? []).some((p) => !(Number(p.opacity) < 0.5)));
-      const tinted = JSON.stringify(tintsNow) !== JSON.stringify(tintsBefore);
+      const half = (p: { lit: boolean; opacity: string }) => !p.lit && near(p.opacity, 0.625);
+      const changed = k.unsure.filter((slug) => !(now.threads[slug] ?? []).every(half));
+      const witnessMarks = witness === null ? [] : [...(now.beads[witness] ?? []), ...(now.faces[witness] ?? [])];
+      const witnessHalf = witness !== null && witnessMarks.length >= 2 && witnessMarks.every(half);
+      const undimmed = k.out.filter((slug) => (now.threads[slug] ?? []).some((p) => !near(p.opacity, 0.25)));
+      const tinted = JSON.stringify(now.tints) !== JSON.stringify(tintsBefore);
       return {
-        ok: unlit.length === 0 && changed.length === 0 && undimmed.length === 0 && !tinted,
+        ok: unlit.length === 0 && changed.length === 0 && witnessHalf && undimmed.length === 0 && !tinted,
         unlit,
         changed,
+        witness,
+        witnessMarks,
         undimmed,
         tinted,
       };
@@ -785,18 +807,17 @@ async function run(): Promise<void> {
 
     await tab.move(5, 5);
     await sleep(300);
-    const before = await tab.evaluate<Threads>(threads);
     const tintsBefore = await tab.evaluate<string[]>(tints);
     const pill = await centreOf(OVAL(id));
     await tab.move(pill.x, pill.y);
     await tab.waitFor(stepped);
     await sleep(300);
-    const hovering = judge(before, await tab.evaluate<Threads>(threads), tintsBefore, await tab.evaluate<string[]>(tints));
+    const hovering = judge(await look(), tintsBefore);
     await tab.move(5, 5);
     const clearAfterHover = await tab.waitFor(nothingLeft);
     check(
       meetup !== undefined && hovering.ok && clearAfterHover,
-      "hovering a meetup lights who was confirmed there, dims who was away or not yet in the group, and leaves everyone else as they were",
+      "hovering a meetup lights who was confirmed there, dims who was away or not yet in the group, and dims everyone else half as far",
       { moment: id, ...k, ...hovering, clearAfterHover },
     );
 
@@ -805,37 +826,48 @@ async function run(): Promise<void> {
     await tab.move(5, 5);
     await tab.waitFor(stepped);
     await sleep(300);
-    const picking = judge(before, await tab.evaluate<Threads>(threads), tintsBefore, await tab.evaluate<string[]>(tints));
+    const picking = judge(await look(), tintsBefore);
     await tab.key("Escape");
     const clearAfterPick = await tab.waitFor(nothingLeft);
     check(
       meetup !== undefined && clicked && picking.ok && clearAfterPick,
-      "a click on a meetup's card lights who was confirmed there, dims who was away or not yet in the group, leaves everyone else as they were, and letting go leaves nothing on anyone",
+      "a click on a meetup's card lights who was confirmed there, dims who was away or not yet in the group, dims everyone else half as far, and letting go leaves nothing on anyone",
       { moment: id, clicked, ...picking, clearAfterPick },
     );
 
     // A meetup nobody is recorded at, and where nobody joined, lights nobody,
-    // so nobody steps back either.
+    // and still draws the people in the group then half way back and
+    // everyone else further.
     const empty = story.moments.find((g) => g.moment.trunk && !g.through.some((p) => p.vouched));
     if (empty !== undefined) {
-      const opacities = `[...${MAP}.querySelectorAll(".origins-thread, .origins-bead, .origins-root")].map((e) => getComputedStyle(e).opacity).join()`;
+      const e = kinds(empty.moment.id);
+      const settled = `(() => {
+        const t = ${threads};
+        return ${JSON.stringify(e.out)}.every((slug) => (t[slug] ?? []).every((p) => Math.abs(Number(p.opacity) - 0.25) <= 0.01)) &&
+          ${JSON.stringify(e.unsure)}.every((slug) => (t[slug] ?? []).every((p) => Math.abs(Number(p.opacity) - 0.625) <= 0.01));
+      })()`;
       await tab.move(5, 5);
       await sleep(300);
-      const was = await tab.evaluate<string>(opacities);
       const at = await centreOf(OVAL(empty.moment.id));
       await tab.move(at.x, at.y);
       // Its card in the list is lit while the pointer is on its pill, which
       // says the hover arrived.
       const over = await tab.waitFor(has(MOMENT_CARD(empty.moment.id), "is-lit"));
-      await sleep(500);
-      const now = await tab.evaluate<{ lit: number; same: boolean }>(
-        `({ lit: document.querySelectorAll("[data-person].is-lit").length, same: ${opacities} === ${JSON.stringify(was)} })`,
-      );
+      await tab.waitFor(settled);
+      await sleep(300);
+      const now = await tab.evaluate<Marks>(threads);
+      const lit = await tab.evaluate<number>(`document.querySelectorAll("[data-person].is-lit").length`);
+      const notHalf = e.unsure.filter((slug) => (now[slug] ?? []).some((p) => !near(p.opacity, 0.625)));
+      const notBack = e.out.filter((slug) => (now[slug] ?? []).some((p) => !near(p.opacity, 0.25)));
       await tab.move(5, 5);
+      const back = await tab.waitFor(
+        `[...${MAP}.querySelectorAll("path.origins-thread")].every((p) => getComputedStyle(p).opacity === "1")`,
+      );
       check(
-        over && now.lit === 0 && now.same,
-        "hovering a meetup with nobody confirmed at it changes nothing",
-        { moment: empty.moment.id, over, ...now },
+        over && lit === 0 && e.unsure.length > 0 && e.out.length > 0 && notHalf.length === 0 &&
+          notBack.length === 0 && back,
+        "hovering a meetup with nobody confirmed at it dims the people in the group half way and everyone else further",
+        { moment: empty.moment.id, over, lit, notHalf, notBack, back },
       );
     }
   }

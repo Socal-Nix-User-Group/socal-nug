@@ -510,16 +510,24 @@ html[data-theme=dark] .origins-legend {
     transition: opacity 0.15s ease;
 }
 
-// While anyone is lit, everyone who is not steps back: their thread, their
-// beads and their face. The moments stay as they are, since they belong to
-// whoever is through them. The roster does not dim: it is a list being read,
-// and its lit card already says who. Whoever a lit moment's record says
-// nothing about does not step back either: nothing says they were elsewhere.
-.origins-svg:has(.is-lit) {
+// While anyone is lit or a moment is in play, the picture has three
+// strengths: whoever is lit at full, whoever a moment in play says nothing
+// about half way back, and everyone else stepped back. It is their thread,
+// their beads and their face. The unrecorded sit between because nothing
+// says they were there and nothing says they were not. The moments stay as
+// they are, since they belong to whoever is through them. The roster does
+// not dim: it is a list being read, and its lit card already says who.
+.origins-svg:has(.is-lit, .is-unsure) {
     .origins-thread:not(.is-lit, .is-unsure),
     .origins-bead:not(.is-lit, .is-unsure),
     .origins-root:not(.is-lit, .is-unsure) {
         opacity: 0.25;
+    }
+
+    .origins-thread.is-unsure,
+    .origins-bead.is-unsure,
+    .origins-root.is-unsure {
+        opacity: 0.625;
     }
 }
 
