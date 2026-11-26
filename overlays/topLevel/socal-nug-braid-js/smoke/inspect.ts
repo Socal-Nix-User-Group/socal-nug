@@ -613,9 +613,10 @@ export function inspectDrawing(
   // Every recorded absence: someone the record lists away from a moment they
   // are through, a meetup or any other. Their thread breaks either side of
   // it, so no part of it is in the moment's box, and a hollow bead sits in
-  // their slot.
+  // their slot. A slug written twice in one list is still one absence: the
+  // story puts its person through the moment once.
   const absences = story.moments.flatMap((g) =>
-    (g.moment.away ?? [])
+    [...new Set(g.moment.away ?? [])]
       .filter((slug) => g.through.some((p) => p.slug === slug))
       .map((slug) => ({ id: g.moment.id, slug }))
   );

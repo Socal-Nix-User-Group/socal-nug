@@ -227,10 +227,12 @@ inputs.nixpkgs.lib.mapAttrs (system: pkgs: {
         expect_fail away-dated-also-there.toml     'both there and away'
         expect_fail away-dated-before-first.toml   'before any moment they are at'
         expect_fail away-dated-meetup.toml         'anchored to an event'
+        expect_fail away-dated-same-start-first.toml 'before any moment they are at'
         expect_warn trunk-is-earliest.toml      warning
         expect_clean valid.toml
         expect_clean attendance-valid.toml
         expect_clean away-dated-valid.toml
+        expect_clean away-dated-same-start-after.toml
 
         touch "$out"
       '';

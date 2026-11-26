@@ -168,13 +168,23 @@ def check_attendance(entries):
                 continue
             # A moment that is not a meetup has no record to anchor to, so
             # it carries away itself. Someone is away only from a moment
-            # after one they are at.
+            # after one they are at, in the order the picture draws them:
+            # by the first day of the date, a missing month or day counting
+            # as 1, then by id, a record anchored to an event going by the
+            # event's slug as the page's data names it.
+
+            def drawn(o):
+                raw = o.get('date') or o['event']
+                parts = [int(p) for p in raw.split('-')]
+                return (tuple(parts + [1] * (3 - len(parts))),
+                        o.get('event', o['id']))
+
             for slug in away:
                 if slug in m.get('people', []):
                     problems.append(
                         f'{m["id"]}: {slug} is both there and away at '
                         f'{m["id"]}')
-                if not any(slug in o.get('people', []) and when(o) < when(m)
+                if not any(slug in o.get('people', []) and drawn(o) < drawn(m)
                            for o in entries):
                     problems.append(
                         f'{m["id"]}: {slug} is away from {m["id"]}, before '

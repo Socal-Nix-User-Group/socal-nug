@@ -33,10 +33,10 @@ export interface Gathering {
   /** Who is through it, in slot order. */
   readonly through: readonly Passage[];
   /**
-   * The people in the group at this date who are not at this moment, each at
-   * their ribbon slot. They pass it by. Empty for a moment on the ribbon and
-   * before there is a group. Only someone whose thread goes on to a later
-   * moment passes one: a thread stops at its person's last moment.
+   * The people in the group at this date who are not through this moment,
+   * each at their ribbon slot. They pass it by. Empty for a moment on the
+   * ribbon and before there is a group. Only someone whose thread goes on to
+   * a later moment passes one: a thread stops at its person's last moment.
    */
   readonly passing: readonly { readonly slug: string; readonly slot: number }[];
 }

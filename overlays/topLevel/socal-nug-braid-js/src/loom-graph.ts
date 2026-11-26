@@ -21,11 +21,11 @@ import type { Story } from "./story.ts";
  * of attaching every edge at about the same point.
  *
  * A side moment that someone passes has an unseen pass-through beside it in
- * its layer, with ports for the members of the group who are not at it and
- * whose thread goes on to a later moment. A person's thread is one edge from
- * their root to their first stop and one from each stop to the next, where a
- * stop is a moment they are through or a pass-through they run straight
- * through.
+ * its layer, with ports for the members of the group who are not through it
+ * and whose thread goes on to a later moment. A person's thread is one edge
+ * from their root to their first stop and one from each stop to the next,
+ * where a stop is a moment they are through or a pass-through they run
+ * straight through.
  *
  * One more edge chain is nobody's thread: the spine, from each moment on the
  * ribbon or pass-through to the next, which ELK is told to keep straight. It
@@ -137,9 +137,9 @@ export function loomGraphFor(story: Story, mode: Mode): LoomGraph {
 
     // A side moment that someone passes: the ribbon passes it by through a
     // node of its own in the same layer, as wide as the group, which the
-    // members who are not at the moment and whose thread goes on to a later
-    // moment run straight through at their ribbon slots. Without it ELK
-    // orders the side moment inside the ribbon, next to its people's
+    // members who are not through the moment and whose thread goes on to a
+    // later moment run straight through at their ribbon slots. Without it
+    // ELK orders the side moment inside the ribbon, next to its people's
     // threads, and every thread beyond it steps out around it.
     if (gathering.passing.length > 0) {
       const id = passId(m.id);

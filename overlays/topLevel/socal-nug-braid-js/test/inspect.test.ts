@@ -501,6 +501,20 @@ test("a clean drawing with someone away from a moment that is not a meetup has n
   assert.deepEqual(inspectDrawing(awayConf, placed, made), []);
 });
 
+test("a clean drawing of a moment that lists the same person away twice has no findings", async () => {
+  const twiceAway = buildStory(
+    [
+      ...MOMENTS,
+      at("conf", "2024-09", ["rob", "daniel"], false, { away: ["mica", "mica"] }),
+      at("nug5", "2024-10", [], true),
+    ],
+    PEOPLE,
+  );
+  const base = await placeLoom(twiceAway, "river", fakeLoomLayout);
+  const placed = { ...drawable(twiceAway, base), height: 700 };
+  assert.deepEqual(inspectDrawing(twiceAway, placed, drawn(placed, twiceAway)), []);
+});
+
 test("a thread inside the box of a moment that is not a meetup its person is recorded away from is one engine finding and no layout finding", () => {
   const placed = awayDrawable();
   const conf = placed.boxes.get("conf")!;

@@ -391,8 +391,8 @@ class SiteBuild(unittest.TestCase):
             self.assertIsInstance(m['away'], list, m['id'])
 
     def test_an_away_entry_on_a_dated_moment_reaches_that_moment_and_no_other(self):
-        # no record carries away on a dated moment yet, so the entry is
-        # written into the copy and taken out again
+        # the entry is written into a record that carries none, in the
+        # copy, and taken out again, so the test owns what it checks
         _, real = self.origins_data()
         moments = ROOT / 'data' / 'moments.toml'
         original = moments.read_text()
