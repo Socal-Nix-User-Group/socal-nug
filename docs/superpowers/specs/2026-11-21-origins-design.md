@@ -241,7 +241,7 @@ quote = "..."                                     # their own words
 links = [{ title = "...", url = "https://..." }]  # their own sites
 ```
 
-- `quote` is shown as a quotation, above the description, on the person's Origins card and on
+- `quote` is shown as a quotation, after the description, on the person's Origins card and on
   the About grid. `description` is prose about them and reads as the site talking; a quote reads
   as them. The About grid did not show it at first: the field was split out of `description` for
   the card, the About template was never taught it, and Mica's line dropped off that page until
@@ -801,9 +801,10 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   labels are not dimmed, since a moment belongs to everyone through it, and neither are the
   lists, which are being read and whose tinted cards already say who. Hovering a meetup
   therefore dims only the people recorded away from it and those who had not joined yet.
-- A person's card carries avatar, name, alias (linking to their profile), quote, description,
-  their own links on one line that wraps, membership badge and where they joined, as "Joined at"
-  with that meetup's title and date.
+- A person's card carries avatar, name, membership badge, alias (linking to their profile) and
+  their own links on one line that wraps, description, quote, and where they joined, as "Joined
+  at" with that meetup's title and date. The arrangement is in "The card's order, links, years
+  and who a moment lights".
 - A moment's card carries title, date, photo, blurb, and the event page or outside links, and
   the moment's avatar, when it has one, beside the title, as a person's face is in theirs. Any
   moment that is not a meetup lists the people it names. A meetup's card says "Joined here:" with
@@ -1028,26 +1029,68 @@ section and an older one disagree, this one is right.
   at a quarter; that last part was not asked for and follows from having three strengths. With
   one moment picked and another hovered, someone confirmed at either is lit, and someone
   unrecorded at either and lit by neither is at 0.75.
+
 - How it is built: `litBy` in `src/pick.ts` returns the confirmed, `unsureAt` the unrecorded,
   and `relight()` sets a class for each; the stylesheet's dimming rule holds while anyone has
   either class, and gives the unrecorded their own strength. Nothing else sets either class.
-- **A person's card, in a new order**: name with the membership badge on the same line, handle,
-  links, description, when they joined, quote. It was name, handle, quote, description, links,
-  badge, joined. The same eight things; one builder for the list and the popup.
-- **The order is not settled.** Daniel gave About a different order (description before links)
-  and asked for the two pages to be made the same: the same content, About gaining the badge
-  and the joined line, in the same order, with each About profile in a background box, which
-  it lacks today. Five orders were mocked up on both pages
-  (`.superpowers/sdd/origins-loom-pictures/card-order2.html`, outside the repository's
-  history). Daniel has not chosen, and nothing of the unified card is built. Until then
-  Origins has the order above and About has name, handle, description, links, quote.
+
+- **A person, the same on Origins and on About.** Daniel first gave the two pages different
+  orders, then asked for them to be made the same: the same content in the same order, About
+  gaining the badge and the joined line. Daniel chose the arrangement on 2026-11-26 from three
+  rounds of mock-ups on both pages (option G of
+  `.superpowers/sdd/origins-loom-pictures/card-order3.html`, outside the repository's history):
+
+  ```
+  [picture]  Name  [MEMBER]
+             @handle  link  link
+
+  Description, across the whole card.
+
+    "Quote", across the whole card.
+
+  Joined at <meetup>, <date>
+  ```
+
+  The picture sits beside two lines only: the name with the membership badge after it, and
+  the handle with the person's own links on one line that wraps. The description, the quote
+  and where they joined run under the picture at the card's full width, in that order. A part
+  a person does not have is left out and nothing takes its place. Before this the Origins card
+  was name with badge, handle, links, description, joined, quote, all beside the picture, and
+  About was name, handle, description, links, quote with no badge and no joined line.
+
+- How it is built. The two pages keep their own markup and their own look; what is the same is
+  what they say and in what order. On Origins `personCardFor` builds one card for the list and
+  the popup: `div.origins-card-top` (the picture, then `div.origins-card-who` with the head and
+  the links row, the handle first in it), then the description, the quote, the joined line and
+  the popup's X. On About `templates/about.html` writes `div.about-profile` with the same
+  parts in About's look (the 128px picture, the Bulma title), styled by
+  `sass/css/pages/about.scss`. The badge on About always says "Member", since only members are
+  listed there; it was in every mock-up Daniel chose from.
+
+- **Where a member joined is worked out twice.** The engine has it from the story
+  (`joinLineFor`); the About template works it out from the same data the Origins template
+  reads, by the same rule: among the meetups that name the member (an event through a record
+  anchored to it, or a dated moment with `trunk = true`), the earliest by the start of its
+  date and then by id, written at the precision the data gives. Two things hold the pages
+  together: a site test recomputes the line for every member from the Origins page's data, and
+  a browser check reads every member from both pages and compares name, badge, handle, links,
+  description, quote and joined line, part for part and in order.
+
+- **Each About profile is in a box.** Daniel found the profiles hard to tell apart: nothing
+  enclosed one, so it was not clear where a profile ended. Each is now a box in one of Bulma's
+  own shades a little off the page's (`--bulma-scheme-main-bis`), so it follows the theme, and
+  the two boxes of a row are the same height. The quote's box inside it has `0.5em 0.9em` of
+  padding where Bulma gives `1.25em 1.5em`, which Daniel asked to be reduced.
+
 - **Links.** A link to another site opens a new tab, with `rel="noopener"`: a person's handle
   and own links, on Origins and on About, and a moment's outside links. A link to this site
   stays in the tab, which today is a meetup's "Event page" link. Daniel's rule.
+
 - **River's year numbers are under their lines.** A year's number marks where the year begins.
   In River it sat just above the dashed line that starts the year, over the end of the year
   before; its baseline is now 14px below the line. Subway's numbers are beside their lines, on
   the new year's side already, and did not move.
+
 - **Still to come: away from a moment that is not a meetup.** Daniel was sick the week of Nix
   Vegas 2025 and wants to be shown as away from it. Today `away` is allowed only on a meetup,
   and a moment that is not a meetup draws only the people it names. Daniel asked for it to be
@@ -1219,8 +1262,10 @@ In `checks/default.nix`:
   list is under the pointer. It checks that the guest in the data is on the Origins page and not in the
   About grid, and proves the About filter with a guest probe as well. It checks that every
   member's own links are in the data block and on the About grid, and that every member's quote
-  is on the About grid as a quotation. It checks that every moment's avatar in the data block is
-  a file the built site serves.
+  is on the About grid as a quotation. It checks that a member's profile on About has its parts
+  in the arrangement's order, that every profile is in its box and carries the badge, and that
+  every member's joined line is the one the rule gives from the Origins page's data. It checks
+  that every moment's avatar in the data block is a file the built site serves.
 
 - `braid-smoke`: builds the story from the built site's own data block, which is the repository's
   `data/moments.toml` and `content/events/` through the template's merge, not from fixtures. It
@@ -1327,16 +1372,21 @@ focus to the card in the list, and Escape sends focus back, but not when the rea
 somewhere else, nor when it has left the card and come back. Every older check that opens the
 popup now runs in Subway, where the popup is, with the claim and the assertions it had.
 
-Six came with the card's order and the lighting: a person's card saying who they are, then
-their handle, links, what they do, when they joined and their own words, in the list and in
-the popup with the X clear of the name; a link to another site opening a new tab and one to
+Six came with the card's order and the lighting: a person's card with their name, badge,
+handle and links beside the picture and what they do, their own words and where they joined
+under it, in the list and in the popup with the X clear of the name and the badge (restated
+when the arrangement was settled); a link to another site opening a new tab and one to
 this site staying in it; River's year numbers under their lines; a meetup lighting the
 confirmed, dimming the away and the not yet joined, and dimming everyone else a little, by
 hover and by a pick; and a meetup with nobody confirmed dimming the group a little and
 everyone else further. The checks that
 compare who is lit with the record now expect the confirmed.
 
-Ninety-nine checks, each named for what a visitor would
+Two are about the About page, which the check's server also serves: it and the Origins page
+say the same about every member, part for part and in the same order; and every profile there
+is in its own box, with the boxes of a row the same height.
+
+A hundred and one checks, each named for what a visitor would
 notice and none naming a moment or a person, so the data can change under it as long as the
 picture stays about the size it is (see below). It needs the
 network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
