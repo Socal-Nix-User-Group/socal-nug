@@ -211,8 +211,11 @@ runner dependency under any of these options.
 - It replaced a second paragraph ("This is where they crossed, and where they keep crossing.
   It grows every time somebody new turns up."), which Daniel had dropped as mannered. That
   paragraph was where the page's own words said the picture keeps growing, which the note on
-  the name below asks for. The new opening does not say it; the description for link
-  previews still says "and the ones still joining".
+  the name below asks for. The new opening did not say it at first. Daniel then added three
+  sentences to it himself, the same day: as new people enter, the threads loosen and weave
+  themselves anew, each new thread changes the pattern, and the tapestry is never finished.
+  So the page's own words say it again, and the description for link previews still says
+  "and the ones still joining".
 
 "Timeline" was rejected as a name: it describes the thing the page deliberately is not. "History"
 was rejected as institutional and as a collision with the Blog and the anniversary post. "How We
