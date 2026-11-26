@@ -997,8 +997,8 @@ to scroll. Daniel chose the first.
   the page is scrolled so the map's top is at the top of the window the card is whole at all
   three sizes. The people's list is the upper half and is in sight either way. Three ways out
   were put to Daniel on 2026-11-25: open the popup beside the map as well whenever the card
-  would not be wholly on screen; scroll the page to the card; or leave it. Not decided when
-  this was written.
+  would not be wholly on screen; scroll the page to the card; or leave it. Daniel chose to
+  leave it: people can be expected to scroll down.
 
 ### Member and guest treatment
 
@@ -1437,10 +1437,6 @@ be reasonable if layout moved to build time.
   screen tall, so a card is usually clicked with the map out of sight above it. The map centres
   and the people light, but what the reader sees is the card marked. Scrolling the page up to
   the map on a pick was not asked for and has not been tried.
-- **A moment's card out of sight beside the map.** In River, with the page not yet scrolled
-  down to the map, a click on a moment marks a card below the bottom of a laptop's window and
-  opens nothing. Measured, and waiting on Daniel; see the last point under "One card for a
-  moment, and the popup only under the map".
 - **A pick that outlives its popup.** This is now only where the popup still opens, with the
   rail under the map. A click or a tap on a moment in the map picks it, and
   closing its popup with the X leaves the people lit and everyone else faint until Escape, a
