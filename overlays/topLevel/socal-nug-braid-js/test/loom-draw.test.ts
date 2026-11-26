@@ -90,8 +90,8 @@ test("the year lines cross the picture halfway between two years, each with its 
     ticks: ["M0,82 L640,82", "M0,332 L640,332"],
     labels: [
       ["origins-year is-opening", "6", "20", "start"],
-      ["origins-year is-boundary", "6", "77", "start"],
-      ["origins-year is-boundary", "6", "327", "start"],
+      ["origins-year is-boundary", "6", "96", "start"],
+      ["origins-year is-boundary", "6", "346", "start"],
     ],
   });
   assert.deepEqual(marks((await draw("subway")).made), {
@@ -102,6 +102,25 @@ test("the year lines cross the picture halfway between two years, each with its 
       ["origins-year is-boundary", "233", "20", "start"],
     ],
   });
+});
+
+// A year's number belongs to the year it starts, which in River is below its
+// line, so the number sits under the line rather than over the year before.
+test("River: each year's number is under its line, and Subway's stay to the right of theirs", async () => {
+  const lineOf = (d: string) => d.slice(1).split(/[\sL,]+/).map(Number);
+  const boundary = (drawn: Node[]) =>
+    withClass(drawn, "origins-year").filter((n) => n.attrs.class.includes("is-boundary"));
+  const ticks = withClass(made, "origins-year-tick").map((n) => lineOf(n.attrs.d));
+  assert.deepEqual(
+    boundary(made).map((n) => +n.attrs.y),
+    ticks.map(([, y1]) => y1 + 14),
+  );
+  const subway = (await draw("subway")).made;
+  const across = withClass(subway, "origins-year-tick").map((n) => lineOf(n.attrs.d));
+  assert.deepEqual(
+    boundary(subway).map((n) => [+n.attrs.x, +n.attrs.y]),
+    across.map(([x1]) => [x1 + 6, 20]),
+  );
 });
 
 /** The points a path's `d` passes through: its M points and the end of each C. */

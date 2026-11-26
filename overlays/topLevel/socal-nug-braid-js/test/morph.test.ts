@@ -228,7 +228,7 @@ test("year marks are the lines and labels drawLoom draws, in both modes", () => 
   // what drawLoom drew for the fixture before the marks were worked out on their own
   assert.deepEqual(yearMarks(river, story), {
     ticks: [{ x1: 0, y1: 82, x2: 800, y2: 82 }, { x1: 0, y1: 332, x2: 800, y2: 332 }],
-    labels: [{ x: 6, y: 20, text: "2018" }, { x: 6, y: 77, text: "2023" }, { x: 6, y: 327, text: "2024" }],
+    labels: [{ x: 6, y: 20, text: "2018" }, { x: 6, y: 96, text: "2023" }, { x: 6, y: 346, text: "2024" }],
   });
   assert.deepEqual(yearMarks(subway, story), {
     ticks: [{ x1: 117, y1: 0, x2: 117, y2: 480 }, { x1: 227, y1: 0, x2: 227, y2: 480 }],

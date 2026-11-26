@@ -926,6 +926,121 @@ async function run(): Promise<void> {
     );
   }
 
+  // One builder makes the card in the list and the card in the popup, so the
+  // order is looked at in both, and in the popup the X has to keep clear of
+  // the name and the badge on the line it shares with them.
+  await load("river");
+  {
+    const story = await storyOf();
+    const id = story.threads.find((t) =>
+      t.person.quote !== "" && t.person.description !== "" && t.person.links.length > 0 &&
+      t.joinsTrunkAt !== null
+    )?.person.slug ?? "";
+    const laidOut = (card: string) =>
+      tab.evaluate<{ ok: boolean } & Record<string, unknown>>(`(() => {
+        const c = ${card};
+        if (c === null) return { ok: false, missing: true };
+        c.scrollIntoView({ block: "center", inline: "center" });
+        const box = (s) => {
+          const e = c.querySelector(s);
+          if (e === null) return null;
+          const b = e.getBoundingClientRect();
+          return { top: b.top, bottom: b.bottom, left: b.left, right: b.right };
+        };
+        const name = box(".origins-card-name");
+        const badge = box(".origins-badge");
+        const after = [".origins-card-alias", ".origins-card-links", ".origins-card-desc", ".origins-card-join", ".origins-card-quote"].map(box);
+        const x = box(".origins-dismiss");
+        if (name === null || badge === null || after.includes(null)) return { ok: false, name, badge, after };
+        const oneLine = badge.top < name.bottom && badge.bottom > name.top && badge.left >= name.right;
+        const head = Math.max(name.bottom, badge.bottom);
+        const tops = [head, ...after.map((b) => b.top)];
+        const down = after.every((b, i) => b.top >= (i === 0 ? head : after[i - 1].bottom) - 1);
+        const apart = (a, b) => a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top;
+        const clear = x === null || (apart(x, name) && apart(x, badge));
+        return { ok: oneLine && down && clear, oneLine, down, clear, name, badge, tops };
+      })()`);
+    const listed = await laidOut(`document.querySelector(${JSON.stringify(PERSON_CARD(id))})`);
+    await load("subway");
+    let popped: ({ ok: boolean } & Record<string, unknown>) | null = null;
+    if (id !== "") {
+      const face = await centreOf(FACE(id));
+      await tab.click(face.x, face.y);
+      if (await tab.waitFor(popupOpen)) popped = await laidOut(`${POPUP}.querySelector(".origins-card")`);
+    }
+    check(
+      id !== "" && listed.ok && popped?.ok === true,
+      "a person's card says who they are, then their handle, their links, what they do, when they joined and their own words",
+      { person: id, listed, popped },
+    );
+  }
+
+  await load("river");
+  {
+    const story = await storyOf();
+    type Link = { href: string; here: boolean; target: string | null; rel: string | null };
+    // This site is where the page is served from, or where it is published:
+    // zola writes a page's own links as absolute addresses under its
+    // base_url, which is not the address of the server the check runs.
+    const anchors = (root: string) =>
+      tab.evaluate<Link[]>(
+        `(() => {
+          const published = document.querySelector('meta[property="og:url"]')?.content;
+          const home = [location.origin, published ? new URL(published).origin : location.origin];
+          return [...${root}.querySelectorAll("a")].map((a) => ({
+            href: a.getAttribute("href"),
+            here: home.includes(new URL(a.href, location.href).origin),
+            target: a.getAttribute("target"),
+            rel: a.getAttribute("rel"),
+          }));
+        })()`,
+      );
+    const right = (a: Link) =>
+      a.here
+        ? a.target !== "_blank"
+        : a.target === "_blank" && (a.rel ?? "").split(" ").includes("noopener");
+    const rail = await anchors(ROSTER);
+    // A moment with a page on this site, so its popup card holds a link that
+    // stays in the tab.
+    const id = story.moments.map((g) => g.moment).find((m) => (m.permalink ?? "") !== "")?.id ?? "";
+    await load("subway");
+    let popup: Link[] = [];
+    if (id !== "") {
+      const at = await centreOf(OVAL(id));
+      await tab.click(at.x, at.y);
+      if (await tab.waitFor(popupOpen)) popup = await anchors(POPUP);
+    }
+    const kinds = { here: rail.filter((a) => a.here).length, away: rail.filter((a) => !a.here).length };
+    check(
+      kinds.here > 0 && kinds.away > 0 && popup.length > 0 && rail.every(right) && popup.every(right),
+      "a link in a card to another site opens a new tab, and a link to this site stays in the tab",
+      {
+        moment: id,
+        rail: kinds,
+        railWrong: rail.filter((a) => !right(a)).slice(0, 5),
+        popup: popup.length,
+        popupWrong: popup.filter((a) => !right(a)),
+      },
+    );
+  }
+
+  await load("river");
+  {
+    const years = await tab.evaluate<Array<{ text: string; top: number; line: number }>>(`(() => {
+      const ticks = [...${MAP}.querySelectorAll("path.origins-year-tick")];
+      return [...${MAP}.querySelectorAll("text.origins-year.is-boundary")].map((t, i) => ({
+        text: t.textContent,
+        top: t.getBoundingClientRect().top,
+        line: ticks[i]?.getBoundingClientRect().top ?? NaN,
+      }));
+    })()`);
+    check(
+      years.length > 0 && years.every((y) => y.top >= y.line),
+      "River: each year's number is under its line",
+      years.filter((y) => !(y.top >= y.line)),
+    );
+  }
+
   await load("river");
   {
     const story = await storyOf();

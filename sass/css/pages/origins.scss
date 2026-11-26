@@ -633,6 +633,15 @@ html[data-theme=dark] .origins-legend {
     min-width: 0;
 }
 
+// The name and the badge on one line, the badge just after the name rather
+// than out at the card's edge, where the popup's X sits.
+.origins-card-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .origins-card-name {
     font-weight: 700;
     font-size: 0.8rem;
@@ -681,8 +690,6 @@ html[data-theme=dark] .origins-legend {
 }
 
 .origins-badge {
-    align-self: flex-start;
-    margin-top: 0.25rem;
     font-size: 0.5rem;
     letter-spacing: 0.06em;
     text-transform: uppercase;

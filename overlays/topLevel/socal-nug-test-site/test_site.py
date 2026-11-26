@@ -182,7 +182,8 @@ class SiteBuild(unittest.TestCase):
         about = html.unescape((self.out / 'about' / 'index.html').read_text())
         for person in linked:
             for link in person['links']:
-                anchor = f'<a class="mr-3" href="{link["url"]}">{link["title"]}</a>'
+                anchor = (f'<a class="mr-3" href="{link["url"]}" target="_blank" rel="noopener">'
+                          f'{link["title"]}</a>')
                 self.assertTrue(anchor in about, f'not on the About page: {anchor}')
 
     def test_a_members_own_words_are_on_about_as_a_quotation(self):
@@ -194,6 +195,39 @@ class SiteBuild(unittest.TestCase):
         for person in quoted:
             said = f'<blockquote>{person["quote"]}</blockquote>'
             self.assertTrue(said in about, f'not on the About page: {said}')
+
+    def test_a_members_own_words_come_last_on_about(self):
+        # as on the Origins card: who they are and where to find them first
+        _, data = self.origins_data()
+        full = [p for p in data['people']
+                if p['member'] and p['quote'] and p['description'] and p['links']]
+        self.assertTrue(full, 'no member profile carries a quote, a description and links')
+        about = html.unescape((self.out / 'about' / 'index.html').read_text())
+        for person in full:
+            card = about.split(f'<h4 class="title is-4">{person["name"]}</h4>')[1]
+            card = card.split('<h4 class="title is-4">')[0]
+            quote = card.find('<blockquote>')
+            said = card.find(person['description'])
+            self.assertNotEqual(said, -1, person['name'])
+            self.assertGreater(quote, said, person['name'])
+            for link in person['links']:
+                at = card.find(f'href="{link["url"]}"')
+                self.assertNotEqual(at, -1, link['url'])
+                self.assertGreater(quote, at, link['url'])
+
+    def test_a_members_links_on_about_open_a_new_tab(self):
+        _, data = self.origins_data()
+        members = [p for p in data['people'] if p['member']]
+        about = html.unescape((self.out / 'about' / 'index.html').read_text())
+        for person in members:
+            handle = (f'<a href="{person["profileUrl"]}" target="_blank" rel="noopener">'
+                      f'{person["alias"]}</a>')
+            self.assertTrue(handle in about, f'not on the About page: {handle}')
+        anchors = re.findall(r'<a class="mr-3"[^>]*>', about)
+        self.assertTrue(anchors, 'no member links on the About page')
+        for anchor in anchors:
+            self.assertIn('target="_blank"', anchor)
+            self.assertIn('rel="noopener"', anchor)
 
     def test_a_guest_has_a_page_but_is_not_in_the_members_grid(self):
         # the filter is proved with a probe as well, so it does not rest on

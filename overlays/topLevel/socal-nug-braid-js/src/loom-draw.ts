@@ -68,9 +68,12 @@ export function yearMarks(placed: LoomPlaced, story: Story): YearMarks {
           ? { x1: 0, y1: mid, x2: round(placed.width), y2: mid }
           : { x1: mid, y1: 0, x2: mid, y2: round(placed.height) },
       );
+      // A year's number is where the year begins: in River that is below
+      // its line, so the baseline sits under the line, not over the year
+      // before it.
       labels.push({
         x: along === "y" ? 6 : mid + 6,
-        y: along === "y" ? mid - 5 : YEAR_GUTTER - 14,
+        y: along === "y" ? mid + 14 : YEAR_GUTTER - 14,
         text: String(year),
       });
     }

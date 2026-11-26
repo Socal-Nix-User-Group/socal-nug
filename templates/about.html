@@ -36,23 +36,24 @@
             <div class="media-content content">
               <h4 class="title is-4">{{ profile.extra.name }}</h4>
               <h6 class="subtitle is-6">
-                <a href="{{ profile.extra.profile_url }}">{{ profile.extra.alias }}</a>
+                <a href="{{ profile.extra.profile_url }}" target="_blank" rel="noopener">{{ profile.extra.alias }}</a>
               </h6>
 
-              {#- Their own words, where the description is the site talking. -#}
-              {%- set quote = profile.extra.quote | default(value="") %}
-              {%- if quote != "" %}
-              <blockquote>{{ quote }}</blockquote>
-              {%- endif %}
               {{ profile.extra.description }}
               {#- Their own sites. The alias above goes to their GitHub. -#}
               {%- set links = profile.extra.links | default(value=[]) %}
               {%- if links %}
               <p>
                 {%- for link in links %}
-                <a class="mr-3" href="{{ link.url }}">{{ link.title }}</a>
+                <a class="mr-3" href="{{ link.url }}" target="_blank" rel="noopener">{{ link.title }}</a>
                 {%- endfor %}
               </p>
+              {%- endif %}
+              {#- Their own words, where the description is the site talking.
+                  Last, as on their card on the Origins page. -#}
+              {%- set quote = profile.extra.quote | default(value="") %}
+              {%- if quote != "" %}
+              <blockquote>{{ quote }}</blockquote>
               {%- endif %}
         </div>
       </div>

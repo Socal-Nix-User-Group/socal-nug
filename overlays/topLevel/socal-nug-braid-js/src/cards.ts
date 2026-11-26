@@ -223,46 +223,15 @@ export function personCardFor(
     );
   }
 
+  // Who they are and where to find them first, then what they do and when
+  // they joined, and their own words last.
   const body = el(doc, "div", { class: "origins-card-body" });
-  body.appendChild(
+  // The badge on the name's line: member or guest is part of who they are.
+  const head = el(doc, "div", { class: "origins-card-head" });
+  head.appendChild(
     el(doc, "span", { class: "origins-card-name" }, person.name),
   );
-  body.appendChild(
-    el(
-      doc,
-      "a",
-      { class: "origins-card-alias", href: person.profileUrl },
-      person.alias,
-    ),
-  );
-
-  if (person.quote !== "") {
-    // Their words, marked up as theirs. A description is prose about
-    // somebody and reads as the site talking; a quote reads as them.
-    body.appendChild(
-      el(doc, "blockquote", { class: "origins-card-quote" }, person.quote),
-    );
-  }
-
-  if (person.description !== "") {
-    body.appendChild(
-      el(doc, "p", { class: "origins-card-desc" }, person.description),
-    );
-  }
-
-  if (person.links.length > 0) {
-    // Their own sites, on one line that wraps. Plain links like the alias
-    // above them, which goes to their GitHub.
-    const links = el(doc, "div", { class: "origins-card-links" });
-    for (const link of person.links) {
-      links.appendChild(
-        el(doc, "a", { class: "origins-card-link", href: link.url }, link.title),
-      );
-    }
-    body.appendChild(links);
-  }
-
-  body.appendChild(
+  head.appendChild(
     el(
       doc,
       "span",
@@ -270,6 +239,45 @@ export function personCardFor(
       person.member ? "Member" : "Guest",
     ),
   );
+  body.appendChild(head);
+  // A link to another site opens a new tab, so the map stays as the reader
+  // left it. A moment's event page is on this site and stays in the tab.
+  body.appendChild(
+    el(
+      doc,
+      "a",
+      {
+        class: "origins-card-alias",
+        href: person.profileUrl,
+        rel: "noopener",
+        target: "_blank",
+      },
+      person.alias,
+    ),
+  );
+
+  if (person.links.length > 0) {
+    // Their own sites, on one line that wraps. Plain links like the alias
+    // above them, which goes to their GitHub.
+    const links = el(doc, "div", { class: "origins-card-links" });
+    for (const link of person.links) {
+      links.appendChild(
+        el(doc, "a", {
+          class: "origins-card-link",
+          href: link.url,
+          rel: "noopener",
+          target: "_blank",
+        }, link.title),
+      );
+    }
+    body.appendChild(links);
+  }
+
+  if (person.description !== "") {
+    body.appendChild(
+      el(doc, "p", { class: "origins-card-desc" }, person.description),
+    );
+  }
 
   const join = joinLineFor(thread, story.moments);
   if (join !== null) {
@@ -280,6 +288,14 @@ export function personCardFor(
         { class: "origins-card-join" },
         `Joined at ${join.title}, ${join.date}`,
       ),
+    );
+  }
+
+  if (person.quote !== "") {
+    // Their words, marked up as theirs. A description is prose about
+    // somebody and reads as the site talking; a quote reads as them.
+    body.appendChild(
+      el(doc, "blockquote", { class: "origins-card-quote" }, person.quote),
     );
   }
 

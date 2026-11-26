@@ -393,6 +393,82 @@ test("somebody with no links gets no empty row of them", () => {
   assert.equal(linksRow(made), undefined);
 });
 
+// --- the order of a person's card --------------------------------------------
+// Who they are and what kind of person they are to the group, on one line;
+// then where to find them, what they do and when they joined; their own words
+// last.
+
+const everything = {
+  ...CAST.get("daniel")!,
+  description: "Co-founder.",
+  quote: "whoa other people use this?",
+  links: [{ title: "djacu.dev", url: "https://djacu.dev/" }],
+};
+const FULL_ORDER = [
+  "origins-card-head",
+  "origins-card-alias",
+  "origins-card-links",
+  "origins-card-desc",
+  "origins-card-join",
+  "origins-card-quote",
+];
+const byClassName = (made: Node[], token: string) =>
+  made.find((n) => (n.attrs.class ?? "").split(" ").includes(token))!;
+const bodyOrder = (made: Node[]) =>
+  byClassName(made, "origins-card-body").children.map((n) => (n.attrs.class ?? "").split(" ")[0]);
+
+test("a person's card says who they are, then their handle, their links, what they do, when they joined and their own words", () => {
+  for (const dismissable of [true, false]) {
+    const { doc, made } = stubDocument();
+    personCardFor({ ...thread("daniel"), person: everything }, small, doc, dismissable);
+    assert.deepEqual(bodyOrder(made), FULL_ORDER);
+    const head = byClassName(made, "origins-card-head");
+    assert.deepEqual(
+      head.children.map((n) => [n.tag, n.attrs.class]),
+      [["span", "origins-card-name"], ["span", "origins-badge is-member"]],
+    );
+  }
+});
+
+test("a person's card missing a part simply lacks it, in the same order otherwise", () => {
+  const cases: Array<[string, Person, string]> = [
+    ["origins-card-quote", { ...everything, quote: "" }, "daniel"],
+    ["origins-card-desc", { ...everything, description: "" }, "daniel"],
+    ["origins-card-links", { ...everything, links: [] }, "daniel"],
+    ["origins-card-join", { ...everything, slug: "rok", member: false }, "rok"],
+  ];
+  for (const [missing, who, slug] of cases) {
+    const { doc, made } = stubDocument();
+    personCardFor({ ...thread(slug), person: who }, small, doc);
+    assert.deepEqual(bodyOrder(made), FULL_ORDER.filter((c) => c !== missing), missing);
+  }
+});
+
+test("a link in a card to another site opens a new tab, and the event page on this site stays in the tab", () => {
+  const person = stubDocument();
+  personCardFor({ ...thread("daniel"), person: everything }, small, person.doc);
+  const anchors = person.made.filter((n) => n.tag === "a");
+  assert.deepEqual(
+    anchors.map((a) => a.attrs.class),
+    ["origins-card-alias", "origins-card-link"],
+  );
+  assert.ok(anchors.every((a) => a.attrs.target === "_blank" && a.attrs.rel === "noopener"));
+
+  const moment = stubDocument();
+  detailFor(
+    {
+      ...placed("founded"),
+      moment: { ...placed("founded").moment, permalink: "/events/x/" },
+    },
+    CAST,
+    moment.doc,
+  );
+  const page = moment.made.find((n) => n.tag === "a" && n.attrs.href === "/events/x/")!;
+  assert.equal(page.text, "Event page");
+  assert.equal(page.attrs.target, undefined);
+  assert.equal(page.attrs.rel, undefined);
+});
+
 // --- the list of moments -----------------------------------------------------
 
 const tokens = (n: Node) => (n.attrs.class ?? "").split(" ");
