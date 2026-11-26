@@ -355,8 +355,8 @@ not resolve to a file in `content/events/`.
   semibold, slanted and a little larger than the blurb (0.72rem against 0.64rem), and quieter
   than the card's own title (0.82rem, bold), which stays the first thing read. It is a
   paragraph and not a heading element, as the card's title is not one either, so the cards
-  add nothing to the page's outline. The style is the controller's and Daniel has not seen
-  it. The alternative, writing the title as the
+  add nothing to the page's outline. The style was the controller's; Daniel saw it on
+  2026-11-26 and said it is good. The alternative, writing the title as the
   blurb's first line and letting the script find it, was rejected: a field says what it is
   and a first line has to be guessed at.
 - **A blurb may run to more than one paragraph.** A blank line in it starts a new one on the
@@ -1117,8 +1117,8 @@ to scroll. Daniel chose the first.
     the trade Daniel made for River the day before, and it was put to Daniel with the choice.
   - From the keyboard, Enter moves focus to a card that may be below the fold, and nothing
     scrolls to it, where the popup used to open in sight with focus on its X. A screen reader
-    reads the card either way; a sighted reader using the keyboard has to scroll. This follows
-    from the rule and was not put to Daniel as a question of its own.
+    reads the card either way; a sighted reader using the keyboard has to scroll. Asked about
+    it on 2026-11-26, Daniel said it is fine as it is and the page need not scroll.
   - The popup's code stays for narrow windows and phones.
 
 ### The card's order, links, years and who a moment lights
@@ -1789,6 +1789,18 @@ Also decided by Daniel: a recorded absence is shown only in the picture, by the 
 hollow bead, and is listed nowhere; the legend is hidden from assistive technology; a
 phone-sized screen is not a present concern.
 
+Two things Daniel closed on 2026-11-26. Safari is not a target: the page is checked in Firefox
+and Chromium, and where this document says something was not tried in Safari, that is a fact
+and not an open item. Daniel looked at Origins and About in both on 2026-11-26, after the one
+arrangement of a person, the About boxes and the absence at Nix Vegas 2025, and found them
+good; the scrollbars of the map and the lists are white in Firefox's dark theme, and Daniel has
+seen that and is content with it. And who else met whom at SCaLE 20x is not to be asked about
+again. The moment was "Nix booth at SCaLE 20x" and is "SCaLE 20x", the whole conference, by
+Daniel's decision, so that everyone who was at SCaLE that year is through it whether or not
+they were at the booth; Joshua Campbell is on it for that reason. Its blurb is Daniel's
+paragraph about the booth's return, with who was at the booth and that Daniel Baker and David
+Nuon met Rob Hernandez there kept under it.
+
 Seating among people who joined at the same meetup stays with the rule, first moment and then
 slug, also by Daniel's decision. It is the one free choice in slot order: the rest follows from
 who joined when. When it was measured, on 2026-11-23 with ten people in the data, there were
@@ -1835,14 +1847,6 @@ be reasonable if layout moved to build time.
   from its event post and the records anchored to it, and carries no blurb across, though the
   card would show one. Daniel wants meetups to have descriptions eventually, and on 2026-11-25
   chose to add that when the first description is ready, not before.
-- **Who met whom at SCaLE 20x.** The moment was "Nix booth at SCaLE 20x" and is now "SCaLE 20x",
-  the whole conference, by Daniel's decision, so that everyone who was at SCaLE that year is
-  through it whether or not they were at the booth. Joshua Campbell is on it for that reason;
-  Daniel does not recall whether Joshua visited the booth. Its blurb said only who was at the
-  booth and that Daniel Baker and David Nuon met Rob Hernandez there. Daniel meant to expand
-  it with who met whom, and on 2026-11-25 set it aside until more is gathered about that
-  year. On 2026-11-26 Daniel gave it a heading and a paragraph about the booth's return; the
-  earlier sentences are kept under that paragraph, and who else met whom is still to gather.
 - **Who was at each meetup** is recorded whole, everyone in the group either there or away, for
   nine meetups: the seven Daniel checked against pictures (NUG #1, #2, #3, #4, #6, the June 2025
   Mini NUG and NUG #17) and two Daniel gave on 2026-11-24, NUG #5 and NUG #10, the second from
@@ -1967,11 +1971,6 @@ be reasonable if layout moved to build time.
 - **Validator rejections with no fixture.** `braid-data` has no fixture for a dated moment with no
   title, a well-formed date that does not exist, a moment with no `id`, or `links` that is not a
   list, so nothing shows those rejections still work.
-- **Safari** has not been tried. The page has been checked in Firefox and Chromium. Daniel
-  looked at Origins and About in both on 2026-11-26, after the one arrangement of a person,
-  the About boxes and the absence at Nix Vegas 2025, and found them good. The scrollbars of the
-  map and the lists are white in Firefox's dark theme; Daniel has seen that and is content
-  with it.
 - **A failed mode switch** leaves the old picture on screen under the new mode's name, and the
   new mode remembered. Left alone on purpose, by Daniel's decision.
 - **Integration.** The branch is more than fifty commits and has never been reviewed as a whole.
