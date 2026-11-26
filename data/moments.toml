@@ -340,6 +340,7 @@ people = [
   "kyle-risse",
   "thomas-bereknyei",
 ]
+# Daniel Baker was sick the week of the event.
 away = ["daniel-baker"]
 links = [{ title = "Nix Vegas 2025", url = "https://nix.vegas/2025/" }]
 

@@ -1118,9 +1118,9 @@ section and an older one disagree, this one is right.
   before; its baseline is now 14px below the line. Subway's numbers are beside their lines, on
   the new year's side already, and did not move.
 
-- **Away from a moment that is not a meetup.** Daniel asked to be shown as away from the Nix
-  Vegas of 2025. `away` was allowed only on a meetup, and a moment that is not a meetup drew
-  only the
+- **Away from a moment that is not a meetup.** Daniel was sick the week of Nix Vegas 2025 and
+  asked to be shown as away from it. `away` was allowed only on a meetup, and a moment that is
+  not a meetup drew only the
   people it names. Built on 2026-11-26, once the card's order was settled: a dated moment that
   is not a meetup may carry `away` (the rule is under "Moments"), and the person is drawn at
   it as at a meetup they missed (under "What a thread through a meetup means"). Four
