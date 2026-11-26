@@ -1004,6 +1004,46 @@ to scroll. Daniel chose the first.
   would not be wholly on screen; scroll the page to the card; or leave it. Daniel chose to
   leave it: people can be expected to scroll down.
 
+### The card's order, links, years and who a moment lights
+
+Five things Daniel asked for on 2026-11-25, after the two lists and the one card. Where this
+section and an older one disagree, this one is right.
+
+- **Who a moment lights.** A moment hovered or picked used to light everyone through it who
+  was not recorded away, and at a meetup that is nearly everyone, since most attendance is in
+  neither record. Now a person comes out one of three ways. Confirmed there: lit, as before.
+  Recorded away, or not through the moment at all (not yet in the group, or not named by a
+  moment that is not a meetup): stepping back, as before. Through it with nothing recorded: no
+  change at all, neither lit nor faint, their card in the list not tinted. Daniel's reason is
+  that the picture should tell "was there" from "nobody wrote it down". A person hovered or
+  picked is as before. A moment with nobody confirmed at it lights nobody, so nothing steps
+  back and the picture stays as it was. With one moment picked and another hovered, someone
+  confirmed at either is lit, and someone unrecorded at either and lit by neither is left alone.
+- How it is built: `litBy` in `src/pick.ts` returns the confirmed, `unsureAt` the unrecorded,
+  and `relight()` sets a class for each; the stylesheet's rule that dims whoever is not lit
+  leaves out the unrecorded. Nothing else sets either class.
+- **A person's card, in a new order**: name with the membership badge on the same line, handle,
+  links, description, when they joined, quote. It was name, handle, quote, description, links,
+  badge, joined. The same eight things; one builder for the list and the popup.
+- **The order is not settled.** Daniel gave About a different order (description before links)
+  and asked for the two pages to be made the same: the same content, About gaining the badge
+  and the joined line, in the same order, with each About profile in a background box, which
+  it lacks today. Five orders were mocked up on both pages
+  (`.superpowers/sdd/origins-loom-pictures/card-order2.html`, outside the repository's
+  history). Daniel has not chosen, and nothing of the unified card is built. Until then
+  Origins has the order above and About has name, handle, description, links, quote.
+- **Links.** A link to another site opens a new tab, with `rel="noopener"`: a person's handle
+  and own links, on Origins and on About, and a moment's outside links. A link to this site
+  stays in the tab, which today is a meetup's "Event page" link. Daniel's rule.
+- **River's year numbers are under their lines.** A year's number marks where the year begins.
+  In River it sat just above the dashed line that starts the year, over the end of the year
+  before; its baseline is now 14px below the line. Subway's numbers are beside their lines, on
+  the new year's side already, and did not move.
+- **Still to come: away from a moment that is not a meetup.** Daniel was sick the week of Nix
+  Vegas 2025 and wants to be shown as away from it. Today `away` is allowed only on a meetup,
+  and a moment that is not a meetup draws only the people it names. Daniel asked for it to be
+  built once the card's order is settled.
+
 ### Member and guest treatment
 
 Several signals, so it does not depend on colour alone:
@@ -1278,7 +1318,15 @@ focus to the card in the list, and Escape sends focus back, but not when the rea
 somewhere else, nor when it has left the card and come back. Every older check that opens the
 popup now runs in Subway, where the popup is, with the claim and the assertions it had.
 
-Ninety-three checks, each named for what a visitor would
+Six came with the card's order and the lighting: a person's card saying who they are, then
+their handle, links, what they do, when they joined and their own words, in the list and in
+the popup with the X clear of the name; a link to another site opening a new tab and one to
+this site staying in it; River's year numbers under their lines; a meetup lighting the
+confirmed, dimming the away and the not yet joined, and leaving everyone else as they were, by
+hover and by a pick; and a meetup with nobody confirmed changing nothing. The checks that
+compare who is lit with the record now expect the confirmed.
+
+Ninety-nine checks, each named for what a visitor would
 notice and none naming a moment or a person, so the data can change under it as long as the
 picture stays about the size it is (see below). It needs the
 network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
