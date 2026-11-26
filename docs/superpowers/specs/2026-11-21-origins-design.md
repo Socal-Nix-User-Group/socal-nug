@@ -1106,14 +1106,16 @@ section and an older one disagree, this one is right.
   description, quote and joined line, part for part and in order.
 
 - **Each About profile is in a box.** Daniel found the profiles hard to tell apart: nothing
-  enclosed one, so it was not clear where a profile ended. Each is now a box in Bulma's own
-  background shade (`--bulma-background`), so it follows the theme, and the two boxes of a row
-  are the same height. It was first built one shade nearer the page's
-  (`--bulma-scheme-main-bis`), which showed in the dark theme and was too faint on a white
-  page; Daniel asked for a darker shade on 2026-11-26. Bulma fills a quote with the shade the
-  box now has, so the quote inside a profile takes the page's own colour and stays a box
-  within the box. It has `0.5em 0.9em` of padding where Bulma gives `1.25em 1.5em`, which
-  Daniel asked to be reduced.
+  enclosed one, so it was not clear where a profile ended. Each is now a box in the shade
+  Bulma gives its faint borders (`--bulma-border-weak`), so it follows the theme, and the two
+  boxes of a row are the same height. The shade took three tries, each a step further from
+  the page's: `--bulma-scheme-main-bis` as first built, which showed in the dark theme and was
+  too faint on a white page; `--bulma-background` when Daniel asked for a darker shade; and
+  this one, which Daniel chose on 2026-11-26 from pictures of that, this and a step beyond
+  (`.superpowers/sdd/origins-loom-pictures/box-shade.html`, outside the repository's history).
+  Bulma fills a quote with a shade one step from the box's, so the quote inside a profile
+  takes the page's own colour and stays a clear box within the box. It has `0.5em 0.9em` of
+  padding where Bulma gives `1.25em 1.5em`, which Daniel asked to be reduced.
 
 - **Links.** A link to another site opens a new tab, with `rel="noopener"`: a person's handle
   and own links, on Origins and on About, and a moment's outside links. A link to this site
@@ -1139,7 +1141,8 @@ section and an older one disagree, this one is right.
     in their own slot. Left beside the ribbon, the same mark would read differently from a
     meetup's. Nix Vegas 2025 names five people and stays beside the ribbon either way. It
     follows that a moment that names nobody and lists the whole group away is a row of hollow
-    beads on the ribbon.
+    beads on the ribbon. Daniel was shown this and the alternative on 2026-11-26 and kept it
+    for now; the alternative is recorded below as option B.
   - Away from a moment that comes before any the person is at is rejected by the validator.
   - The card's line of people and the spoken label of a moment that is not a meetup leave out
     who was away from it. Daniel decided that for a meetup's card and label; it is extended
@@ -1160,6 +1163,31 @@ section and an older one disagree, this one is right.
   in River and 6573 by 467 in Subway, with no finding; it was 544 by 3225 and 6572 by 467
   when Thomas Bereknyei was added, so the extra slot at Nix Vegas costs River five pixels of
   width and nothing a reader would see.
+
+- **Option B for the ribbon, not built.** The rule above is option A: someone away counts
+  toward "everyone in the group is through it". The alternative is that only people who were
+  there count. Under B someone listed away still comes to the moment and breaks there with
+  the hollow bead, but a moment that names everyone except those away stays beside the
+  ribbon, and every thread, the absent person's among them, leaves the ribbon to reach it.
+  The ribbon then says "the whole group was there" and nothing weaker. Under A it also says
+  "the whole group is accounted for", which keeps the ribbon straight and makes a missed
+  conference look exactly like a missed meetup.
+
+  Daniel compared the two on 2026-11-26 on a made-up record in the real picture, SCaLE 22x
+  with Daniel Baker away from it, beside the same record with nothing said about Daniel
+  (`.superpowers/sdd/origins-loom-pictures/ribbon-rule.html`, outside the repository's
+  history; B drawn by a throwaway bundle). Daniel kept A for now and asked for B to be
+  recorded as an alternative. In that mock-up A leaves the picture the size it is; B puts
+  SCaLE 22x out of the ribbon's column, twelve threads swinging out to it and back, with
+  River about 20px longer and Subway 26px taller.
+
+  What B would take: one condition in `buildStory`, where a moment that is not a meetup is on
+  the ribbon when everyone in the group is through it and none of them is away; the story
+  test that such a moment is on the ribbon, which turns round; the made-up histories'
+  `away-whole` moment, which exists to be on the ribbon because of an absence, and its test;
+  and this section. Nothing else reads the rule. Nobody passes such a moment, so it has no
+  pass-through and the spine skips its layer, which the mock-up drew without a finding by eye
+  but which the smoke check has not been run on.
 
 ### Member and guest treatment
 
@@ -1564,6 +1592,10 @@ be reasonable if layout moved to build time.
 - **The card.** The treatment was called out early as generic and never revisited beyond
   squaring the corners. There is one card surface now, used in the popup and the roster, so it
   is a single thing to design rather than two.
+- **Whether someone away counts toward the ribbon.** They do, by option A, which Daniel kept
+  "for now" on 2026-11-26. Option B, where a moment is on the ribbon only when the whole group
+  was there, is recorded with what it would take under "The card's order, links, years and who
+  a moment lights". No record in the data is affected by the choice yet.
 - **Descriptions and quotes.** Joshua Campbell and Thomas Bereknyei have neither a description
   nor a quote, and Matthew Croughan has a quote and no description. Everyone else has a
   description; Daniel Baker, Jared Baur, Mica, Connor Baker, Matthew Croughan and Morgan Jones
