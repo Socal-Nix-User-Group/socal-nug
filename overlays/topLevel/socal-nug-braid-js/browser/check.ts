@@ -3135,6 +3135,31 @@ async function run(): Promise<void> {
     );
   }
 
+  // A face in the picture is named to a screen reader with what its person's
+  // badge says. Without an organizer in the data it would not show that an
+  // organizer is called one, so it wants one.
+  await load("river");
+  {
+    const said = await tab.evaluate<
+      Array<{ slug: string; face: string | null; badge: string | null }>
+    >(`[...${MAP}.querySelectorAll(".origins-root")].map((face) => ({
+      slug: face.dataset.person,
+      face: face.getAttribute("aria-label"),
+      badge: document.querySelector(
+        '#origins-roster .origins-card[data-person="' + face.dataset.person + '"] .origins-badge',
+      )?.textContent.trim() ?? null,
+    }))`);
+    const wrong = said.filter((p) =>
+      p.face === null || p.badge === null || !p.face.endsWith(`, ${p.badge.toLowerCase()}`)
+    );
+    const kinds = [...new Set(said.map((p) => p.badge))].sort();
+    check(
+      said.length > 0 && wrong.length === 0 && kinds.includes("Organizer"),
+      "a face's spoken label says what its person's badge says: organizer, member or guest",
+      { faces: said.length, kinds, wrong },
+    );
+  }
+
   // --- every dot answers the pointer ---------------------------------------------
 
   await load("river");

@@ -93,7 +93,12 @@ export function describeGathering(gathering: Gathering): string {
   return `${when}, ${count}`;
 }
 
-/** What a screen reader says for a face. */
+/**
+ * What a screen reader says for a face: the person's name and the word on
+ * their badge. A member who organizes the group is called an organizer; on a
+ * guest the flag says nothing, as on the badge.
+ */
 export function describePerson(person: Person): string {
-  return `${person.name}, ${person.member ? "member" : "guest"}`;
+  const kind = person.member ? (person.organizer ? "organizer" : "member") : "guest";
+  return `${person.name}, ${kind}`;
 }

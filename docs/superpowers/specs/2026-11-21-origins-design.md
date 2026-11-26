@@ -272,13 +272,14 @@ links = [{ title = "...", url = "https://..." }]  # their own sites
 
 A member's profile may also say `organizer = true` under `[extra]`. That member's badge then
 says "Organizer" in place of "Member", on their Origins card and on the About grid; nothing
-else about them changes, and the badge is still drawn as a member's. Daniel asked for it on
+else to see about them changes, and the badge is still drawn as a member's. Daniel asked for it on
 2026-11-26 for Daniel Baker, David Nuon and Rob Hernandez. It is a flag and not free text, so
 the badge stays one of three words. The alternative, a field holding the badge's word, was
 rejected as an invitation to a different tag for everyone. The page's data carries
 `organizer` for every person, false when the profile does not say. On a guest it does nothing.
-What a screen reader says for a face in the picture is still "member" or "guest", which is
-what the face's ring shows.
+What a screen reader says for a face in the picture is the word on the badge: "organizer",
+"member" or "guest". Until 2026-11-26 it said "member" for an organizer, which is what the
+face's ring shows; Daniel asked for an organizer to be announced as one. The ring is unchanged.
 
 There are two guests in the data. Matthew Croughan organizes Nix Camp and is at every one, was
 at SCaLE 20x and 21x, and has been at every NixCon since 2024. Thomas Bereknyei, added on
@@ -1346,8 +1347,8 @@ focusable moments.
 A meetup's label gives its title, its date and how many are in the group by then, for example
 "NUG #6, 1 June 2024, 9 in the group". Another moment's says how many people it names. Labels say
 how many, not who: eight names read out on every arrow press is a wall of its own, and the card
-names them for anyone who opens it. A face's label is the person's name and "member" or "guest".
-Beads have no role and are not tab stops.
+names them for anyone who opens it. A face's label is the person's name and the word on their
+badge: "organizer", "member" or "guest". Beads have no role and are not tab stops.
 
 The zoom is four real buttons in a named group, each with a label saying what it does, so it
 needs no pointer. Taking hold of the map is a mouse's convenience and has no keyboard form: the
@@ -1652,7 +1653,12 @@ either records everyone or nearly nobody. It picks one pair in both orders now, 
 script with that mistake alone failed that check and no other. One assertion was added without
 a run of its own: that Enter on a picked moment lets go of it and leaves focus where it is.
 
-A hundred and twenty-three checks, each named for what a visitor would
+One is about what a face is called: every face's spoken label ends with the word on its
+person's badge, organizer, member or guest. It wants an organizer in the data, since without
+one it would not show that an organizer is called one. It was seen to fail against the script
+as it was, which called the three organizers members.
+
+A hundred and twenty-four checks, each named for what a visitor would
 notice and none naming a moment or a person, so the data can change under it as long as the
 picture stays about the size it is (see below). It needs the
 network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
@@ -1758,7 +1764,7 @@ be reasonable if layout moved to build time.
   was added on 2026-11-26: the first commit in Tristan's dotfiles that sets up NixOS, dated
   1 August 2022 in the commit's own Pacific time (a reader in UTC is shown 2 August), with
   Tristan's account of why. The blurb takes "Void" in that account to be Void Linux, which
-  nothing in the repository's history says either way. It took the picture to 48 moments, 593
+  Daniel confirmed on 2026-11-26. It took the picture to 48 moments, 593
   by 3336 in River and 6728 by 478 in Subway by the smoke check, with no finding. Tristan Ross and
   Thomas Bereknyei's "Paths cross" of July 2024 has none: Daniel has no details of it yet.
   Several conference and camp moments have none.

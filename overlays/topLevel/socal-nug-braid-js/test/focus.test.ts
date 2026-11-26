@@ -134,7 +134,10 @@ test("a moment that is not a meetup counts who was there, not who was away", () 
   assert.equal(describeGathering(m("quiet")), "quiet, August 2023");
 });
 
-test("a member and a guest are described as what they are", () => {
+test("a member, an organizer and a guest are described as what they are", () => {
   assert.equal(describePerson(person("rob")), "ROB, member");
+  assert.equal(describePerson({ ...person("rob"), organizer: true }), "ROB, organizer");
   assert.equal(describePerson(person("rob", false)), "ROB, guest");
+  // on a guest the flag says nothing, as on the badge
+  assert.equal(describePerson({ ...person("rob", false), organizer: true }), "ROB, guest");
 });
