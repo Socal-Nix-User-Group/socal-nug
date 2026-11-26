@@ -139,7 +139,7 @@ function threadMorphs(from: LoomPlaced, to: LoomPlaced): Map<string, ThreadMorph
     const thread = out.get(slug) ?? { from: [], to: [], starts: [] };
     out.set(slug, thread);
     // A new stretch wherever this edge does not pick up where the last one
-    // ended, in either mode: the first edge, and after a meetup its person
+    // ended, in either mode: the first edge, and after a moment its person
     // was away from.
     const last = ends.get(slug);
     const breaks = last === undefined || !same(last.from, a[0][0]) || !same(last.to, b[0][0]);
