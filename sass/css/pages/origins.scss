@@ -1,0 +1,958 @@
+// Origins: the braid of converging paths.
+//
+// Colours are palette slots, not per-person rules: the renderer puts a
+// data-hue on each thread and on its person's card, so adding a person needs
+// no edit here. Past the palette a thread takes the muted slot and the card
+// does the identifying instead, because forty distinguishable hues do not
+// exist.
+
+// How tall the map's box may grow. The roster beside it takes the same
+// ceiling, so the two end on one line.
+$origins-box-height: 85vh;
+
+// The legend sits above the map, outside .origins-layout, and draws with the
+// same palette, so the palette is a mixin both include.
+@mixin origins-light-palette {
+    --origins-trunk: #5277c3;
+    --origins-muted: #8a8f98;
+    --origins-ink: #1f2430;
+    --origins-surface: rgba(127, 127, 127, 0.07);
+    --origins-line: rgba(127, 127, 127, 0.28);
+
+    --origins-hue-0: #4c9f70;
+    --origins-hue-1: #e07a5f;
+    --origins-hue-2: #7b6cd9;
+    --origins-hue-3: #d9a441;
+    --origins-hue-4: #3f8fb0;
+    --origins-hue-5: #c2587f;
+    --origins-hue-6: #6a8f3c;
+    --origins-hue-7: #b4683c;
+    --origins-hue-8: #5c6bc0;
+    --origins-hue-9: #2f9c8f;
+    --origins-hue-10: #a85ba8;
+    --origins-hue-11: #8a7a3c;
+}
+
+.origins-layout {
+    @include origins-light-palette;
+
+    // The map scrolls inside its own box, so without this its edge sits hard
+    // against whatever follows it down the page.
+    margin-bottom: 3rem;
+
+    // River's picture is tall and narrow, so the roster sits beside it. A
+    // rail cost too much when the lane allocator drew River over a thousand
+    // pixels wide; ELK's is a third of that, and the room is there again.
+    display: grid;
+    gap: 1.5rem;
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+
+    // Subway runs time across the page and is already full width, so the
+    // roster goes underneath as a grid of its own.
+    &[data-mode="subway"] {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    @media screen and (max-width: 1023px) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+// The rail holds two panes, the people and the moments, each a heading over
+// a list. The list is what scrolls, so each pane keeps its heading in sight
+// and the wheel over one list does not move the other. Like the map, a list
+// lets the wheel carry on to the page once it reaches its end.
+.origins-pane {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+
+.origins-pane-title {
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.6;
+    font-weight: 700;
+    margin: 0 0 0.35rem;
+}
+
+.origins-roster,
+.origins-moments {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+}
+
+.origins-roster {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.origins-roster-item,
+.origins-moments-item {
+    display: grid;
+    min-width: 0;
+}
+
+// Beside the map the rail has the map's ceiling, so the two end on one line,
+// and the panes share it equally. Under Subway the panes sit side by side,
+// the people given the wider one because their cards are the bigger. Driven
+// by the layout's mode rather than by width alone, because Subway is full
+// width at every size. Only a rail with the lists in it: the page starts in
+// River and the script fills the rail, so without the script, or before it
+// runs for a reader who left in Subway, the rail is empty and would be a
+// blank block as tall as the map.
+@media screen and (min-width: 1024px) {
+    .origins-layout:not([data-mode="subway"]) .origins-roster-rail:not(:empty) {
+        height: $origins-box-height;
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 0.9rem;
+    }
+
+    .origins-layout[data-mode="subway"] .origins-roster-rail {
+        display: grid;
+        grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+        gap: 1.5rem;
+    }
+
+    .origins-layout[data-mode="subway"] .origins-pane {
+        height: 46vh;
+    }
+
+    .origins-layout[data-mode="subway"] .origins-roster {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .origins-roster,
+    .origins-moments {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding-right: 0.3rem;
+    }
+}
+
+// On a narrow screen the panes are stacked under the map and each list is
+// one row that scrolls sideways, the way the map does, so neither pushes the
+// rest of the page down by its length. Not 1023px: a zoomed browser can give
+// a window a width between 1023px and 1024px, where neither that nor the
+// 1024px query above holds and both lists run their whole length.
+@media screen and (max-width: 1023.98px) {
+    .origins-roster-rail {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.9rem;
+    }
+
+    // A row keeps its overscroll to itself, as the map does: a swipe past
+    // its end should not tip over into the browser's swipe back a page.
+    .origins-roster,
+    .origins-moments {
+        display: flex;
+        gap: 0.5rem;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        padding-bottom: 0.4rem;
+    }
+
+    .origins-roster-item {
+        flex: 0 0 19rem;
+    }
+
+    .origins-moments-item {
+        flex: 0 0 19rem;
+    }
+}
+
+// In the roster a card is a tile among many, so it carries the hover
+// treatment the popup does not need. A click on it picks the person.
+.origins-roster .origins-card {
+    cursor: pointer;
+    transition: background 0.15s ease;
+
+    &.is-lit {
+        background: color-mix(in srgb, var(--origins-trunk) 16%, transparent);
+    }
+
+    &.is-picked {
+        background: color-mix(in srgb, var(--origins-trunk) 22%, transparent);
+        outline: 2px solid var(--origins-trunk);
+        outline-offset: -2px;
+    }
+
+    // Beside the map, Enter on a face sends focus here instead of a popup.
+    &:focus-visible {
+        outline: 3px solid var(--origins-ink);
+        outline-offset: -3px;
+    }
+}
+
+// The same treatment for a moment's card in its list, which is the card its
+// popup shows. A click on it picks the moment. A long title must not widen
+// its row.
+.origins-moments .origins-detail-card {
+    min-width: 0;
+    cursor: pointer;
+    transition: background 0.15s ease;
+
+    &.is-lit {
+        background: color-mix(in srgb, var(--origins-trunk) 16%, transparent);
+    }
+
+    &.is-picked {
+        background: color-mix(in srgb, var(--origins-trunk) 22%, transparent);
+        outline: 2px solid var(--origins-trunk);
+        outline-offset: -2px;
+    }
+
+    // Beside the map, Enter on a moment sends focus here instead of a popup.
+    &:focus-visible {
+        outline: 3px solid var(--origins-ink);
+        outline-offset: -3px;
+    }
+}
+
+// Zola compiles every file under sass/ on its own as well as through
+// style.scss, so style.scss's theme mixins are not in scope here. This is what
+// in-dark-theme expands to: an explicit data-theme on <html> wins, otherwise
+// the OS preference applies.
+@mixin origins-dark-palette {
+    // The map scrolls in its own box, and a browser draws that box's
+    // scrollbars light unless told the content is dark.
+    color-scheme: dark;
+
+    --origins-trunk: #7b9ddf;
+    --origins-muted: #9aa0ab;
+    --origins-ink: #e8ecf4;
+    --origins-surface: rgba(255, 255, 255, 0.06);
+    --origins-line: rgba(255, 255, 255, 0.22);
+
+    --origins-hue-0: #6fc294;
+    --origins-hue-1: #f29b80;
+    --origins-hue-2: #a194ef;
+    --origins-hue-3: #efc26a;
+    --origins-hue-4: #6ab4d4;
+    --origins-hue-5: #e07fa4;
+    --origins-hue-6: #92b862;
+    --origins-hue-7: #d68f63;
+    --origins-hue-8: #8a97e0;
+    --origins-hue-9: #55c0b2;
+    --origins-hue-10: #c884c8;
+    --origins-hue-11: #b3a263;
+}
+
+@media (prefers-color-scheme: dark) {
+    html:not([data-theme=light]) .origins-layout {
+        @include origins-dark-palette;
+    }
+}
+
+html[data-theme=dark] .origins-layout {
+    @include origins-dark-palette;
+}
+
+.origins-legend {
+    @include origins-light-palette;
+}
+
+@media (prefers-color-scheme: dark) {
+    html:not([data-theme=light]) .origins-legend {
+        @include origins-dark-palette;
+    }
+}
+
+html[data-theme=dark] .origins-legend {
+    @include origins-dark-palette;
+}
+
+// Palette slots. -1 is the muted slot the renderer falls back to.
+@for $i from 0 through 11 {
+    [data-hue="#{$i}"] {
+        --origins-thread: var(--origins-hue-#{$i});
+    }
+}
+[data-hue="-1"] {
+    --origins-thread: var(--origins-muted);
+}
+
+// --- the drawing ------------------------------------------------------------
+
+.origins-braid {
+    background: var(--origins-surface);
+    border-radius: 0;
+    // No padding: clientWidth includes it but the SVG's `width: 100%` resolves
+    // against the content box, so any padding here scales the picture down by
+    // that much. The drawing carries its own 40-unit margin instead.
+    padding: 0;
+    // The popup is positioned against this box, in its scroll coordinates.
+    position: relative;
+
+    // The picture is taller than a screen. Scroll it here rather than letting
+    // the page grow to a couple of thousand pixels. Scrolling is left to
+    // chain to the page once the map reaches its end: containing it trapped
+    // the wheel at the bottom of River, made Subway (which does not scroll
+    // this way at all) a dead zone for it, and on a phone, where the map is
+    // most of the screen, left no way past it with a finger inside the box.
+    max-height: $origins-box-height;
+    overflow-y: auto;
+    // Keep room for the scrollbar whether or not it is showing. The script
+    // sizes the canvas to this box before the picture is in it; without this,
+    // the tall picture then brings a scrollbar that narrows the box, and the
+    // canvas it was just sized to no longer fits.
+    scrollbar-gutter: stable;
+
+    // Both modes ask for the canvas they need rather than squeezing into this
+    // container: Map because time runs across the page, River because its
+    // lanes have to stay wider than the faces standing in them. Either way the
+    // canvas can be wider than here, so let it keep its intrinsic width and
+    // pan to it. On touch that is drag-to-pan for free, with native momentum.
+    // Sideways is contained where down is not: panning to the end of Subway
+    // should not tip over into the browser's swipe back a page.
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+
+    // A mouse can take hold of the map and move it. Nothing in it is there
+    // to be selected, and a drag across its labels would otherwise paint a
+    // selection behind the pointer.
+    cursor: grab;
+    -webkit-user-select: none;
+    user-select: none;
+
+    // Everything under the pointer says so while the map is held, the
+    // moments and faces included, which otherwise ask to be clicked.
+    &.is-grabbing,
+    &.is-grabbing * {
+        cursor: grabbing;
+    }
+
+    .origins-svg {
+        width: auto;
+        max-width: none;
+        // Zoomed out, the picture is narrower than the box and sits in the
+        // middle of it, where it was centred at full size.
+        margin: 0 auto;
+    }
+
+    // While it moves from one mode to the other the script sizes the box and
+    // scrolls it, and nothing in it answers the pointer.
+    &.is-morphing {
+        overflow: hidden;
+        pointer-events: none;
+    }
+}
+
+// What the box says when the layout could not run.
+.origins-failed {
+    margin: 0;
+    padding: 1rem;
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+.origins-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+}
+
+.origins-thread {
+    stroke: var(--origins-thread, var(--origins-muted));
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: stroke-width 0.15s ease, opacity 0.15s ease;
+
+    // Member and guest differ by stroke as well as colour, so the distinction
+    // survives in greyscale and at any group size.
+    &.is-guest {
+        stroke-width: 2;
+        stroke-dasharray: 5 5;
+    }
+}
+
+.origins-node {
+    cursor: pointer;
+}
+
+// Drawn over the threads in the page's own colour, partly opaque, so the
+// threads through a moment show through its oval.
+.origins-oval {
+    fill: var(--bulma-scheme-main, #fff);
+    fill-opacity: 0.6;
+    stroke: var(--origins-muted);
+    stroke-width: 1.5;
+    transition: stroke-width 0.12s ease;
+}
+
+// Before :hover and .is-open, which are no more specific than this and have
+// to win over it.
+.origins-node.is-trunk .origins-oval {
+    stroke: var(--origins-trunk);
+}
+
+// is-hot: its card in the list is under the pointer. is-picked: it is the
+// moment picked, from its card or in the map.
+.origins-node:hover .origins-oval,
+.origins-node.is-hot .origins-oval,
+.origins-node.is-open .origins-oval,
+.origins-node.is-picked .origins-oval {
+    stroke: var(--origins-ink);
+    stroke-width: 3;
+}
+
+// An event's own mark, beside its moment. It opens the moment's card as the
+// oval does.
+.origins-moment-avatar {
+    cursor: pointer;
+}
+
+// A little larger than the oval, so a thin one is still easy to hit.
+.origins-node-hit {
+    fill: transparent;
+    pointer-events: all;
+}
+
+// Where the record vouches for someone. Decoration for pointer purposes: the
+// oval under it is what a reader aims at.
+.origins-bead {
+    fill: var(--origins-thread, var(--origins-muted));
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+
+    // Where someone joined: their own colour, ringed in the page's ink.
+    &.is-join {
+        stroke: var(--origins-ink);
+        stroke-width: 1.2;
+    }
+
+    // Where the record says someone was not there: an empty seat in their
+    // colour. Their thread stops either side of the oval, so nothing runs
+    // under the ring.
+    &.is-away {
+        fill: none;
+        stroke: var(--origins-thread, var(--origins-muted));
+        stroke-width: 1.2;
+    }
+}
+
+.origins-label {
+    fill: var(--origins-ink);
+    font-size: 11px;
+    opacity: 0.75;
+    // Labels sit over the nodes they describe; without this they swallow the
+    // click meant for the dot.
+    pointer-events: none;
+}
+
+// Dates live here rather than on every label, which keeps labels short and
+// still gives a reader somewhere to anchor in time.
+.origins-year-tick {
+    stroke: var(--origins-line);
+    stroke-width: 1;
+    stroke-dasharray: 4 6;
+    pointer-events: none;
+}
+
+.origins-year {
+    fill: var(--origins-ink);
+    font-size: 11px;
+    font-weight: 700;
+    opacity: 0.4;
+    letter-spacing: 0.04em;
+    pointer-events: none;
+}
+
+// Threads are decoration for pointer purposes; the ovals and the root
+// avatars are what a reader aims at.
+.origins-thread {
+    pointer-events: none;
+}
+
+.origins-avatar-ring {
+    fill: none;
+    stroke: var(--origins-thread, var(--origins-muted));
+    stroke-width: 2.5;
+
+    .is-guest & {
+        stroke: var(--origins-muted);
+        stroke-dasharray: 4 3;
+    }
+}
+
+.origins-avatar-blank {
+    fill: var(--origins-surface);
+}
+
+.origins-avatar-initial {
+    fill: var(--origins-ink);
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.origins-avatar.is-guest .origins-avatar-image {
+    filter: saturate(0.25);
+}
+
+// --- highlight pairing ------------------------------------------------------
+
+.origins-thread.is-lit {
+    stroke-width: 5;
+}
+
+.origins-root {
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+// While anyone is lit or a moment is in play, the picture has three
+// strengths: whoever is lit at full, whoever a moment in play says nothing
+// about a quarter of the way back, and everyone else stepped back. Half way
+// was tried and read as stepped back: the unrecorded and the away are both
+// thin lines, told apart by strength alone. It is their thread,
+// their beads and their face. The unrecorded sit between because nothing
+// says they were there and nothing says they were not. The moments stay as
+// they are, since they belong to whoever is through them. The roster does
+// not dim: it is a list being read, and its lit card already says who.
+.origins-svg:has(.is-lit, .is-unsure) {
+    .origins-thread:not(.is-lit, .is-unsure),
+    .origins-bead:not(.is-lit, .is-unsure),
+    .origins-root:not(.is-lit, .is-unsure) {
+        opacity: 0.25;
+    }
+
+    .origins-thread.is-unsure,
+    .origins-bead.is-unsure,
+    .origins-root.is-unsure {
+        opacity: 0.75;
+    }
+}
+
+// The braid is one tab stop and the arrow keys move a cursor through it, so
+// where that cursor is has to be obvious. Two rings in opposite colours:
+// the dots and faces sit on top of lines of every hue, and a single ring
+// disappears against the one it happens to land on.
+.origins-node:focus-visible,
+.origins-root:focus-visible {
+    outline: 3px solid var(--origins-ink);
+    outline-offset: 3px;
+    // SVG elements take an outline but not a box-shadow in every engine;
+    // the second ring is drawn with the outline's own backdrop instead.
+    border-radius: 50%;
+}
+
+.origins-svg:focus-visible {
+    outline: none;
+}
+
+.origins-root.is-lit .origins-avatar-ring {
+    stroke-width: 4;
+}
+
+// --- the popup --------------------------------------------------------------
+
+// One card at a time, opened beside whatever was clicked. It is a child of
+// the scrolling map, positioned by the script in the map's own scroll
+// coordinates, so it pans with the map once it is open. Opaque on purpose: it
+// sits over lines and faces, and a translucent card over a braid is
+// unreadable. The page background comes from Bulma so it follows the theme.
+.origins-popup {
+    position: absolute;
+    z-index: 2;
+    // The map around it is held and moved; the card is read, and its words
+    // can be selected.
+    cursor: auto;
+    -webkit-user-select: text;
+    user-select: text;
+    width: 18rem;
+    max-width: calc(100% - 1rem);
+    background: var(--bulma-scheme-main, #fff);
+    border: 1px solid var(--origins-line);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+}
+
+// The X in a card's corner. Each card lays it out in its own way.
+.origins-dismiss {
+    background: none;
+    border: 0;
+    color: inherit;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.6;
+
+    &:hover {
+        opacity: 1;
+    }
+}
+
+// --- the person card --------------------------------------------------------
+
+// The picture and the two lines beside it on top, and the rest under both at
+// the card's full width.
+.origins-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0.5rem 1.6rem 0.5rem 0.6rem;
+    // Square for now. The card treatment is getting redesigned.
+    border-radius: 0;
+    background: var(--origins-surface);
+    border-left: 4px solid var(--origins-thread, var(--origins-muted));
+
+    &.is-guest {
+        border-left-style: dashed;
+        border-left-color: var(--origins-muted);
+    }
+
+    > .origins-dismiss {
+        position: absolute;
+        top: 0.25rem;
+        right: 0.35rem;
+    }
+}
+
+.origins-card-avatar {
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 0 0 2px var(--origins-thread, var(--origins-muted));
+
+    &.is-blank {
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        background: var(--origins-surface);
+    }
+
+    .is-guest & {
+        box-shadow: 0 0 0 2px var(--origins-muted);
+        filter: saturate(0.25);
+    }
+}
+
+// The two lines are centred against the picture, which is the taller when
+// neither wraps.
+.origins-card-top {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+}
+
+.origins-card-who {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+// The name and the badge on one line, the badge just after the name rather
+// than out at the card's edge, where the popup's X sits.
+.origins-card-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.origins-card-name {
+    font-weight: 700;
+    font-size: 0.8rem;
+    line-height: 1.25;
+}
+
+.origins-card-alias,
+.origins-card-join {
+    font-size: 0.62rem;
+    opacity: 0.75;
+}
+
+// Somebody's own words. Set apart from the prose around them by a rule in
+// their thread's colour, so a card that has both does not read as one voice.
+.origins-card-quote {
+    font-size: 0.66rem;
+    font-style: italic;
+    line-height: 1.4;
+    margin: 0.3rem 0 0;
+    padding-left: 0.5rem;
+    border-left: 2px solid var(--origins-thread, var(--origins-muted));
+    opacity: 0.9;
+
+    &::before {
+        content: "\201C";
+    }
+
+    &::after {
+        content: "\201D";
+    }
+}
+
+.origins-card-desc {
+    font-size: 0.62rem;
+    opacity: 0.8;
+    margin: 0.2rem 0 0;
+}
+
+// The handle and their own sites, on one line that wraps when the card is
+// narrow.
+.origins-card-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.6rem;
+    font-size: 0.62rem;
+}
+
+.origins-badge {
+    font-size: 0.5rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+
+    &.is-member {
+        background: var(--origins-trunk);
+        color: #fff;
+    }
+
+    &.is-guest {
+        background: transparent;
+        border: 1px dashed currentColor;
+        opacity: 0.7;
+    }
+}
+
+// --- moment detail ----------------------------------------------------------
+
+// Trunk moments carry the trunk's colour down their edge, as their ovals do
+// in the map.
+.origins-detail-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.6rem 0.7rem;
+    background: var(--origins-surface);
+    border-left: 4px solid var(--origins-muted);
+
+    &.is-trunk {
+        border-left-color: var(--origins-trunk);
+    }
+}
+
+.origins-detail-head {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: start;
+    gap: 0.3rem;
+}
+
+.origins-detail-title {
+    font-weight: 700;
+    font-size: 0.82rem;
+    line-height: 1.25;
+}
+
+.origins-detail-date {
+    grid-column: 1;
+    font-size: 0.62rem;
+    opacity: 0.7;
+}
+
+.origins-detail-head > .origins-dismiss {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+}
+
+// An event's own mark, beside the title and the date. The image is made to
+// sit in a circle, so it needs no cutting here.
+.origins-detail-head.has-avatar {
+    grid-template-columns: auto 1fr auto;
+    column-gap: 0.6rem;
+
+    > .origins-detail-avatar {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        width: 44px;
+        height: 44px;
+    }
+
+    > .origins-detail-title,
+    > .origins-detail-date {
+        grid-column: 2;
+    }
+
+    > .origins-dismiss {
+        grid-column: 3;
+    }
+}
+
+.origins-detail-photo {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+// A moment's heading, over its blurb: what the moment was, in a few words.
+// Set apart from the blurb as a chapter's title is from its text, heavier,
+// a little larger and slanted, and still quieter than the card's own title,
+// which stays the first thing read.
+.origins-detail-heading {
+    font-size: 0.72rem;
+    font-weight: 600;
+    font-style: italic;
+    line-height: 1.3;
+    margin: 0.1rem 0 0;
+}
+
+.origins-detail-blurb,
+.origins-detail-people {
+    font-size: 0.64rem;
+    margin: 0;
+    opacity: 0.85;
+}
+
+.origins-detail-people {
+    opacity: 0.65;
+}
+
+// Only as wide as its words. Stretched across the column, a click beside it
+// that was meant for the card in the list followed the link instead.
+.origins-detail-link {
+    align-self: flex-start;
+    font-size: 0.64rem;
+    font-weight: 700;
+}
+
+// --- fallback and controls --------------------------------------------------
+
+// The layout toggle and the zoom on one line, wrapping on a phone.
+.origins-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    margin-bottom: 0.75rem;
+
+    // Bulma spaces a row of buttons from whatever follows it; here the line
+    // they share does that.
+    .buttons {
+        margin-bottom: 0;
+    }
+}
+
+// A zoom button that would do nothing at this zoom. Dimmed and not disabled,
+// so it keeps the focus a keyboard put on it.
+.origins-zoom [aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: default;
+}
+
+// One line under the toggle, wrapping on a phone. Softened a little through
+// its colour and on each mark, not with an opacity on the whole line: that
+// would make the line a stacking context and put its tooltips under the map.
+.origins-legend {
+    // what a tooltip hangs from on a narrow screen
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.72rem;
+    color: color-mix(in srgb, currentColor 85%, transparent);
+}
+
+// The labels are Nix words, so each item says what it means in plain words
+// when the pointer rests on it, and the cursor says there is something to
+// see. Styled here and not left to the browser's own tooltip, which waits
+// most of a second.
+.origins-legend-item {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    cursor: help;
+
+    &::after {
+        content: attr(data-tip);
+        // No box at all until it is wanted. One that is only invisible still
+        // takes room, and on a phone that widened the page past the screen.
+        display: none;
+        position: absolute;
+        top: calc(100% + 0.35rem);
+        left: 0;
+        // over the map and any card open in it
+        z-index: 3;
+        width: max-content;
+        max-width: 22rem;
+        padding: 0.3rem 0.5rem;
+        // The page's own colours, like a card: dark with light text in the
+        // dark theme, light with dark text in the light one. The border and
+        // the shadow are what set it off from the map under it.
+        background: var(--bulma-scheme-main, #fff);
+        color: var(--origins-ink);
+        border: 1px solid var(--origins-line);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+        font-size: 0.75rem;
+        line-height: 1.3;
+        pointer-events: none;
+    }
+
+    &:hover::after {
+        display: block;
+        // A tenth of a second, then a short fade: quick, but a pointer
+        // passing over the legend on its way somewhere else does not flash
+        // four of them. It is gone at once when the pointer leaves.
+        animation: origins-tip 0.08s ease 0.1s both;
+    }
+}
+
+@keyframes origins-tip {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+// On a narrow screen a tooltip hung from its own item would run off the
+// side, so it hangs from the legend and takes the legend's width.
+@media (max-width: 768px) {
+    .origins-legend-item {
+        position: static;
+
+        &::after {
+            right: 0;
+            width: auto;
+            max-width: none;
+        }
+    }
+}
+
+.origins-legend-mark {
+    flex: none;
+    opacity: 0.85;
+}
+
+.origins-legend-thread {
+    fill: none;
+    stroke: var(--origins-thread, var(--origins-muted));
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+.origins-legend-oval {
+    fill: var(--bulma-scheme-main, #fff);
+    fill-opacity: 0.6;
+    stroke: var(--origins-trunk);
+    stroke-width: 1.5;
+}
+

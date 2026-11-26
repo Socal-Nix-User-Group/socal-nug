@@ -1,0 +1,25 @@
+[[moment]]
+id = "root"
+date = "2021-01-01"
+title = "Root"
+people = ["daniel-baker"]
+
+[[moment]]
+id = "founded"
+date = "2023-04"
+title = "Founded"
+people = ["daniel-baker", "rob-hernandez"]
+trunk = true
+
+[[moment]]
+id = "aa-conference"
+date = "2024-08-01"
+title = "Conference"
+people = ["daniel-baker"]
+away = ["matthew-croughan"]
+
+[[moment]]
+id = "zz-meetup"
+date = "2024-08"
+title = "Meetup"
+people = ["matthew-croughan"]

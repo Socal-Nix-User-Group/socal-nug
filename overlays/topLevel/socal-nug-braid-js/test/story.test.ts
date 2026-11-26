@@ -1,0 +1,213 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { buildStory } from "../src/story.ts";
+import { PEOPLE, MOMENTS, at, story } from "./story-fixture.ts";
+
+const g = (id: string) => story.moments.find((m) => m.moment.id === id)!;
+const slugs = (id: string) => g(id).through.map((p) => p.slug);
+
+test("slot order is by joining, then first moment, then slug", () => {
+  assert.deepEqual(story.order, ["rob", "daniel", "david", "jared", "mica", "connor"]);
+});
+test("after joining, a thread goes through every meetup", () => {
+  assert.deepEqual(slugs("nug2"), ["rob", "daniel", "david", "jared", "mica"]);
+  assert.deepEqual(g("nug2").through.map((p) => p.slot), [0, 1, 2, 3, 4]);
+});
+test("only the joiner is vouched for at a meetup with no attendance recorded", () => {
+  assert.deepEqual(g("nug1").through.filter((p) => p.vouched).map((p) => p.slug), ["jared"]);
+  assert.deepEqual(g("nug1").through.filter((p) => p.joined).map((p) => p.slug), ["jared"]);
+});
+test("someone recorded away keeps their slot, marked away, and nobody closes ranks", () => {
+  assert.deepEqual(slugs("nug3"), ["rob", "daniel", "david", "jared", "mica"]);
+  assert.deepEqual(g("nug3").through.map((p) => p.slot), [0, 1, 2, 3, 4]);
+  assert.deepEqual(g("nug3").through[0], { slug: "rob", slot: 0, away: true, vouched: false, joined: false });
+  assert.equal(g("nug3").slots, 5);
+  assert.equal(g("nug3").inGroup, 5);
+});
+test("nobody is away but someone the record lists away at a meetup", () => {
+  for (const m of story.moments) {
+    for (const p of m.through) {
+      assert.equal(p.away, m.moment.id === "nug3" && p.slug === "rob", `${m.moment.id} ${p.slug}`);
+    }
+  }
+});
+test("someone recorded away is neither vouched for nor joined there, even if the record also names them", () => {
+  const s = buildStory(
+    [at("founded", "2023-04", ["rob", "daniel"], true), at("nug", "2023-06", [], true, { there: ["rob"], away: ["rob"] })],
+    PEOPLE,
+  );
+  assert.deepEqual(s.moments[1].through.map((p) => [p.slug, p.away, p.vouched, p.joined]), [
+    ["daniel", false, false, false],
+    ["rob", true, false, false],
+  ]);
+});
+test("someone recorded there is vouched for", () => {
+  assert.deepEqual(g("nug3").through.filter((p) => p.vouched).map((p) => p.slug), ["daniel"]);
+});
+test("everyone named at a moment that is not a meetup is vouched for", () => {
+  assert.ok(g("camp").through.every((p) => p.vouched));
+});
+test("a gathering of part of the group is off the ribbon, with its slots packed", () => {
+  assert.equal(g("camp").onRibbon, false);
+  assert.deepEqual(g("camp").through.map((p) => [p.slug, p.slot]), [["rob", 0], ["daniel", 1]]);
+  assert.equal(g("camp").slots, 2);
+});
+test("a gathering of the whole group is on the ribbon, and a visitor takes the slot after the members", () => {
+  assert.equal(g("scale").onRibbon, true);
+  assert.deepEqual(g("scale").through.map((p) => [p.slug, p.slot]), [["rob", 0], ["daniel", 1], ["david", 2], ["jared", 3], ["mica", 4], ["connor", 5]]);
+  assert.equal(g("scale").slots, 6);
+});
+test("nothing is on the ribbon before there is a group", () => {
+  assert.equal(g("booth").onRibbon, false);
+  assert.equal(g("booth").inGroup, 0);
+});
+test("a thread is every gathering its person is through, a meetup they were away from included", () => {
+  const path = (slug: string) => story.threads.find((t) => t.person.slug === slug)!.path.map((x) => x.moment.id);
+  assert.deepEqual(path("rob"), ["rob-nix", "booth", "founded", "nug1", "nug2", "camp", "nug3", "scale", "nug4"]);
+  assert.deepEqual(path("connor"), ["scale", "nug4"]);
+});
+test("a thread runs on to a last meetup its person was away from, and passes the side moments before it", () => {
+  const s = buildStory(
+    [...MOMENTS, at("conf", "2024-09", ["rob", "daniel"]), at("nug5", "2024-10", [], true, { away: ["mica"] })],
+    PEOPLE,
+  );
+  const mica = s.threads.find((t) => t.person.slug === "mica")!;
+  assert.equal(mica.path.at(-1)!.moment.id, "nug5");
+  const conf = s.moments.find((m) => m.moment.id === "conf")!;
+  assert.ok(conf.passing.some((p) => p.slug === "mica"));
+});
+// --- away from a moment that is not a meetup ---------------------------------
+// Rob and Daniel are at a conference and Mica is recorded away from it. Mica
+// is through it as at a meetup: in a slot, on the thread, not passing it by.
+
+const awayConf = buildStory(
+  [...MOMENTS, at("conf", "2024-09", ["rob", "daniel"], false, { away: ["mica"] })],
+  PEOPLE,
+);
+const conf = awayConf.moments.find((m) => m.moment.id === "conf")!;
+
+test("someone away from a moment that is not a meetup is through it in slot order, marked away, and everyone it names is vouched for", () => {
+  assert.deepEqual(conf.through.map((p) => [p.slug, p.slot, p.away, p.vouched, p.joined]), [
+    ["rob", 0, false, true, false],
+    ["daniel", 1, false, true, false],
+    ["mica", 2, true, false, false],
+  ]);
+  assert.equal(conf.onRibbon, false);
+});
+test("someone away from a moment does not pass it by, and it is on their thread", () => {
+  assert.ok(!conf.passing.some((p) => p.slug === "mica"));
+  const mica = awayConf.threads.find((t) => t.person.slug === "mica")!;
+  assert.ok(mica.path.some((x) => x.moment.id === "conf"));
+});
+test("a moment that names everyone in the group but those away from it is on the ribbon, each in their own slot", () => {
+  const s = buildStory(
+    [...MOMENTS, at("retreat", "2023-08", ["rob", "daniel", "david", "jared"], false, { away: ["mica"] })],
+    PEOPLE,
+  );
+  const retreat = s.moments.find((m) => m.moment.id === "retreat")!;
+  assert.equal(retreat.onRibbon, true);
+  assert.equal(retreat.slots, 5);
+  assert.deepEqual(retreat.through.map((p) => p.slug), ["rob", "daniel", "david", "jared", "mica"]);
+  for (const p of retreat.through) assert.equal(p.slot, s.order.indexOf(p.slug), p.slug);
+  assert.deepEqual(retreat.passing, []);
+});
+test("someone both named at and away from a moment that is not a meetup is through it once, away", () => {
+  const s = buildStory(
+    [...MOMENTS, at("conf", "2024-09", ["rob", "daniel", "mica"], false, { away: ["mica"] })],
+    PEOPLE,
+  );
+  const both = s.moments.find((m) => m.moment.id === "conf")!;
+  assert.deepEqual(both.through.map((p) => [p.slug, p.slot, p.away, p.vouched]), [
+    ["rob", 0, false, true],
+    ["daniel", 1, false, true],
+    ["mica", 2, true, false],
+  ]);
+});
+
+test("threads come in the people map's order, and someone in no moment has none", () => {
+  assert.deepEqual(story.threads.map((t) => t.person.slug), ["rob", "daniel", "david", "jared", "mica", "connor"]);
+});
+test("a meetup everyone is away from keeps its slots and has everyone through it, away", () => {
+  const s = buildStory([at("founded", "2023-04", ["rob", "daniel"], true), at("nug", "2023-06", [], true, { away: ["rob", "daniel"] })], PEOPLE);
+  const nug = s.moments[1];
+  assert.deepEqual(nug.through.map((p) => [p.slug, p.slot, p.away]), [["daniel", 0, true], ["rob", 1, true]]);
+  assert.equal(nug.slots, 2);
+  assert.equal(nug.onRibbon, true);
+});
+test("someone who never joins is last in slot order and has only the moments that name them", () => {
+  const s = buildStory([...MOMENTS, at("visit", "2024-04", ["morgan", "rob"])], PEOPLE);
+  assert.equal(s.order.at(-1), "morgan");
+  const morgan = s.threads.find((t) => t.person.slug === "morgan")!;
+  assert.deepEqual(morgan.path.map((x) => x.moment.id), ["visit"]);
+  assert.equal(morgan.joinsTrunkAt, null);
+});
+test("two moments on one date are ordered by id, and a person through both passes each once", () => {
+  const s = buildStory([at("founded", "2023-04", ["rob"], true), at("b-nug", "2023-06-01", [], true), at("a-talk", "2023-06-01", ["rob"])], PEOPLE);
+  assert.deepEqual(s.moments.map((m) => m.moment.id), ["founded", "a-talk", "b-nug"]);
+  assert.deepEqual(s.threads[0].path.map((x) => x.moment.id), ["founded", "a-talk", "b-nug"]);
+});
+test("a moment off the ribbon lists the group's members who are not at it under passing, in slot order, each with their ribbon slot", () => {
+  // Rob and Daniel are at the camp; David, Jared and Mica are in the group and are not.
+  assert.deepEqual(g("camp").passing, [
+    { slug: "david", slot: 2 },
+    { slug: "jared", slot: 3 },
+    { slug: "mica", slot: 4 },
+  ]);
+  assert.deepEqual(
+    g("camp").passing.map((p) => p.slot),
+    g("nug2").through.filter((p) => ["david", "jared", "mica"].includes(p.slug)).map((p) => p.slot),
+  );
+});
+test("a moment on the ribbon has nobody passing, including a meetup someone is recorded away from", () => {
+  for (const m of story.moments.filter((x) => x.onRibbon)) {
+    assert.deepEqual(m.passing, [], m.moment.id);
+  }
+  assert.deepEqual(g("nug3").moment.away, ["rob"]);
+  assert.deepEqual(g("nug3").passing, []);
+});
+test("a moment before there is a group has nobody passing", () => {
+  assert.equal(g("rob-nix").inGroup, 0);
+  assert.deepEqual(g("rob-nix").passing, []);
+  assert.equal(g("booth").inGroup, 0);
+  assert.deepEqual(g("booth").passing, []);
+});
+test("someone who has not joined yet is never passing", () => {
+  // Connor joins at nug4, after the camp, and is not at the camp either.
+  for (const m of story.moments) {
+    assert.ok(!m.passing.some((p) => p.slug === "connor"), m.moment.id);
+  }
+  // Morgan never joins and is passing nothing, even with the group at a visit she is not at.
+  const s = buildStory([...MOMENTS, at("visit", "2024-04", ["rob"]), at("talk", "2024-05", ["morgan"])], PEOPLE);
+  for (const m of s.moments) {
+    assert.ok(!m.passing.some((p) => p.slug === "morgan"), m.moment.id);
+  }
+  assert.deepEqual(
+    s.moments.find((m) => m.moment.id === "visit")!.passing.map((p) => p.slug),
+    ["daniel", "david", "jared", "mica"],
+  );
+});
+test("a side moment after the last meetup has nobody passing", () => {
+  const s = buildStory([...MOMENTS, at("conf", "2024-09", ["rob", "daniel"])], PEOPLE);
+  const conf = s.moments.find((m) => m.moment.id === "conf")!;
+  assert.equal(conf.onRibbon, false);
+  assert.equal(conf.inGroup, 6);
+  assert.deepEqual(conf.passing, []);
+});
+test("a member passes a trailing side moment only if their thread goes on to a later one", () => {
+  // Mica is at the later camp and not the earlier conference; David is at neither.
+  const s = buildStory(
+    [...MOMENTS, at("conf", "2024-09", ["rob", "daniel"]), at("camp2", "2024-10", ["mica"])],
+    PEOPLE,
+  );
+  const m = (id: string) => s.moments.find((x) => x.moment.id === id)!;
+  assert.deepEqual(m("conf").passing, [{ slug: "mica", slot: 4 }]);
+  assert.deepEqual(m("camp2").passing, []);
+  for (const id of ["conf", "camp2"]) {
+    assert.ok(!m(id).passing.some((p) => p.slug === "david"), id);
+  }
+});
+test("a person whose first moment is the meetup they join at starts there, joined", () => {
+  const jared = story.threads.find((t) => t.person.slug === "jared")!;
+  assert.equal(jared.path[0].moment.id, "nug1");
+  assert.equal(jared.joinsTrunkAt, "nug1");
+});

@@ -11,6 +11,14 @@
         "extra": {
             "type": "object",
             "properties": {
+                "member": {
+                    "type": "boolean",
+                    "description": "True for members of the group, who appear on the about page. False for guests, who appear only in the Origins braid."
+                },
+                "organizer": {
+                    "type": "boolean",
+                    "description": "True for a member who organizes the group. Their badge on the about page and on their Origins card says Organizer in place of Member."
+                },
                 "name": {
                     "type": "string",
                     "description": "The full name of the user."
@@ -32,16 +40,53 @@
                     "type": "string",
                     "description": "The URL to the user's profile.",
                     "format": "uri"
+                },
+                "links": {
+                    "type": "array",
+                    "description": "The user's own sites, shown by title on the about page and on their Origins card.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "title": {
+                                "type": "string",
+                                "description": "The text the link is shown as."
+                            },
+                            "url": {
+                                "type": "string",
+                                "description": "Where the link goes.",
+                                "format": "uri"
+                            }
+                        },
+                        "required": [
+                            "title",
+                            "url"
+                        ]
+                    }
                 }
             },
             "required": [
+                "member",
                 "name",
-                "alias",
-                "description",
-                "image_url",
-                "profile_url"
+                "alias"
             ],
-            "description": "The user profile information."
+            "if": {
+                "properties": {
+                    "member": {
+                        "const": true
+                    }
+                },
+                "required": [
+                    "member"
+                ]
+            },
+            "then": {
+                "required": [
+                    "description",
+                    "image_url",
+                    "profile_url"
+                ]
+            },
+            "description": "The user profile information. Members must also carry a description, image and profile URL; guests may omit them."
         }
     },
     "required": [

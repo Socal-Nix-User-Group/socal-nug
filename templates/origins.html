@@ -1,0 +1,194 @@
+{% extends "child.html" %}
+
+{% block content %}
+
+{% set about = get_section(path="about/_index.md") %}
+{% set events = get_section(path="events/_index.md") %}
+{% set data = load_data(path="data/moments.toml") %}
+{% set meetups = events.pages | sort(attribute="extra.event.date") %}
+{#- File order, not sorted: an anchored moment has no `date` to sort on, and
+    the engine orders everything itself. The file is written chronologically. -#}
+{% set moments = data.moment %}
+
+<h1 class="title is-1 mb-3">{{ page.title }}</h1>
+
+<div class="content">
+  {{ page.content | safe }}
+</div>
+
+{#- Hidden until the script reveals them, like the theme switcher, so a reader
+    with no JavaScript is not shown controls that do nothing. The zoom is
+    also on Ctrl and the wheel, and a pinch; these buttons are the way to it
+    for a keyboard, a finger, and anyone who has not found that. -#}
+<div class="origins-controls">
+  <div id="origins-toggle" class="origins-toggle buttons has-addons is-hidden"
+       role="group" aria-label="Braid layout">
+    <button class="button is-small" type="button" data-origins-mode="river"
+            aria-pressed="true">River</button>
+    <button class="button is-small" type="button" data-origins-mode="subway"
+            aria-pressed="false">Subway</button>
+  </div>
+  <div id="origins-zoom" class="origins-zoom buttons has-addons is-hidden"
+       role="group" aria-label="Map zoom">
+    <button class="button is-small" type="button" data-origins-zoom="out"
+            aria-label="Zoom out">&minus;</button>
+    <button class="button is-small" type="button" data-origins-zoom="in"
+            aria-label="Zoom in">+</button>
+    <button class="button is-small" type="button" data-origins-zoom="fit"
+            aria-label="Fit the whole map">Fit</button>
+    <button class="button is-small" type="button" data-origins-zoom="reset"
+            aria-label="Zoom to 100%">100%</button>
+  </div>
+</div>
+
+{#- What a thread through a meetup says, since a thread with no bead reads
+    "in the group then" and not "was there". The labels are Nix words, by
+    Daniel's choice: cache hit (the record says they were there), first
+    build (joined here), unevaluated (in the group then, attendance not
+    recorded), cache miss (the record says they were not there). Each
+    carries its plain meaning as a hover tooltip, for a reader the joke
+    misses. All four are always shown. Hidden until the script draws the
+    picture it explains. -#}
+<p id="origins-legend" class="origins-legend is-hidden" aria-hidden="true">
+  <span class="origins-legend-item" data-tip="The record says they were there"><svg class="origins-legend-mark" data-hue="0" viewBox="0 0 36 16" width="36" height="16" aria-hidden="true" focusable="false"><path class="origins-legend-thread" d="M2,8 H34"/><rect class="origins-legend-oval" x="11" y="3.5" width="14" height="9" rx="4.5" ry="4.5"/><circle class="origins-bead" cx="18" cy="8" r="2.6"/></svg>cache hit</span>
+  <span class="origins-legend-item" data-tip="They joined the group here"><svg class="origins-legend-mark" data-hue="0" viewBox="0 0 36 16" width="36" height="16" aria-hidden="true" focusable="false"><path class="origins-legend-thread" d="M2,8 H34"/><rect class="origins-legend-oval" x="11" y="3.5" width="14" height="9" rx="4.5" ry="4.5"/><circle class="origins-bead is-join" cx="18" cy="8" r="3.6"/></svg>first build</span>
+  <span class="origins-legend-item" data-tip="In the group then; whether they came was not recorded"><svg class="origins-legend-mark" data-hue="0" viewBox="0 0 36 16" width="36" height="16" aria-hidden="true" focusable="false"><path class="origins-legend-thread" d="M2,8 H34"/><rect class="origins-legend-oval" x="11" y="3.5" width="14" height="9" rx="4.5" ry="4.5"/></svg>unevaluated</span>
+  <span class="origins-legend-item" data-tip="The record says they were not there"><svg class="origins-legend-mark" data-hue="0" viewBox="0 0 36 16" width="36" height="16" aria-hidden="true" focusable="false"><path class="origins-legend-thread" d="M2,8 H8 M28,8 H34"/><rect class="origins-legend-oval" x="11" y="3.5" width="14" height="9" rx="4.5" ry="4.5"/><circle class="origins-bead is-away" cx="18" cy="8" r="2.6"/></svg>cache miss</span>
+</p>
+
+{#- The wrapper carries the palette. The map is on one side and the rail on
+    the other: beside the map in River on a wide screen, under it otherwise. -#}
+<div class="origins-layout" id="origins-layout" data-mode="river">
+  {# The script draws the map, and fills the rail with the list of people and
+     the list of moments. #}
+  <div id="origins-braid" class="origins-braid"></div>
+  <div id="origins-roster" class="origins-roster-rail"></div>
+</div>
+
+{#
+  Built by hand rather than by json_encode over a constructed object: Tera has
+  no object literal, so the structure is written out and only the values are
+  encoded. `safe` is required on every one of them, since json_encode escapes
+  for HTML and JSON.parse would choke on &quot;.
+#}
+<script type="application/json" id="origins-data">
+{
+  "people": [
+  {%- set_global sep = "" -%}
+  {%- for p in about.pages %}
+    {{ sep | safe }}{
+      "slug": {{ p.slug | json_encode | safe }},
+      "name": {{ p.extra.name | json_encode | safe }},
+      "alias": {{ p.extra.alias | json_encode | safe }},
+      "description": {{ p.extra.description | default(value="") | json_encode | safe }},
+      "quote": {{ p.extra.quote | default(value="") | json_encode | safe }},
+      "imageUrl": {{ p.extra.image_url | default(value="") | json_encode | safe }},
+      "profileUrl": {{ p.extra.profile_url | default(value="") | json_encode | safe }},
+      "links": {{ p.extra.links | default(value=[]) | json_encode | safe }},
+      "member": {{ p.extra.member | json_encode | safe }},
+      "organizer": {{ p.extra.organizer | default(value=false) | json_encode | safe }}
+    }
+    {%- set_global sep = "," -%}
+  {%- endfor %}
+  ],
+  "moments": [
+  {%- set_global sep = "" -%}
+
+  {#- The spine. Every event is a trunk moment, and any moment anchored to it
+      contributes its people. The meetup list is never copied into the data
+      file, so posting an event grows the braid with no other edit. -#}
+  {%- for e in meetups %}
+    {#- This Tera has no `concat`, so joiners accumulate as a space-separated
+        string and are split back out. Slugs never contain spaces. -#}
+    {%- set_global joiners = "" -%}
+    {%- set_global present = "" -%}
+    {%- set_global absent = "" -%}
+    {%- for m in moments %}
+      {%- set anchored = m.event | default(value="") -%}
+      {%- if anchored == e.slug -%}
+        {%- for slug in m.people | default(value=[]) -%}
+          {%- set_global joiners = joiners ~ slug ~ " " -%}
+        {%- endfor -%}
+        {%- for slug in m.there | default(value=[]) -%}
+          {%- set_global present = present ~ slug ~ " " -%}
+        {%- endfor -%}
+        {%- for slug in m.away | default(value=[]) -%}
+          {%- set_global absent = absent ~ slug ~ " " -%}
+        {%- endfor -%}
+      {%- endif -%}
+    {%- endfor %}
+    {{ sep | safe }}{
+      "id": {{ e.slug | json_encode | safe }},
+      "date": {{ e.extra.event.date | json_encode | safe }},
+      "title": {{ e.title | json_encode | safe }},
+      "people": [
+        {%- set_global psep = "" -%}
+        {%- for slug in joiners | split(pat=" ") -%}
+          {%- if slug != "" -%}
+            {{ psep | safe }}{{ slug | json_encode | safe }}
+            {%- set_global psep = "," -%}
+          {%- endif -%}
+        {%- endfor -%}
+      ],
+      "there": [
+        {%- set_global psep = "" -%}
+        {%- for slug in present | split(pat=" ") -%}
+          {%- if slug != "" -%}
+            {{ psep | safe }}{{ slug | json_encode | safe }}
+            {%- set_global psep = "," -%}
+          {%- endif -%}
+        {%- endfor -%}
+      ],
+      "away": [
+        {%- set_global psep = "" -%}
+        {%- for slug in absent | split(pat=" ") -%}
+          {%- if slug != "" -%}
+            {{ psep | safe }}{{ slug | json_encode | safe }}
+            {%- set_global psep = "," -%}
+          {%- endif -%}
+        {%- endfor -%}
+      ],
+      "trunk": true,
+      "permalink": {{ e.permalink | json_encode | safe }}
+    }
+    {%- set_global sep = "," -%}
+  {%- endfor %}
+
+  {#- Everything events cannot know. Anchored moments are skipped here; they
+      were merged into their event above. -#}
+  {%- for m in moments %}
+    {%- set anchored = m.event | default(value="") -%}
+    {%- if anchored == "" %}
+    {{ sep | safe }}{
+      "id": {{ m.id | json_encode | safe }},
+      "date": {{ m.date | json_encode | safe }},
+      "title": {{ m.title | json_encode | safe }},
+      "people": {{ m.people | default(value=[]) | json_encode | safe }},
+      "away": {{ m.away | default(value=[]) | json_encode | safe }},
+      "trunk": {{ m.trunk | default(value=false) | json_encode | safe }},
+      "heading": {{ m.heading | default(value="") | json_encode | safe }},
+      "blurb": {{ m.blurb | default(value="") | json_encode | safe }},
+      "photo": {{ m.photo | default(value="") | json_encode | safe }},
+      "avatar": {{ m.avatar | default(value="") | json_encode | safe }},
+      "links": {{ m.links | default(value=[]) | json_encode | safe }}
+    }
+    {%- set_global sep = "," -%}
+    {%- endif %}
+  {%- endfor %}
+  ]
+}
+</script>
+
+{% endblock content %}
+
+{% block custom_js %}
+{#- Eclipse Layout Kernel lays the braid out. Vendored rather than fetched
+    from a CDN, since the site is heading for self-hosting; the elk-vendored
+    check fails if the committed file is not the pinned upstream release. A
+    classic script, so its global is there before the module below runs. -#}
+<script src="/js/vendor/elk.bundled.js"></script>
+{#- Committed to static/js/, so Netlify serves it as a plain asset and needs
+    no node toolchain. The braid-bundle-fresh check fails when the committed
+    file and a fresh esbuild of src/ disagree. -#}
+<script type="module" src="/js/braid.js"></script>
+{% endblock custom_js %}

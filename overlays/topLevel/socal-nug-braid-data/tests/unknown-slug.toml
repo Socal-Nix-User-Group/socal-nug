@@ -1,0 +1,12 @@
+[[moment]]
+id = "root"
+date = "2021-01-01"
+title = "Root"
+people = ["nobody-here"]
+
+[[moment]]
+id = "founded"
+date = "2023-04"
+title = "Founded"
+people = ["daniel-baker"]
+trunk = true

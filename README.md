@@ -19,7 +19,10 @@ nix flake check
 
 This builds the site, validates the front matter of event posts and member profiles against
 their JSON schemas, runs the build-output tests, checks that `netlify.toml` pins the same Zola
-version as the flake, and checks formatting. CI runs the same command. To fix formatting (Nix,
+version as the flake, and checks formatting. It also runs the Origins page's unit tests and lays
+the Origins picture out through the real layout engine, on the site's own data and on made-up
+histories, and measures it: threads, ovals, faces and labels must not overlap, and the moments on
+the ribbon must line up in one column. CI runs the same command. To fix formatting (Nix,
 shell scripts and repository Markdown; site content is never formatted):
 
 ```
@@ -43,6 +46,13 @@ Each lives under `overlays/topLevel/` and runs with `nix run`:
 - `.#socal-nug-make-event-ical`: generate the calendar files from event posts.
 - `.#socal-nug-test-site`: the build-output tests, given the site source directory.
 - `.#socal-nug-logos`: regenerate the sibling group logos in `static/siblings/`.
+- `.#socal-nug-braid-browser`: load the Origins page in headless Chromium and check how it
+  behaves when scrolled, clicked, dragged, zoomed, switched between its two layouts, tabbed
+  through and tapped. Linux only, needs the network, and
+  is not part of `nix flake check`. Run it after changing the page's script (anything under
+  `overlays/topLevel/socal-nug-braid-js/src/`), its stylesheet `sass/css/pages/origins.scss` or
+  its template `templates/origins.html`, and after `data/moments.toml` gains people or moments
+  off the ribbon, which change the size of the picture.
 
 ## Deploys
 

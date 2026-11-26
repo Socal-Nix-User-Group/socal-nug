@@ -1,0 +1,696 @@
+# Moments for the Origins page.
+#
+# The meetup spine comes from content/events/ automatically. This file holds
+# the personal history before and outside the group, and the records of which
+# event each person first turned up to.
+#
+# A moment carries either `date` + `title`, or `event` (which resolves both
+# from the event page). Never both.
+#
+# A record anchored to a meetup with `event` may also carry `there` and
+# `away`, lists of people's slugs. Several records may anchor to one meetup.
+# `there` puts a bead on that person's thread inside the meetup's oval: the
+# record says they were there. `away` breaks their thread either side of
+# the oval and puts a hollow bead in their place inside it: the record says
+# they were not. With neither, a member's thread runs through the oval with
+# no bead, which says only that they were in the group then, except at the
+# meetup they joined at, where they always have the ringed bead. Nobody can
+# be recorded at a meetup before the one they joined at, or away from the
+# one they joined at. A dated moment that is not a meetup may carry `away`
+# and never `there`: its `people` already say who was there. `away` draws the
+# same at it as at a meetup: the thread breaks either side of the oval with a
+# hollow bead in their place inside it. Nobody can be both in `people` and in
+# `away` on one moment, or away from a moment that comes before any moment
+# they are at. Moments come in the order the page draws them: by date, a
+# month or a year counting from its first day, then by id, a record anchored
+# to an event going by the event's slug.
+#
+# `date` accepts YYYY, YYYY-MM or YYYY-MM-DD. Write the precision you actually
+# have; it is never padded, and the page displays what is written here.
+#
+# A dated moment may carry `avatar`, the event's own mark: a site path to a
+# square image under static/images/moments/ made to sit in a circle. An event
+# that changes its mark each year has a file for each.
+#
+# A dated moment may carry `heading`, a few words over its `blurb` that say
+# what the moment was, as a chapter has a title. The card sets it apart from
+# the blurb. A blank line in a `blurb` starts a new paragraph on the card.
+#
+# Lines marked CONFIRM are best guesses awaiting a better source. Grep for
+# them when backfilling.
+
+# --- Rob Hernandez ---------------------------------------------------------
+
+[[moment]]
+id = "rob-finds-nix"
+date = "2018-07" # CONFIRM: "around the middle of 2018"
+title = "First contact"
+people = ["rob-hernandez"]
+blurb = "Rob Hernandez had heard of Nix here and there. A good friend from bar trivia recommended looking into it seriously, after Rob talked about wanting reproducible builds with pkgsrc, the NetBSD ports tree."
+
+# --- Daniel Baker ----------------------------------------------------------
+
+[[moment]]
+id = "daniel-finds-nix"
+date = "2021-10-23"
+title = "First contact"
+people = ["daniel-baker"]
+blurb = "Daniel Baker joined the NixOS Discourse. It is the earliest dated trace of him using Nix; he had found it some time before that."
+
+[[moment]]
+id = "tweag"
+date = "2022-02-21"
+title = "Started at Tweag"
+people = ["daniel-baker"]
+
+[[moment]]
+id = "meets-connor"
+date = "2022-03" # CONFIRM: "let's say March"
+title = "Paths cross"
+people = ["daniel-baker", "connor-baker"]
+blurb = "Daniel Baker and Connor Baker met working at Tweag."
+
+[[moment]]
+id = "meets-thomas"
+date = "2022-07-08"
+title = "Paths cross"
+people = ["daniel-baker", "thomas-bereknyei"]
+blurb = "Daniel Baker messaged Thomas Bereknyei after talking with Rok Garbas, wanting to help with the \"What's new in Nix\" videos on the NixOS YouTube channel. The two went on to make one together."
+links = [
+  { title = "What's new in Nix 2.8.0 - 2.12.0?", url = "https://www.youtube.com/watch?v=ypFLcMCSzNA" },
+]
+
+[[moment]]
+id = "code-and-coffee"
+date = "2022-08-27"
+title = "Paths cross"
+people = ["daniel-baker", "david-nuon"]
+blurb = "Daniel Baker and David Nuon met at a Code and Coffee meetup."
+
+# --- Jared Baur ------------------------------------------------------------
+
+[[moment]]
+id = "jared-finds-nix"
+date = "2021-12"
+title = "First contact"
+people = ["jared-baur"]
+
+# --- Connor Baker ----------------------------------------------------------
+
+# The date is the day Connor gives for the pull request. Connor had been
+# using Nix for "about a month or two prior" and does not recall the day.
+[[moment]]
+id = "connor-finds-nix"
+date = "2021-12-03"
+title = "First contact"
+people = ["connor-baker"]
+blurb = "Connor Baker opened a pull request to Nix. It is the earliest dated trace of Connor using it, after a month or two of packaging developer environments for AWS big data work."
+links = [
+  { title = "NixOS/nix #5725", url = "https://github.com/NixOS/nix/pull/5725" },
+]
+
+# --- Tristan Ross ----------------------------------------------------------
+
+# The date is the commit's own, in the Pacific time it was made in. GitHub
+# shows it as 2 August to a reader in UTC.
+[[moment]]
+id = "tristan-finds-nix"
+date = "2022-08-01"
+title = "First contact"
+people = ["tristan-ross"]
+blurb = "Tristan Ross started moving a dotfiles repository over to NixOS. It is the earliest dated trace of Tristan using Nix. After a move to California, an overclock killed a Void Linux install, and Tristan wanted a configuration that could be reproduced."
+links = [
+  { title = "RossComputerGuy/dotfiles f63ede2", url = "https://github.com/RossComputerGuy/dotfiles/commit/f63ede286b72dc2c2fed119dfcb5df5b06e2f671" },
+]
+
+# --- Conferences and camps -------------------------------------------------
+# Dates are the first day of each event.
+
+[[moment]]
+id = "nix-camp-2022"
+date = "2022-09-12"
+title = "Nix Camp"
+avatar = "/images/moments/nix-camp.png"
+# Matthew Croughan organizes Nix Camp and is at every one.
+people = ["rob-hernandez", "matthew-croughan", "joshua-campbell"]
+links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
+
+[[moment]]
+id = "nixcon-2022"
+date = "2022-10-20"
+title = "NixCon"
+avatar = "/images/moments/nixcon-2022.png"
+# Connor Baker was listed here at first and was not at it. Daniel corrected
+# it on 2026-11-26.
+people = ["daniel-baker"]
+links = [{ title = "NixCon 2022", url = "https://2022.nixcon.org/" }]
+
+# --- Convergence -----------------------------------------------------------
+
+[[moment]]
+id = "scale-20x"
+date = "2023-03-09" # SCaLE 20x ran 9 to 12 March
+title = "SCaLE 20x"
+avatar = "/images/moments/scale.png"
+# The whole conference, not only the Nix booth, so that everyone who was at
+# SCaLE that year is through it. Who met whom there belongs in the blurb.
+people = [
+  "daniel-baker",
+  "rob-hernandez",
+  "david-nuon",
+  "mica",
+  "matthew-croughan",
+  "joshua-campbell",
+]
+heading = "Returning to the show floor"
+blurb = """
+For the first time in many years, Nix once again had a booth at SCaLE. What might have seemed like a modest presence on a crowded exhibition floor was an opportunity for something much greater. It gave people who had discovered Nix independently a place to find one another, share their enthusiasm, and make connections beyond the confines of the internet. Few could have imagined what would grow from those conversations or where those newfound relationships would lead.
+
+Daniel Baker, Daniel Fullmer and Ben Futoriansky were at the Nix booth. Daniel Baker and David Nuon met Rob Hernandez there."""
+links = [
+  { title = "SCaLE 20x", url = "https://www.socallinuxexpo.org/scale/20x/" },
+]
+
+[[moment]]
+id = "snug-founded"
+date = "2023-04"
+title = "SNUG founded"
+people = ["daniel-baker", "david-nuon", "rob-hernandez"]
+trunk = true
+blurb = "A group chat called 'Cool Guys from SCaLE'."
+
+# --- Joins and moments outside the meetups ---------------------------------
+
+[[moment]]
+id = "jared-joins"
+event = "2023-05-30"
+people = ["jared-baur"]
+
+[[moment]]
+id = "samuel-joins"
+event = "2023-05-30"
+people = ["samuel-raumin"]
+
+[[moment]]
+id = "mica-joins"
+event = "2023-07-08"
+people = ["mica"]
+
+[[moment]]
+id = "joshua-joins"
+event = "2023-07-08"
+people = ["joshua-campbell"]
+
+[[moment]]
+id = "tristan-joins"
+event = "2023-09-19"
+people = ["tristan-ross"]
+
+[[moment]]
+id = "kyle-joins"
+event = "2023-09-19"
+people = ["kyle-risse"]
+
+# NUG #5 was Chris's first meetup, a month after SCaLE 21x, where Chris
+# already was.
+[[moment]]
+id = "chris-joins"
+event = "2024-04-13"
+people = ["chris-tewfik"]
+
+# Connor is not in the pictures of NUG #6, which was first thought to be
+# where Connor joined.
+[[moment]]
+id = "connor-joins"
+event = "2024-08-01" # CONFIRM: "may have been at NUG #7 first"
+people = ["connor-baker"]
+
+# Daniel is sure Morgan was at NUG #6, the first meetup after the two met.
+[[moment]]
+id = "morgan-joins"
+event = "2024-06-01"
+people = ["morgan-jones"]
+
+[[moment]]
+id = "meets-morgan"
+date = "2024-05-06"
+title = "Paths cross"
+people = ["daniel-baker", "morgan-jones"]
+blurb = "Daniel Baker and Morgan Jones met on Discord."
+
+[[moment]]
+id = "tristan-reviews-morgan"
+date = "2024-04-17"
+title = "Paths cross"
+people = ["tristan-ross", "morgan-jones"]
+blurb = "Tristan Ross reviewed a pull request Morgan Jones had opened to nixpkgs."
+links = [
+  { title = "NixOS/nixpkgs #304204", url = "https://github.com/NixOS/nixpkgs/pull/304204" },
+]
+
+# Thomas Bereknyei is a guest and has been to no meetup. Daniel has no more
+# about this one yet.
+[[moment]]
+id = "tristan-meets-thomas"
+date = "2024-07-07"
+title = "Paths cross"
+people = ["tristan-ross", "thomas-bereknyei"]
+
+# No `trunk` key on any of these: they are not meetups, so nobody joins at
+# them. Each is an oval that the threads of the people it names run through.
+# The thread of someone it lists away comes to it too, and breaks either side
+# of it. It is on the ribbon when everyone in the group then is named or
+# listed away, beside it otherwise.
+
+[[moment]]
+id = "nix-camp-2023"
+date = "2023-09-24"
+title = "Nix Camp"
+avatar = "/images/moments/nix-camp.png"
+people = [
+  "daniel-baker",
+  "rob-hernandez",
+  "david-nuon",
+  "kyle-risse",
+  "matthew-croughan",
+]
+links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
+
+# SCaLE runs co-located events alongside the main conference. One moment per
+# year, linking to both: the same days, the same building.
+[[moment]]
+id = "scale-21x"
+date = "2024-03-14"
+title = "SCaLE 21x / NixCon NA"
+avatar = "/images/moments/scale.png"
+# CONFIRM: "I think everyone was there". Morgan is left off: the record says
+# Daniel met Morgan on 2024-05-06, two months after this.
+people = [
+  "daniel-baker",
+  "david-nuon",
+  "rob-hernandez",
+  "jared-baur",
+  "samuel-raumin",
+  "tristan-ross",
+  "kyle-risse",
+  "connor-baker",
+  "mica",
+  "chris-tewfik",
+  "joshua-campbell",
+  "matthew-croughan",
+  "thomas-bereknyei",
+]
+heading = "Beyond familiar shores"
+blurb = """
+For years, NixCon had brought the Nix community together in Europe, while much of the community elsewhere in the world had yet to experience a gathering of its kind closer to home. In 2024, that changed. SCaLE 21x became home to the first NixCon outside of Europe, marking a new chapter in the community's history. People traveled from near and far, bringing with them their experiences, ideas, and aspirations for Nix. Online acquaintances became familiar faces, new friendships took root, and relationships that had long existed across screens and oceans took on new meaning. NixCon was no longer bound to a single continent, and the community was beginning to reflect the breadth of the people who made it possible.
+
+NixCon North America ran alongside SCaLE 21x, 14 to 17 March."""
+links = [
+  { title = "NixCon NA", url = "https://2024-na.nixcon.org/" },
+  { title = "SCaLE 21x", url = "https://www.socallinuxexpo.org/scale/21x/" },
+]
+
+[[moment]]
+id = "nix-camp-2024"
+date = "2024-09-02"
+title = "Nix Camp"
+avatar = "/images/moments/nix-camp.png"
+# David Nuon was listed here at first and was not at it; Rob Hernandez was.
+# Daniel corrected it on 2026-11-26.
+people = ["daniel-baker", "rob-hernandez", "matthew-croughan"]
+links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
+
+# Nobody from the group is thought to have been at this one. It is here
+# because Matthew Croughan was: Matthew has been at every NixCon since.
+# Thomas Bereknyei, the other guest, was at it too.
+[[moment]]
+id = "nixcon-2024"
+date = "2024-10-25" # ran 25 to 27 October
+title = "NixCon"
+avatar = "/images/moments/nixcon-2024.png"
+people = ["matthew-croughan", "thomas-bereknyei"]
+links = [{ title = "NixCon 2024", url = "https://2024.nixcon.org/" }]
+
+[[moment]]
+id = "scale-22x"
+date = "2025-03-06"
+title = "SCaLE 22x / PlanetNix"
+avatar = "/images/moments/scale.png"
+# CONFIRM: "I think everyone was there"
+people = [
+  "daniel-baker",
+  "david-nuon",
+  "rob-hernandez",
+  "jared-baur",
+  "samuel-raumin",
+  "tristan-ross",
+  "kyle-risse",
+  "connor-baker",
+  "morgan-jones",
+  "mica",
+  "chris-tewfik",
+  "joshua-campbell",
+  "thomas-bereknyei",
+]
+blurb = "PlanetNix ran alongside SCaLE 22x, 6 to 9 March."
+links = [
+  { title = "PlanetNix", url = "https://planetnix.com/" },
+  { title = "SCaLE 22x", url = "https://www.socallinuxexpo.org/scale/22x/" },
+]
+
+[[moment]]
+id = "nix-vegas-2025"
+date = "2025-08-07"
+title = "Nix Vegas"
+avatar = "/images/moments/nix-vegas-2025.png"
+people = [
+  "morgan-jones",
+  "tristan-ross",
+  "rob-hernandez",
+  "kyle-risse",
+  "thomas-bereknyei",
+]
+away = ["daniel-baker"]
+heading = "Into new territory"
+blurb = """
+In the summer of 2025, the threads of our community extended beyond Southern California and into the halls of DEF CON. Nix Vegas became the first dedicated Nix Community space at one of the world's most renowned hacker conferences. It was an opportunity to bring together people whose curiosity, creativity, and desire to understand how things work transcended any single technology. What had begun years earlier as a series of chance encounters had grown into something capable of creating opportunities for others to find one another and begin stories of their own.
+
+Daniel Baker was sick the week of the event and could not be there."""
+links = [{ title = "Nix Vegas 2025", url = "https://nix.vegas/2025/" }]
+
+[[moment]]
+id = "nix-camp-2025"
+date = "2025-08-27"
+title = "Nix Camp"
+avatar = "/images/moments/nix-camp.png"
+people = [
+  "daniel-baker",
+  "rob-hernandez",
+  "connor-baker",
+  "jared-baur",
+  "matthew-croughan",
+]
+links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
+
+[[moment]]
+id = "nixcon-2025"
+date = "2025-09-05"
+title = "NixCon"
+avatar = "/images/moments/nixcon-2025.png"
+people = [
+  "daniel-baker",
+  "rob-hernandez",
+  "connor-baker",
+  "jared-baur",
+  "matthew-croughan",
+]
+links = [{ title = "NixCon 2025", url = "https://2025.nixcon.org/" }]
+
+[[moment]]
+id = "scale-23x"
+date = "2026-03-05"
+title = "SCaLE 23x / PlanetNix"
+avatar = "/images/moments/scale.png"
+# CONFIRM: "I think everyone was there"
+people = [
+  "daniel-baker",
+  "david-nuon",
+  "rob-hernandez",
+  "jared-baur",
+  "samuel-raumin",
+  "tristan-ross",
+  "kyle-risse",
+  "connor-baker",
+  "morgan-jones",
+  "mica",
+  "chris-tewfik",
+  "joshua-campbell",
+  "thomas-bereknyei",
+]
+blurb = "PlanetNix ran alongside SCaLE 23x, 5 to 8 March."
+links = [
+  { title = "PlanetNix", url = "https://planetnix.com/" },
+  { title = "SCaLE 23x", url = "https://www.socallinuxexpo.org/scale/23x" },
+]
+
+[[moment]]
+id = "nix-vegas-2026"
+date = "2026-08-06"
+title = "Nix Vegas"
+avatar = "/images/moments/nix-vegas-2026.png"
+people = ["morgan-jones", "tristan-ross", "rob-hernandez", "daniel-baker"]
+links = [{ title = "Nix Vegas 2026", url = "https://nix.vegas/2026/" }]
+
+[[moment]]
+id = "nixcon-2026"
+date = "2026-09-25"
+title = "NixCon"
+avatar = "/images/moments/nixcon-2026.png"
+people = [
+  "daniel-baker",
+  "connor-baker",
+  "jared-baur",
+  "morgan-jones",
+  "tristan-ross",
+  "matthew-croughan",
+]
+links = [{ title = "NixCon 2026", url = "https://2026.nixcon.org/" }]
+
+[[moment]]
+id = "nix-camp-2026"
+date = "2026-10-01" # ran 1 to 7 October
+title = "Nix Camp"
+avatar = "/images/moments/nix-camp.png"
+people = ["tristan-ross", "matthew-croughan"]
+links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
+
+# --- Who was at each meetup ------------------------------------------------
+# One record per meetup, in date order. A meetup with no record here says
+# nothing about who came. NUG #18 has not happened yet.
+#
+# CONFIRM: "I believe David and I were at every single NUG event". That is
+# why Daniel Baker and David Nuon are on every one of these, the two Mini
+# NUGs included.
+#
+# Others who are not on this page were at many of these. The lists name only
+# people who have a profile.
+#
+# Seven meetups were checked against pictures Daniel found: NUG #1, #2, #3,
+# #4, #6, the Mini NUG of June 2025 and NUG #17. Daniel later gave the whole
+# of two more, NUG #5 and NUG #10, the second from a picture. For those nine
+# the record is whole: everyone in the group at the time is `there` or
+# `away`. For the rest Daniel and David are recorded, and Chris Tewfik and
+# Samuel Raumin (below), and at NUG #12 Tristan Ross and Morgan Jones, and
+# nothing is said about anyone else.
+#
+# Chris Tewfik is recorded at every meetup from NUG #5, the first, to
+# NUG #17. Daniel knew of NUG #6 and NUG #17. Chris added NUG #7, #8, #10,
+# #11, #12, #13 and the Mini NUG of June 2025, and said there were no
+# others, so Chris is `away` at the rest.
+#
+# Samuel Raumin is recorded at every meetup from NUG #1, the first, to
+# NUG #17. Samuel was at NUG #1 and NUG #3. Daniel said on 2026-11-26 that
+# Samuel has been to no NUG event besides those already recorded, so Samuel
+# is `away` at the rest, the two Mini NUGs included.
+#
+# Joshua Campbell was added after the seven were recorded, and Daniel then
+# placed Joshua at each of them from NUG #2, the first.
+
+[[moment]]
+id = "nug-1-attendance"
+event = "2023-05-30"
+there = [
+  "daniel-baker",
+  "david-nuon",
+  "rob-hernandez",
+  "samuel-raumin",
+  "jared-baur",
+]
+
+[[moment]]
+id = "nug-2-attendance"
+event = "2023-07-08"
+there = ["daniel-baker", "david-nuon", "mica", "rob-hernandez"]
+away = ["jared-baur", "samuel-raumin"]
+
+[[moment]]
+id = "nug-3-attendance"
+event = "2023-09-19"
+there = [
+  "daniel-baker",
+  "david-nuon",
+  "rob-hernandez",
+  "mica",
+  "samuel-raumin",
+  "tristan-ross",
+  "kyle-risse",
+  "jared-baur",
+]
+away = ["joshua-campbell"]
+
+[[moment]]
+id = "nug-4-attendance"
+event = "2024-01-25"
+there = [
+  "daniel-baker",
+  "david-nuon",
+  "mica",
+  "rob-hernandez",
+  "jared-baur",
+  "tristan-ross",
+  "joshua-campbell",
+]
+away = ["samuel-raumin", "kyle-risse"]
+
+[[moment]]
+id = "nug-5-attendance"
+event = "2024-04-13"
+there = [
+  "daniel-baker",
+  "david-nuon",
+  "rob-hernandez",
+  "mica",
+  "chris-tewfik",
+]
+away = [
+  "jared-baur",
+  "samuel-raumin",
+  "joshua-campbell",
+  "tristan-ross",
+  "kyle-risse",
+]
+
+[[moment]]
+id = "nug-6-attendance"
+event = "2024-06-01"
+there = [
+  "daniel-baker",
+  "david-nuon",
+  "tristan-ross",
+  "rob-hernandez",
+  "mica",
+  "kyle-risse",
+  "morgan-jones",
+  "chris-tewfik",
+]
+away = ["jared-baur", "samuel-raumin", "joshua-campbell"]
+
+[[moment]]
+id = "nug-7-attendance"
+event = "2024-08-01"
+there = ["daniel-baker", "david-nuon", "chris-tewfik"]
+away = ["samuel-raumin"]
+
+[[moment]]
+id = "nug-8-attendance"
+event = "2024-09-19"
+there = ["daniel-baker", "david-nuon", "chris-tewfik"]
+away = ["samuel-raumin"]
+
+[[moment]]
+id = "nug-9-attendance"
+event = "2024-11-02"
+there = ["daniel-baker", "david-nuon"]
+away = ["samuel-raumin", "chris-tewfik"]
+
+# Chris Tewfik was not at NUG #10. Chris's earlier account had Chris at it,
+# Daniel's list and picture of the meetup did not, and Daniel settled it on
+# 2026-11-25.
+[[moment]]
+id = "nug-10-attendance"
+event = "2025-02-08"
+there = [
+  "daniel-baker",
+  "david-nuon",
+  "rob-hernandez",
+  "jared-baur",
+  "mica",
+  "joshua-campbell",
+  "tristan-ross",
+  "connor-baker",
+  "morgan-jones",
+]
+away = ["samuel-raumin", "kyle-risse", "chris-tewfik"]
+
+[[moment]]
+id = "mini-nug-2025-04-10-attendance"
+event = "2025-04-10"
+there = ["daniel-baker", "david-nuon"]
+away = ["samuel-raumin", "chris-tewfik"]
+
+[[moment]]
+id = "nug-11-attendance"
+event = "2025-05-03"
+there = ["daniel-baker", "david-nuon", "chris-tewfik"]
+away = ["samuel-raumin"]
+
+[[moment]]
+id = "mini-nug-2025-06-04-attendance"
+event = "2025-06-04"
+there = ["daniel-baker", "david-nuon", "tristan-ross", "chris-tewfik"]
+away = [
+  "rob-hernandez",
+  "jared-baur",
+  "samuel-raumin",
+  "mica",
+  "kyle-risse",
+  "connor-baker",
+  "morgan-jones",
+  "joshua-campbell",
+]
+
+[[moment]]
+id = "nug-12-attendance"
+event = "2025-08-01"
+there = [
+  "daniel-baker",
+  "david-nuon",
+  "tristan-ross",
+  "morgan-jones",
+  "chris-tewfik",
+]
+away = ["samuel-raumin"]
+
+[[moment]]
+id = "nug-13-attendance"
+event = "2025-12-04"
+there = ["daniel-baker", "david-nuon", "chris-tewfik"]
+away = ["samuel-raumin"]
+
+[[moment]]
+id = "nug-14-attendance"
+event = "2026-04-11"
+there = ["daniel-baker", "david-nuon"]
+away = ["samuel-raumin", "chris-tewfik"]
+
+[[moment]]
+id = "nug-15-attendance"
+event = "2026-06-27"
+there = ["daniel-baker", "david-nuon"]
+away = ["samuel-raumin", "chris-tewfik"]
+
+[[moment]]
+id = "nug-16-attendance"
+event = "2026-09-12"
+there = ["daniel-baker", "david-nuon"]
+away = ["samuel-raumin", "chris-tewfik"]
+
+[[moment]]
+id = "nug-17-attendance"
+event = "2026-11-14"
+there = [
+  "daniel-baker",
+  "david-nuon",
+  "tristan-ross",
+  "morgan-jones",
+  "mica",
+  "chris-tewfik",
+]
+away = [
+  "rob-hernandez",
+  "jared-baur",
+  "samuel-raumin",
+  "kyle-risse",
+  "connor-baker",
+  "joshua-campbell",
+]

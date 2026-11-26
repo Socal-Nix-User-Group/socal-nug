@@ -1,0 +1,12 @@
+[[moment]]
+id = "root"
+date = "2023-4-1"
+title = "Unpadded month and day"
+people = ["daniel-baker"]
+
+[[moment]]
+id = "founded"
+date = "2023-04"
+title = "Founded"
+people = ["daniel-baker"]
+trunk = true

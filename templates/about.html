@@ -12,31 +12,137 @@
     </div>
   </div>
 
+  {#- Where a member joined is worked out here as the Origins page's script
+      works it out, from the same data its template reads: the earliest
+      meetup that names the member, by the start of its date and then by id.
+      A meetup is an event, with the people of the moments anchored to it, or
+      a dated moment with `trunk = true`. -#}
+  {%- set events = get_section(path="events/_index.md") %}
+  {%- set meetups = events.pages | sort(attribute="extra.event.date") %}
+  {%- set data = load_data(path="data/moments.toml") %}
+  {%- set moments = data.moment %}
+  {%- set months = ",January,February,March,April,May,June,July,August,September,October,November,December" | split(pat=",") %}
+
   <div class="columns is-flex-wrap-wrap is-mobile">
     {% set profiles = section.pages %}
     {% for profile in profiles %}
+    {% if profile.extra.member %}
+    {#- Each meetup naming the member as "start id|". A date's start pads it
+        to a day, so "2023-04" sorts as "2023-04-01", and ids are slugs, so a
+        space sorts before anything in one. -#}
+    {%- set_global starts = "" %}
+    {%- for e in meetups %}
+      {%- for m in moments %}
+        {%- set anchored = m.event | default(value="") %}
+        {%- set people = m.people | default(value=[]) %}
+        {%- if anchored == e.slug and profile.slug in people %}
+          {%- set padded = e.extra.event.date ~ "-01-01" %}
+          {%- set start = padded | truncate(length=10, end="") %}
+          {%- set_global starts = starts ~ start ~ " " ~ e.slug ~ "|" %}
+        {%- endif %}
+      {%- endfor %}
+    {%- endfor %}
+    {%- for m in moments %}
+      {%- set anchored = m.event | default(value="") %}
+      {%- set people = m.people | default(value=[]) %}
+      {%- set trunk = m.trunk | default(value=false) %}
+      {%- if anchored == "" and trunk and profile.slug in people %}
+        {%- set padded = m.date ~ "-01-01" %}
+        {%- set start = padded | truncate(length=10, end="") %}
+        {%- set_global starts = starts ~ start ~ " " ~ m.id ~ "|" %}
+      {%- endif %}
+    {%- endfor %}
+    {%- set_global joined = "" %}
+    {%- set ordered = starts | split(pat="|") | sort %}
+    {%- for entry in ordered %}
+      {%- if entry != "" and joined == "" %}
+        {%- set_global joined = entry | split(pat=" ") | last %}
+      {%- endif %}
+    {%- endfor %}
+    {%- set_global join_title = "" %}
+    {%- set_global join_date = "" %}
+    {%- for e in meetups %}
+      {%- if e.slug == joined %}
+        {%- set_global join_title = e.title %}
+        {%- set_global join_date = e.extra.event.date %}
+      {%- endif %}
+    {%- endfor %}
+    {%- for m in moments %}
+      {%- set anchored = m.event | default(value="") %}
+      {%- if anchored == "" and m.id == joined %}
+        {%- set_global join_title = m.title %}
+        {%- set_global join_date = m.date %}
+      {%- endif %}
+    {%- endfor %}
+    {#- Written at the precision the data gives, as the Origins card writes
+        it: "19 September 2023", "April 2023", "2023". -#}
+    {%- set parts = join_date | split(pat="-") %}
+    {%- set precision = parts | length %}
+    {%- set join_written = join_date %}
+    {%- if precision >= 2 %}
+      {%- set year = parts | first %}
+      {%- set month_number = parts | nth(n=1) | int %}
+      {%- set month = months | nth(n=month_number) %}
+      {%- set join_written = month ~ " " ~ year %}
+      {%- if precision == 3 %}
+        {%- set day = parts | last | int %}
+        {%- set join_written = day ~ " " ~ join_written %}
+      {%- endif %}
+    {%- endif %}
     <div class="column is-half-desktop is-full-mobile">
-      <div class="media">
-        <div class="media-left">
-          <figure>
+      {#- The arrangement of a person's card on the Origins page, in this
+          page's own look: the picture beside the name and the handle, the
+          rest under both at the profile's full width. -#}
+      <div class="about-profile content" data-person="{{ profile.slug }}">
+        <div class="about-top">
+          {#- Not everyone has a picture. An empty src resolves against the
+              page URL and fetches the page, so the figure is left out
+              entirely. -#}
+          {%- set portrait = profile.extra.image_url | default(value="") %}
+          {%- if portrait != "" %}
+          <figure class="about-picture">
             <img
-            class="image"
+              class="image"
               width="128"
-              src="{{ profile.extra.image_url }}"
+              src="{{ portrait }}"
               alt="{{ profile.extra.name | lower | split(pat=" ") | join(sep="-") }}"
             />
           </figure>
-        </div>
-            <div class="media-content content">
+          {%- endif %}
+          <div class="about-who">
+            {#- Only members are listed here, so the badge says so, or says
+                that this member organizes the group, as their card on the
+                Origins page does. -#}
+            {%- set organizes = profile.extra.organizer | default(value=false) %}
+            <div class="about-head">
               <h4 class="title is-4">{{ profile.extra.name }}</h4>
-              <h6 class="subtitle is-6">
-                <a href="{{ profile.extra.profile_url }}">{{ profile.extra.alias }}</a>
-              </h6>
-      
-              {{ profile.extra.description }}
+              <span class="about-badge">{% if organizes %}Organizer{% else %}Member{% endif %}</span>
+            </div>
+            {#- The handle goes to their GitHub, and their own sites follow it
+                on the same line. -#}
+            <div class="about-links">
+              <a class="about-handle" href="{{ profile.extra.profile_url }}" target="_blank" rel="noopener">{{ profile.extra.alias }}</a>
+              {%- for link in profile.extra.links | default(value=[]) %}
+              <a class="about-link" href="{{ link.url }}" target="_blank" rel="noopener">{{ link.title }}</a>
+              {%- endfor %}
+            </div>
+          </div>
         </div>
+        {%- set description = profile.extra.description | default(value="") %}
+        {%- if description != "" %}
+        <p class="about-desc">{{ description }}</p>
+        {%- endif %}
+        {#- Their own words, where the description is the site talking. -#}
+        {%- set quote = profile.extra.quote | default(value="") %}
+        {%- if quote != "" %}
+        <blockquote>{{ quote }}</blockquote>
+        {%- endif %}
+        {%- if join_title != "" %}
+        <p class="about-join">Joined at {{ join_title }}, {{ join_written }}</p>
+        {%- endif %}
       </div>
     </div>
+    {% endif %}
     {% endfor %}
   </div>
 
