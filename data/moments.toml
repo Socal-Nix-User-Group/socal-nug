@@ -502,10 +502,9 @@ event = "2024-11-02"
 there = ["daniel-baker", "david-nuon"]
 away = ["chris-tewfik"]
 
-# CONFIRM: Chris Tewfik. Daniel's list of who was at NUG #10 leaves Chris out
-# and says no other member was there. Chris's own account has Chris at it.
-# Chris is not in Daniel's picture of the meetup, and may have come late or
-# left early. Daniel is asking Chris. Chris stays `there` until then.
+# Chris Tewfik was not at NUG #10. Chris's earlier account had Chris at it,
+# Daniel's list and picture of the meetup did not, and Daniel settled it on
+# 2026-11-25.
 [[moment]]
 id = "nug-10-attendance"
 event = "2025-02-08"
@@ -519,9 +518,8 @@ there = [
   "tristan-ross",
   "connor-baker",
   "morgan-jones",
-  "chris-tewfik",
 ]
-away = ["samuel-raumin", "kyle-risse"]
+away = ["samuel-raumin", "kyle-risse", "chris-tewfik"]
 
 [[moment]]
 id = "mini-nug-2025-04-10-attendance"
