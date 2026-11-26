@@ -105,6 +105,20 @@ links = [
   { title = "NixOS/nix #5725", url = "https://github.com/NixOS/nix/pull/5725" },
 ]
 
+# --- Tristan Ross ----------------------------------------------------------
+
+# The date is the commit's own, in the Pacific time it was made in. GitHub
+# shows it as 2 August to a reader in UTC.
+[[moment]]
+id = "tristan-finds-nix"
+date = "2022-08-01"
+title = "First contact"
+people = ["tristan-ross"]
+blurb = "Tristan Ross started moving a dotfiles repository over to NixOS. It is the earliest dated trace of Tristan using Nix. After a move to California, an overclock killed a Void Linux install, and Tristan wanted a configuration that could be reproduced."
+links = [
+  { title = "RossComputerGuy/dotfiles f63ede2", url = "https://github.com/RossComputerGuy/dotfiles/commit/f63ede286b72dc2c2fed119dfcb5df5b06e2f671" },
+]
+
 # --- Conferences and camps -------------------------------------------------
 # Dates are the first day of each event.
 
