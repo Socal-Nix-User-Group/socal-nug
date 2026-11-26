@@ -224,9 +224,13 @@ inputs.nixpkgs.lib.mapAttrs (system: pkgs: {
         expect_fail attendance-before-join.toml    'before the meetup they joined at'
         expect_fail attendance-no-join.toml        'has no join record'
         expect_fail attendance-away-at-join.toml   'recorded away from'
+        expect_fail away-dated-also-there.toml     'both there and away'
+        expect_fail away-dated-before-first.toml   'before any moment they are at'
+        expect_fail away-dated-meetup.toml         'anchored to an event'
         expect_warn trunk-is-earliest.toml      warning
         expect_clean valid.toml
         expect_clean attendance-valid.toml
+        expect_clean away-dated-valid.toml
 
         touch "$out"
       '';

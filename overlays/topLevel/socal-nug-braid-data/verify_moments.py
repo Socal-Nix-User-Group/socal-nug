@@ -158,10 +158,27 @@ def check_attendance(entries):
         if not (there or away):
             continue
         if 'event' not in m:
-            problems.append(
-                f'{m["id"]}: there and away belong on a record anchored '
-                'to an event; a dated moment says who was there with '
-                'people')
+            # The founding is a meetup, so its attendance is on an
+            # anchored record like any other meetup's.
+            if there or m.get('trunk'):
+                problems.append(
+                    f'{m["id"]}: there and away belong on a record '
+                    'anchored to an event; a dated moment says who was '
+                    'there with people')
+                continue
+            # A moment that is not a meetup has no record to anchor to, so
+            # it carries away itself. Someone is away only from a moment
+            # after one they are at.
+            for slug in away:
+                if slug in m.get('people', []):
+                    problems.append(
+                        f'{m["id"]}: {slug} is both there and away at '
+                        f'{m["id"]}')
+                if not any(slug in o.get('people', []) and when(o) < when(m)
+                           for o in entries):
+                    problems.append(
+                        f'{m["id"]}: {slug} is away from {m["id"]}, before '
+                        'any moment they are at')
             continue
         for kind, slugs in (('there', there), ('away', away)):
             for slug in slugs:

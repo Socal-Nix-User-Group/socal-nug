@@ -383,6 +383,40 @@ class SiteBuild(unittest.TestCase):
             self.assertIsInstance(m['there'], list, m['id'])
             self.assertIsInstance(m['away'], list, m['id'])
 
+    def test_origins_dated_moments_carry_an_away_list(self):
+        _, data = self.origins_data()
+        dated = [m for m in data['moments'] if not m.get('permalink')]
+        self.assertTrue(dated, 'no dated moment in the page data')
+        for m in dated:
+            self.assertIsInstance(m['away'], list, m['id'])
+
+    def test_an_away_entry_on_a_dated_moment_reaches_that_moment_and_no_other(self):
+        # no record carries away on a dated moment yet, so the entry is
+        # written into the copy and taken out again
+        _, real = self.origins_data()
+        moments = ROOT / 'data' / 'moments.toml'
+        original = moments.read_text()
+        anchor = 'id = "nixcon-2024"\n'
+        self.assertEqual(original.count(anchor), 1)
+        moments.write_text(original.replace(anchor, anchor + 'away = ["daniel-baker"]\n'))
+        tmp = pathlib.Path(tempfile.mkdtemp(prefix='socal-nug-away-'))
+        try:
+            build(tmp)
+            page = (tmp / 'public' / 'origins' / 'index.html').read_text()
+        finally:
+            moments.write_text(original)
+            shutil.rmtree(tmp, ignore_errors=True)
+        blob = re.search(
+            r'<script type="application/json" id="origins-data">(.*?)</script>',
+            page, re.S)
+        data = json.loads(blob.group(1))
+        before = {m['id']: (m.get('people'), m.get('there'), m.get('away')) for m in real['moments']}
+        after = {m['id']: (m.get('people'), m.get('there'), m.get('away')) for m in data['moments']}
+        people, there, away = before.pop('nixcon-2024')
+        self.assertEqual(away, [])
+        self.assertEqual(after.pop('nixcon-2024'), (people, there, ['daniel-baker']))
+        self.assertEqual(after, before)
+
     def test_an_attendance_record_merges_into_its_event_beside_its_joins(self):
         # NUG #3 has two join records and an attendance record in the data
         _, data = self.origins_data()
