@@ -962,8 +962,10 @@ async function run(): Promise<void> {
     );
   }
 
-  // Such a moment's card and what a screen reader says for its pill leave out
-  // whoever was away from it.
+  // Such a moment's card does not list whoever was away from it among its
+  // people, and what a screen reader says for its pill does not count them.
+  // The card's description is the author's own words and may say who missed
+  // it, so only the line of people is read.
   await load("river");
   {
     const story = await storyOf();
@@ -973,15 +975,15 @@ async function run(): Promise<void> {
     const names = (moment?.through ?? []).filter((p) => p.away).map((p) =>
       story.threads.find((t) => t.person.slug === p.slug)!.person.name
     );
-    const said = await tab.evaluate<{ card: string | null; label: string | null }>(`({
-      card: document.querySelector(${JSON.stringify(MOMENT_CARD(id))})?.textContent ?? null,
+    const said = await tab.evaluate<{ people: string | null; label: string | null }>(`({
+      people: document.querySelector(${JSON.stringify(`${MOMENT_CARD(id)} .origins-detail-people`)})?.textContent ?? null,
       label: document.querySelector(${JSON.stringify(PILL(id))})?.getAttribute("aria-label") ?? null,
     })`);
     const count = there === 1 ? "1 person" : `${there} people`;
     check(
-      moment !== undefined && names.length > 0 && said.card !== null && said.label !== null &&
-        names.every((name) => !said.card!.includes(name)) && said.label.endsWith(`, ${count}`),
-      "a moment that is not a meetup neither names nor counts someone away from it",
+      moment !== undefined && names.length > 0 && said.people !== null && said.label !== null &&
+        names.every((name) => !said.people!.includes(name)) && said.label.endsWith(`, ${count}`),
+      "a moment that is not a meetup neither lists nor counts someone away from it",
       { moment: id, away: names, count, ...said },
     );
   }
