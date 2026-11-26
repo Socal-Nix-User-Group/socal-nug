@@ -1092,7 +1092,8 @@ section and an older one disagree, this one is right.
   the popup's X. On About `templates/about.html` writes `div.about-profile` with the same
   parts in About's look (the 128px picture, the Bulma title), styled by
   `sass/css/pages/about.scss`. The badge on About always says "Member", since only members are
-  listed there; it was in every mock-up Daniel chose from.
+  listed there; it was in every mock-up Daniel chose from, and Daniel confirmed wanting it on
+  2026-11-26.
 
 - **Where a member joined is worked out twice.** The engine has it from the story
   (`joinLineFor`); the About template works it out from the same data the Origins template
@@ -1104,10 +1105,14 @@ section and an older one disagree, this one is right.
   description, quote and joined line, part for part and in order.
 
 - **Each About profile is in a box.** Daniel found the profiles hard to tell apart: nothing
-  enclosed one, so it was not clear where a profile ended. Each is now a box in one of Bulma's
-  own shades a little off the page's (`--bulma-scheme-main-bis`), so it follows the theme, and
-  the two boxes of a row are the same height. The quote's box inside it has `0.5em 0.9em` of
-  padding where Bulma gives `1.25em 1.5em`, which Daniel asked to be reduced.
+  enclosed one, so it was not clear where a profile ended. Each is now a box in Bulma's own
+  background shade (`--bulma-background`), so it follows the theme, and the two boxes of a row
+  are the same height. It was first built one shade nearer the page's
+  (`--bulma-scheme-main-bis`), which showed in the dark theme and was too faint on a white
+  page; Daniel asked for a darker shade on 2026-11-26. Bulma fills a quote with the shade the
+  box now has, so the quote inside a profile takes the page's own colour and stays a box
+  within the box. It has `0.5em 0.9em` of padding where Bulma gives `1.25em 1.5em`, which
+  Daniel asked to be reduced.
 
 - **Links.** A link to another site opens a new tab, with `rel="noopener"`: a person's handle
   and own links, on Origins and on About, and a moment's outside links. A link to this site
@@ -1449,7 +1454,8 @@ compare who is lit with the record now expect the confirmed.
 
 Two are about the About page, which the check's server also serves: it and the Origins page
 say the same about every member, part for part and in the same order; and every profile there
-is in its own box, with the boxes of a row the same height.
+is in its own box, with the boxes of a row the same height and each quote a box of another
+shade inside its profile's.
 
 Three are about being away from a moment that is not a meetup: whoever the record lists away
 from one has a hollow bead in its pill, in both modes; hovering it lights who was at it and
