@@ -166,6 +166,7 @@
       "people": {{ m.people | default(value=[]) | json_encode | safe }},
       "away": {{ m.away | default(value=[]) | json_encode | safe }},
       "trunk": {{ m.trunk | default(value=false) | json_encode | safe }},
+      "heading": {{ m.heading | default(value="") | json_encode | safe }},
       "blurb": {{ m.blurb | default(value="") | json_encode | safe }},
       "photo": {{ m.photo | default(value="") | json_encode | safe }},
       "avatar": {{ m.avatar | default(value="") | json_encode | safe }},

@@ -117,9 +117,18 @@ export function detailFor(
     );
   }
 
-  if (moment.blurb !== undefined && moment.blurb !== "") {
+  if (moment.heading !== undefined && moment.heading !== "") {
     card.appendChild(
-      el(doc, "p", { class: "origins-detail-blurb" }, moment.blurb),
+      el(doc, "p", { class: "origins-detail-heading" }, moment.heading),
+    );
+  }
+
+  // A blank line in a blurb starts a new paragraph. A break without one is
+  // only where the data file wrapped a long line.
+  for (const paragraph of (moment.blurb ?? "").split(/\n\s*\n/)) {
+    if (paragraph.trim() === "") continue;
+    card.appendChild(
+      el(doc, "p", { class: "origins-detail-blurb" }, paragraph.trim()),
     );
   }
 

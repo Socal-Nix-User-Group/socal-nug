@@ -319,7 +319,8 @@ id = "tweag"
 date = "2022-02-21"
 title = "Started at Tweag"
 people = ["daniel-baker"]
-blurb = "..."                                  # optional
+heading = "..."                                # optional; a few words over the blurb
+blurb = "..."                                  # optional; a blank line starts a paragraph
 photo = "/blog/one-year-snug/..."              # optional
 avatar = "/images/moments/nix-camp.png"        # optional; the event's own mark
 links = [{ title = "...", url = "https://..." }]  # optional; one moment can be two places at once
@@ -345,8 +346,26 @@ not resolve to a file in `content/events/`.
 
 - On a record anchored to an event, `people` means who joined at that event. The template takes
   only `people`, `there` and `away` from such a record and merges every record anchored to one
-  event, so several records may anchor to one meetup. A blurb, photo or links on an anchored
-  record are not shown; the meetup's card links to its event page instead.
+  event, so several records may anchor to one meetup. A heading, blurb, photo or links on an
+  anchored record are not shown; the meetup's card links to its event page instead.
+- **A heading over the blurb.** Daniel gave three blurbs on 2026-11-26 that each open with a
+  title of a few words ("Returning to the show floor", "Beyond familiar shores", "Into new
+  territory"), and asked for the titles to be styled. A dated moment may carry `heading`, and
+  its card shows it on a line of its own over the blurb, in the list and in the popup alike:
+  semibold, slanted and a little larger than the blurb (0.72rem against 0.64rem), and quieter
+  than the card's own title (0.82rem, bold), which stays the first thing read. It is a
+  paragraph and not a heading element, as the card's title is not one either, so the cards
+  add nothing to the page's outline. The style is the controller's and Daniel has not seen
+  it. The alternative, writing the title as the
+  blurb's first line and letting the script find it, was rejected: a field says what it is
+  and a first line has to be guessed at.
+- **A blurb may run to more than one paragraph.** A blank line in it starts a new one on the
+  card. It came with the three blurbs. Each of those moments already had a blurb of a
+  sentence or two (who was at the booth at SCaLE 20x and who met whom, the days NixCon North
+  America ran, why Daniel Baker missed Nix Vegas), and that is kept as a second paragraph
+  under Daniel's text. Whether those sentences stay is Daniel's to say; keeping them is the
+  controller's call, made because one of them Daniel asked for by name the same day and
+  another records the meeting the page is about.
 - In the page's JSON a meetup carries `people` (who joined there), `there` and `away`, each an
   array, empty when nothing is recorded. Existing records need no change, and the picture is
   complete with no `there` or `away` anywhere.
@@ -876,7 +895,8 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   their own links on one line that wraps, description, quote, and where they joined, as "Joined
   at" with that meetup's title and date. The arrangement is in "The card's order, links, years
   and who a moment lights".
-- A moment's card carries title, date, photo, blurb, and the event page or outside links, and
+- A moment's card carries title, date, photo, a heading when it has one, blurb, and the event
+  page or outside links, and
   the moment's avatar, when it has one, beside the title, as a person's face is in theirs. Any
   moment that is not a meetup lists the people it names. A meetup's card says "Joined here:" with
   the names of who joined there, and "Confirmed there:" with anyone else the record vouches for,
@@ -1691,7 +1711,13 @@ where it opens in either mode: eleven blocks that ran in Subway at 1400px, and o
 1700px. Moved, they passed against the script as it was before they were run against the new
 one, so the move is not what makes them pass.
 
-A hundred and twenty-five checks, each named for what a visitor would
+One is about a moment's heading: it is on a line of its own over the blurb and heavier than
+it. It wants a moment with a heading in the data. It was seen to fail with the heading on the
+card and no style for it, when it is as light as the blurb. That a heading reaches the card,
+that a blank line in a blurb makes two paragraphs, and that a heading written in the data
+reaches the page are in the engine's unit tests and the site's tests.
+
+A hundred and twenty-six checks, each named for what a visitor would
 notice and none naming a moment or a person, so the data can change under it as long as the
 picture stays about the size it is (see below). It needs the
 network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
@@ -1812,10 +1838,11 @@ be reasonable if layout moved to build time.
 - **Who met whom at SCaLE 20x.** The moment was "Nix booth at SCaLE 20x" and is now "SCaLE 20x",
   the whole conference, by Daniel's decision, so that everyone who was at SCaLE that year is
   through it whether or not they were at the booth. Joshua Campbell is on it for that reason;
-  Daniel does not recall whether Joshua visited the booth. Its blurb still says only who was at
-  the booth and that Daniel Baker and David Nuon met Rob Hernandez there. Daniel means to
-  expand it with who met whom, and on 2026-11-25 set it aside until more is gathered about that
-  year.
+  Daniel does not recall whether Joshua visited the booth. Its blurb said only who was at the
+  booth and that Daniel Baker and David Nuon met Rob Hernandez there. Daniel meant to expand
+  it with who met whom, and on 2026-11-25 set it aside until more is gathered about that
+  year. On 2026-11-26 Daniel gave it a heading and a paragraph about the booth's return; the
+  earlier sentences are kept under that paragraph, and who else met whom is still to gather.
 - **Who was at each meetup** is recorded whole, everyone in the group either there or away, for
   nine meetups: the seven Daniel checked against pictures (NUG #1, #2, #3, #4, #6, the June 2025
   Mini NUG and NUG #17) and two Daniel gave on 2026-11-24, NUG #5 and NUG #10, the second from

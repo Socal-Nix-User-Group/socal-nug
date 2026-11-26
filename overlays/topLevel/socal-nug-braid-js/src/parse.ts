@@ -121,6 +121,7 @@ function toMoment(raw: unknown, index: number): Moment {
       (slug, i) => asString(slug, `moment ${id}: people[${i}]`),
     ),
     trunk: record.trunk === true,
+    heading: optionalString(record.heading, `moment ${id}: heading`),
     blurb: optionalString(record.blurb, `moment ${id}: blurb`),
     photo: optionalString(record.photo, `moment ${id}: photo`),
     avatar: optionalString(record.avatar, `moment ${id}: avatar`),

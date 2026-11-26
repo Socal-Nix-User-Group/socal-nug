@@ -403,6 +403,22 @@ class SiteBuild(unittest.TestCase):
         for m in dated:
             self.assertIsInstance(m['away'], list, m['id'])
 
+    def test_origins_dated_moments_carry_a_heading(self):
+        # a string for every one, empty where the record has none
+        _, data = self.origins_data()
+        dated = [m for m in data['moments'] if not m.get('permalink')]
+        self.assertTrue(dated, 'no dated moment in the page data')
+        for m in dated:
+            self.assertIsInstance(m['heading'], str, m['id'])
+
+    def test_every_heading_in_the_data_reaches_the_page(self):
+        _, data = self.origins_data()
+        written = re.findall(
+            r'^heading = "(.*)"$', (ROOT / 'data' / 'moments.toml').read_text(), re.M)
+        self.assertTrue(written, 'no heading in data/moments.toml')
+        on_page = [m['heading'] for m in data['moments'] if m.get('heading')]
+        self.assertEqual(sorted(on_page), sorted(written))
+
     def test_an_away_entry_on_a_dated_moment_reaches_that_moment_and_no_other(self):
         # the entry is written into a record that carries none, in the
         # copy, and taken out again, so the test owns what it checks

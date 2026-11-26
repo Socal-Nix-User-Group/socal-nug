@@ -996,6 +996,38 @@ async function run(): Promise<void> {
     );
   }
 
+  // A moment's heading is a line of its own over the blurb, and heavier than
+  // it, so it reads as what heads the blurb and not as its first words.
+  await load("river");
+  {
+    const story = await storyOf();
+    const moment = story.moments.map((g) => g.moment).find((m) =>
+      (m.heading ?? "") !== "" && (m.blurb ?? "") !== ""
+    );
+    const id = moment?.id ?? "";
+    type Seen = { text: string; over: boolean; weight: number[]; size: number[] };
+    const seen = await tab.evaluate<Seen | null>(`(() => {
+      const card = document.querySelector(${JSON.stringify(MOMENT_CARD(id))});
+      const heading = card?.querySelector(".origins-detail-heading") ?? null;
+      const blurb = card?.querySelector(".origins-detail-blurb") ?? null;
+      if (heading === null || blurb === null) return null;
+      const h = getComputedStyle(heading);
+      const b = getComputedStyle(blurb);
+      return {
+        text: heading.textContent,
+        over: heading.getBoundingClientRect().bottom <= blurb.getBoundingClientRect().top,
+        weight: [Number(h.fontWeight), Number(b.fontWeight)],
+        size: [parseFloat(h.fontSize), parseFloat(b.fontSize)],
+      };
+    })()`);
+    check(
+      moment !== undefined && seen !== null && seen.text === moment.heading && seen.over &&
+        seen.weight[0] > seen.weight[1] && seen.size[0] >= seen.size[1],
+      "a moment's heading is over its blurb, and heavier than it",
+      { moment: id, want: moment?.heading, seen },
+    );
+  }
+
   // The list's card and the popup's are one card, the popup's with an X. In
   // a narrow window, where the popup opens.
   await load("subway", ...NARROW);

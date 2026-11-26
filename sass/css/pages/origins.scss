@@ -800,6 +800,18 @@ html[data-theme=dark] .origins-legend {
     display: block;
 }
 
+// A moment's heading, over its blurb: what the moment was, in a few words.
+// Set apart from the blurb as a chapter's title is from its text, heavier,
+// a little larger and slanted, and still quieter than the card's own title,
+// which stays the first thing read.
+.origins-detail-heading {
+    font-size: 0.72rem;
+    font-weight: 600;
+    font-style: italic;
+    line-height: 1.3;
+    margin: 0.1rem 0 0;
+}
+
 .origins-detail-blurb,
 .origins-detail-people {
     font-size: 0.64rem;

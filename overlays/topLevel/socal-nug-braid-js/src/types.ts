@@ -38,6 +38,12 @@ export interface Moment {
   readonly title: string;
   readonly people: readonly string[];
   readonly trunk: boolean;
+  /**
+   * A line over the blurb that says what the moment was in a few words, as
+   * a chapter has a title. The card sets it apart from the blurb.
+   */
+  readonly heading?: string;
+  /** What happened, in sentences. A blank line in it starts a new paragraph. */
   readonly blurb?: string;
   readonly photo?: string;
   /**

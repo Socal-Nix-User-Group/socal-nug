@@ -186,6 +186,45 @@ test("a detail card shows a photo only when the moment has one", () => {
   assert.equal(without.made.some((n) => n.tag === "img"), false);
 });
 
+// A heading is a line of its own over the blurb, so the page can set it
+// apart from what it heads.
+test("a detail card puts a moment's heading over its blurb, and has none when the moment has none", () => {
+  const withOne = stubDocument();
+  detailFor(
+    {
+      ...placed("founded"),
+      moment: { ...placed("founded").moment, heading: "Into new territory", blurb: "It began." },
+    },
+    CAST,
+    withOne.doc,
+  );
+  const classes = withOne.made.map((n) => n.attrs.class ?? "");
+  const heading = classes.indexOf("origins-detail-heading");
+  assert.ok(heading >= 0, "no heading on the card");
+  assert.equal(withOne.made[heading].text, "Into new territory");
+  assert.ok(heading < classes.indexOf("origins-detail-blurb"), "the heading is not over the blurb");
+
+  const without = stubDocument();
+  detailFor(placed("founded"), CAST, without.doc);
+  assert.equal(without.made.some((n) => n.attrs.class === "origins-detail-heading"), false);
+});
+
+test("a blurb with a blank line in it is a paragraph either side of the line", () => {
+  const { doc, made } = stubDocument();
+  detailFor(
+    {
+      ...placed("founded"),
+      moment: { ...placed("founded").moment, blurb: "One.\n\nTwo, on\ntwo lines.\n" },
+    },
+    CAST,
+    doc,
+  );
+  assert.deepEqual(
+    made.filter((n) => n.attrs.class === "origins-detail-blurb").map((n) => n.text),
+    ["One.", "Two, on\ntwo lines."],
+  );
+});
+
 // An event's own mark, beside the card's title as a person's face is beside
 // their name.
 test("a detail card shows the moment's avatar in its head, and none when the moment has none", () => {

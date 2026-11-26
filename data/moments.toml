@@ -32,6 +32,10 @@
 # square image under static/images/moments/ made to sit in a circle. An event
 # that changes its mark each year has a file for each.
 #
+# A dated moment may carry `heading`, a few words over its `blurb` that say
+# what the moment was, as a chapter has a title. The card sets it apart from
+# the blurb. A blank line in a `blurb` starts a new paragraph on the card.
+#
 # Lines marked CONFIRM are best guesses awaiting a better source. Grep for
 # them when backfilling.
 
@@ -158,7 +162,11 @@ people = [
   "matthew-croughan",
   "joshua-campbell",
 ]
-blurb = "Daniel Baker, Daniel Fullmer and Ben Futoriansky were at the Nix booth. Daniel Baker and David Nuon met Rob Hernandez there."
+heading = "Returning to the show floor"
+blurb = """
+For the first time in many years, Nix once again had a booth at SCaLE. What might have seemed like a modest presence on a crowded exhibition floor was an opportunity for something much greater. It gave people who had discovered Nix independently a place to find one another, share their enthusiasm, and make connections beyond the confines of the internet. Few could have imagined what would grow from those conversations or where those newfound relationships would lead.
+
+Daniel Baker, Daniel Fullmer and Ben Futoriansky were at the Nix booth. Daniel Baker and David Nuon met Rob Hernandez there."""
 links = [
   { title = "SCaLE 20x", url = "https://www.socallinuxexpo.org/scale/20x/" },
 ]
@@ -292,7 +300,11 @@ people = [
   "matthew-croughan",
   "thomas-bereknyei",
 ]
-blurb = "NixCon North America ran alongside SCaLE 21x, 14 to 17 March."
+heading = "Beyond familiar shores"
+blurb = """
+For years, NixCon had brought the Nix community together in Europe, while much of the community elsewhere in the world had yet to experience a gathering of its kind closer to home. In 2024, that changed. SCaLE 21x became home to the first NixCon outside of Europe, marking a new chapter in the community's history. People traveled from near and far, bringing with them their experiences, ideas, and aspirations for Nix. Online acquaintances became familiar faces, new friendships took root, and relationships that had long existed across screens and oceans took on new meaning. NixCon was no longer bound to a single continent, and the community was beginning to reflect the breadth of the people who made it possible.
+
+NixCon North America ran alongside SCaLE 21x, 14 to 17 March."""
 links = [
   { title = "NixCon NA", url = "https://2024-na.nixcon.org/" },
   { title = "SCaLE 21x", url = "https://www.socallinuxexpo.org/scale/21x/" },
@@ -359,7 +371,11 @@ people = [
   "thomas-bereknyei",
 ]
 away = ["daniel-baker"]
-blurb = "Daniel Baker was sick the week of the event and could not be there."
+heading = "Into new territory"
+blurb = """
+In the summer of 2025, the threads of our community extended beyond Southern California and into the halls of DEF CON. Nix Vegas became the first dedicated Nix Community space at one of the world's most renowned hacker conferences. It was an opportunity to bring together people whose curiosity, creativity, and desire to understand how things work transcended any single technology. What had begun years earlier as a series of chance encounters had grown into something capable of creating opportunities for others to find one another and begin stories of their own.
+
+Daniel Baker was sick the week of the event and could not be there."""
 links = [{ title = "Nix Vegas 2025", url = "https://nix.vegas/2025/" }]
 
 [[moment]]

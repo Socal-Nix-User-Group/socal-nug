@@ -86,6 +86,19 @@ test("a moment's avatar comes through, and a moment with none has none", () => {
   assert.equal(moments[1].avatar, undefined);
 });
 
+test("a moment's heading comes through, and a moment with none has none", () => {
+  const { moments } = parseData({
+    ...PAYLOAD,
+    moments: [
+      { ...PAYLOAD.moments[0], heading: "Into new territory" },
+      // what the template writes for a moment with no heading
+      { ...PAYLOAD.moments[1], heading: "" },
+    ],
+  });
+  assert.equal(moments[0].heading, "Into new territory");
+  assert.equal(moments[1].heading, undefined);
+});
+
 test("rejects a payload that is not an object", () => {
   assert.throws(() => parseData(null), TypeError);
   assert.throws(() => parseData("nope"), TypeError);
