@@ -324,12 +324,21 @@ not resolve to a file in `content/events/`.
   array, empty when nothing is recorded. Existing records need no change, and the picture is
   complete with no `there` or `away` anywhere.
 - `there` and `away` are lists of profile slugs. The validator rejects, naming the record: an
-  unknown slug in either; either list on a record that is not anchored to an event (a dated
-  moment says who was there with `people`); the same person in `there` and `away` for one event,
+  unknown slug in either; `there` on a record that is not anchored to an event (a dated
+  moment says who was there with `people`), and either list on the founding, which is a meetup
+  with no event to anchor to; the same person in `there` and `away` for one event,
   across all its records; a person in either list for a meetup earlier than the one they joined
   at, or with no join record at all (before joining they were not in the group, and being there
   earlier would make that the meetup they joined at); and a person recorded `away` from the
   meetup they joined at.
+- A dated moment that is not a meetup may carry `away` as well: the record says each person in
+  it was not there. Such a moment has no anchored record to put the list on, so it carries the
+  list itself. Daniel asked for it on 2026-11-25, to be shown away from Nix Vegas 2025. The
+  validator rejects, naming the record: the same person in `people` and `away` of one moment;
+  and a person away from a moment dated before any moment they are at, where being at a moment
+  means a record names them in `people` (a dated moment, or the meetup they joined at). A
+  thread whose first stop is an empty seat says nothing true. In the page's JSON every dated
+  moment carries `away`, empty when the record has none.
 - `date` accepts `YYYY`, `YYYY-MM` or `YYYY-MM-DD`. Precision is inferred from the format, never
   padded. A moment known only as "some time in April 2023" is written `2023-04` and displayed as
   "April 2023", not as an invented first-of-the-month. Much of the early history is fuzzy, and a
@@ -373,7 +382,8 @@ not resolve to a file in `content/events/`.
 - A gathering away from the group needs no new syntax. A moment that is not a meetup, dated after
   the group began and naming people already in it, is written like any other shared moment. It is
   drawn as its own moment with those people's threads through it: on the ribbon when it names
-  everyone in the group at its date, beside the ribbon otherwise. Nix Camp in autumn 2023 is one
+  everyone in the group at its date, or lists away whoever it does not name, and beside the
+  ribbon otherwise. Nix Camp in autumn 2023 is one
   beside it; SCaLE 22x, which everyone was at, is on it. Adding someone to the group takes such
   a moment off the ribbon until the record names them at it too, as happened when Samuel Raumin
   was added.
@@ -479,7 +489,14 @@ the record says they were not      ━━ ○ ━━   broken at the moment, wit
   passes the meetups wherever the layout routes it. That is the only thing that goes around a
   meetup now, a line that has not reached the ribbon yet.
 - At a moment that is not a meetup (a conference, a camp, a personal moment), everyone named was
-  there by definition, so every thread through it carries a bead.
+  there by definition, so their thread through it carries a bead. Nobody else is through it:
+  a member the record says nothing about passes it by on the ribbon, which says nothing either
+  way.
+- The record may list someone away from such a moment too. They are then drawn as someone away
+  from a meetup is: their thread comes to the moment in a slot of its own, stops just short of
+  it, starts again just after it, and a hollow bead sits in the slot. The difference from
+  passing it by is that the record has said something: they were not there. Daniel Baker at
+  Nix Vegas 2025 is the first.
 - At the meetup where someone joined, they were there by definition, so they carry a bead. It is
   drawn larger, in their own colour, with a ring, because it also marks the join.
 
@@ -503,25 +520,27 @@ nothing positional in it beyond a person's slot across a moment:
 1. A join comes only from a meetup naming you in `people`. Nothing is inferred from company
    kept. The people in the group at a moment are everyone who has joined at or before it.
 1. Who is through each moment: at a meetup, everyone in the group then, including anyone the
-   record says was away, who is marked as away; at any other moment, the people it names.
+   record says was away, who is marked as away; at any other moment, the people it names and
+   the people it lists away, who are marked as away.
 1. Every person with at least one moment is one thread through the moments they are through, in
-   date order, from their first to their last. A meetup they are recorded away from is on it,
-   so a thread runs on to a last meetup its person was away from. Someone who never joins has a
-   thread through the moments that name them and nothing else.
+   date order, from their first to their last. A moment they are recorded away from is on it,
+   so a thread runs on to a last moment its person was away from. Someone who never joins has a
+   thread through the moments that name them, or list them away, and nothing else.
 1. Slot order is one order of people for the whole picture: by the meetup they joined at (people
    who never join go last), then by their first moment, then by slug. Because it is ordered by
    joining, the people in the group at any date are the first so many in it, and two threads keep
    the same side of each other wherever they run together.
 1. A moment is on the ribbon when it is a meetup, or when there is a group at its date and
-   everyone in it is through it. Nothing before the group exists is on the ribbon. On the ribbon
+   everyone in it is through it, those it lists away counted. Nothing before the group exists
+   is on the ribbon. On the ribbon
    a member's slot is their place in the slot order, so their thread stays in one slot from each
    such moment to the next, and a member recorded away keeps theirs. Anyone through it who has
    not joined yet takes the slots after the members'. Off the ribbon the people through it are
    packed, in slot order.
 1. A passage through a moment is vouched for where the record says so: at any moment that is not
    a meetup, at the meetup a person joined at, and where a meetup's record lists them under
-   `there`. Attendance is never inferred. A passage is away where a meetup's record lists the
-   person under `away`; it is then neither vouched for nor a join.
+   `there`. Attendance is never inferred. A passage is away where the moment's record lists the
+   person under `away`, meetup or not; it is then neither vouched for nor a join.
 1. Who is passing a moment off the ribbon: the members of the group at its date who are not
    through it, each at their ribbon slot. A thread stops at its person's last moment, so a member
    passes a side moment only if they are through a later one. Nobody passes a moment on the
@@ -810,7 +829,7 @@ were deleted, not kept behind a flag. So was the trunk engine that followed it.
   moment that is not a meetup lists the people it names. A meetup's card says "Joined here:" with
   the names of who joined there, and "Confirmed there:" with anyone else the record vouches for,
   in place of who was there, because a thread through a meetup says only that its person was in
-  the group then. It does not list who was away.
+  the group then. No card lists who was away, a meetup's or any other moment's.
 - **Why the rail went.** Once the lanes were wide enough to read, River needed every pixel of its
   width, and a 20rem column beside it was the first thing to give. That was under the lane
   allocator. ELK's River is much narrower, and the roster came back beside it in a different
@@ -1091,10 +1110,32 @@ section and an older one disagree, this one is right.
   before; its baseline is now 14px below the line. Subway's numbers are beside their lines, on
   the new year's side already, and did not move.
 
-- **Still to come: away from a moment that is not a meetup.** Daniel was sick the week of Nix
-  Vegas 2025 and wants to be shown as away from it. Today `away` is allowed only on a meetup,
-  and a moment that is not a meetup draws only the people it names. Daniel asked for it to be
-  built once the card's order is settled.
+- **Away from a moment that is not a meetup.** Daniel asked to be shown as away from Nix Vegas
+  2025\. `away` was allowed only on a meetup, and a moment that is not a meetup drew only the
+  people it names. Built on 2026-11-26, once the card's order was settled: a dated moment that
+  is not a meetup may carry `away` (the rule is under "Moments"), and the person is drawn at
+  it as at a meetup they missed (under "What a thread through a meetup means"). Three
+  decisions were made in building it, none of which Daniel was asked:
+
+  - The field is `away` again and not a new name, since it already means "the record says
+    they were not there".
+  - Someone away is through the moment, so they count toward "everyone in the group is through
+    it": a moment that names the whole group but for those away is on the ribbon, each member
+    in their own slot. Left beside the ribbon, the same mark would read differently from a
+    meetup's. Nix Vegas 2025 names five people and stays beside the ribbon either way.
+  - Away from a moment before any the person is at is rejected by the validator.
+
+  What changed in the engine is two lines of the story (`src/story.ts`): who is through a
+  moment that is not a meetup, and that `away` is read on any moment. Placement, drawing, the
+  morph and the lighting already worked from a passage's `away`. Hovering or picking such a
+  moment therefore lights who was at it and draws whoever was away from it at a quarter
+  strength, with everyone who was never there. Its card names only the people at it, and what
+  a screen reader says for its pill counts only them ("Nix Vegas, 7 August 2025, 5 people").
+  In the picture Daniel's thread now leaves the ribbon for Nix Vegas 2025, breaks either side
+  of its pill around a hollow bead, and returns. The smoke check has the picture at 549 by 3226
+  in River and 6573 by 467 in Subway, with no finding; it was 544 by 3225 and 6572 by 467
+  when Thomas Bereknyei was added, so the extra slot at Nix Vegas costs River five pixels of
+  width and nothing a reader would see.
 
 ### Member and guest treatment
 
@@ -1239,10 +1280,12 @@ In `checks/default.nix`:
   each is rejected, warned about or accepted as expected. There is a fixture rejected for each
   of: an unknown slug in `people`; both a date and an event; neither; a badly formatted date
   (`2023-4-1`); a duplicate id; an unknown event; no `trunk` moment; a `links` entry without a
-  url; and, for `there` and `away`, an unknown slug, either list on a dated moment, one person in
+  url; and, for `there` and `away`, an unknown slug, `there` on a dated moment, one person in
   both, a person before the meetup they joined at, a person with no join record, and a person
-  away from the meetup they joined at. One fixture must only warn (nothing predates the
-  first `trunk` moment), and two must pass cleanly. A rejection is matched on a word or phrase
+  away from the meetup they joined at; and, for `away` on a dated moment, a person also in its
+  `people`, a person away from a moment before any they are at, and `away` on the founding. One
+  fixture must only warn (nothing predates the first `trunk` moment), and three must pass
+  cleanly, one of them a dated moment with someone away from it. A rejection is matched on a word or phrase
   from its message, such as the bad slug, the bad date or "both there and away", not on the
   record's id. The validator also rejects four things that no fixture exercises: a dated moment
   with no title, a date in the right format that does not exist (such as a month 13), a moment
@@ -1253,7 +1296,9 @@ In `checks/default.nix`:
 
 - `test-site` checks the built page: its data block parses and carries the history, the meetups
   come from the events section and carry `there` and `away` lists, a record's attendance reaches
-  its meetup through the template's merge, the fallback list is absent, and the bundle, the
+  its meetup through the template's merge, every dated moment carries an `away` list and an
+  entry written on one reaches that moment and no other, the fallback list is absent, and the
+  bundle, the
   vendored layout engine (before the bundle), the toggle, the zoom's four labelled buttons and
   the rail are in place. It reads the stylesheet for the rules behind the legend's tooltip,
   the hand over the map, the dimming of whoever is not lit, the rail taking the map's ceiling
@@ -1292,9 +1337,9 @@ In `checks/default.nix`:
     length is measured at that length, and any other by the room kept for it;
   - every filled bead is inside its own moment, and a person has one exactly where the record
     vouches for them and nowhere else;
-  - for everyone recorded as away from a meetup, no part of their drawn thread is inside that
-    meetup's box and a hollow bead is at their slot in it, and there is no hollow bead anywhere
-    else.
+  - for everyone recorded as away from a moment, a meetup or any other, no part of their drawn
+    thread is inside that moment's box and a hollow bead is at their slot in it, and there is
+    no hollow bead anywhere else.
 
   With both modes laid out it also builds the morph between them, each way, and checks that it
   starts on the drawing of the mode being left and ends on the drawing of the one arrived at:
@@ -1306,14 +1351,17 @@ In `checks/default.nix`:
   It does the same for nine made-up histories generated from fixed seeds (`smoke/histories.ts`):
   seeds 1 to 3, each at about today's size and one and two years on, twenty layouts in all with
   the real data. Their gatherings beside the meetups carry an avatar, so the room for one is
-  tried on layouts the real data does not have. They depend on nothing but their seeds, so a
+  tried on layouts the real data does not have. Each also has someone away from a moment that
+  is not a meetup twice: once at a moment that names part of the group and stays beside the
+  ribbon, and once at a moment that names everyone else and is on the ribbon because of the
+  absence. They depend on nothing but their seeds, so a
   content change can never alter them or turn them red. Every finding is fatal, and the check prints a line for every layout before
   failing so one run shows them all. A finding about layout (an overlap, a label, the ribbon, a
   thread stepping out) on the real data says that the picture came out wrong for the data as it
   now stands, that nothing in the author's change is mistaken, and that it needs a maintainer who
   knows the layout engine; on a made-up history it says only a change to the engine can have
   caused it. The rest (a missing position, edge or pass-through, a bead with no record behind it,
-  a thread inside a meetup its person is recorded away from, a hollow bead missing or out of
+  a thread inside a moment its person is recorded away from, a hollow bead missing or out of
   place) cannot be caused by data and say
   they are a bug in the engine. Every other engine test runs on fixtures and fakes the layout, so
   without this a plausible typo in the real data, or a layout ELK is happy with that the renderer
@@ -1386,7 +1434,13 @@ Two are about the About page, which the check's server also serves: it and the O
 say the same about every member, part for part and in the same order; and every profile there
 is in its own box, with the boxes of a row the same height.
 
-A hundred and one checks, each named for what a visitor would
+Three are about being away from a moment that is not a meetup: whoever the record lists away
+from one has a hollow bead in its pill, in both modes; hovering it lights who was at it and
+draws whoever was away as far back as someone who was never there, not lit and not half way;
+and its card does not name them and its pill's spoken label does not count them. Each finds
+its moment in the page's data and fails if the data has none.
+
+A hundred and four checks, each named for what a visitor would
 notice and none naming a moment or a person, so the data can change under it as long as the
 picture stays about the size it is (see below). It needs the
 network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
@@ -1635,6 +1689,9 @@ be reasonable if layout moved to build time.
   either side of that meetup and puts a hollow bead in their slot; NUG #2 is the first with
   any. Nothing goes around a meetup but the thread of someone who has not joined yet. The legend
   shows all four marks either way.
+- An `away` entry on a moment that is not a meetup brings that person's thread to it, broken
+  either side of its pill around a hollow bead; Nix Vegas 2025 is the first with one. Its card
+  does not name them, and hovering it leaves them as faint as someone who was never there.
 - With JavaScript disabled the page shows no picture, by the trade recorded under Accessibility.
 - The picture is reachable and operable by keyboard alone: one Tab into it, arrows through the
   story, Enter to open a card, Escape to close, focus back where it started.
