@@ -935,7 +935,8 @@ right.
   or a moment's pill. The scroll is smooth unless the reader asks for reduced motion. What is
   picked stays lit after the pointer leaves: for a person, their thread, face and card; for a
   moment, everyone who was there, its pill outlined as it is while its card is open, and its
-  card. One thing is picked at a time. A click on another card picks that instead; a click on
+  card. One thing is picked at a time (until 2026-11-26; see "Several picked at once"). A click
+  on another card picks that instead; a click on
   the card already picked, a click on empty map, or Escape picks nothing. Hovering other cards
   still lights them on top of the pick. A double click counts as one click: taken as two, it
   would send the map to the card and leave nothing lit when it got there.
@@ -1231,6 +1232,73 @@ section and an older one disagree, this one is right.
   and this section. Nothing else reads the rule. Nobody passes such a moment, so it has no
   pass-through and the spine skips its layer, which the mock-up drew without a finding by eye
   but which the smoke check has not been run on.
+
+### Several picked at once
+
+Daniel asked on 2026-11-26 to be able to select several people and moments. Where this section
+and an older one disagree about how many things are picked, or about what a click, Enter or
+Escape does to a pick, this one is right.
+
+- **Approaches.** Two things were open and both were put to Daniel.
+  - What several picks show. Everything picked lit at once, or only what the picks share (the
+    moments two people were both at, say). Daniel chose all of them lit at once. What they
+    share is a different feature and is not built.
+  - How a pick is added. Every click adds and a second click on the same thing removes, or a
+    plain click replaces as it did and Ctrl or Cmd with the click adds. The second changes
+    nothing for a reader who picks one thing and gives a phone no way to add. The first works
+    with a finger and from the keyboard, and costs the one click that used to move the pick
+    from one card to the next: clicking through cards now lights more each time until the
+    reader lets go of everything. The second was recommended; Daniel chose the first.
+- **What is picked.** Any number of people and moments, mixed.
+- **A click** on a card in either list, or on a face or a moment in the map, picks it if it was
+  not picked and lets go of it if it was. Nothing else that is picked changes.
+- **Adding** does what picking one thing did. From a list, the map scrolls to put the thing in
+  its middle. From the map, the thing's card is marked and its list glides to it, and where the
+  rail is under the map its popup opens. The popup shows one thing, the one last added from the
+  map.
+- **Letting go of one** moves nothing: the map and the lists stay where they are and nothing
+  opens. Clicked in the map, it closes the popup if the popup is that thing's and leaves
+  another thing's open. Clicked on its card in a list, it closes whatever popup is open, as a
+  click on a card in a list always has: the lists are outside the map, and a click outside the
+  map closes the card.
+- **Letting go of everything** is a click on empty map, or Escape, as before.
+- **Who is lit.** Each person picked and everyone confirmed at any moment picked, with whoever
+  hover lights on top. The rule for the people a moment says nothing about is unchanged and
+  applies to every moment picked: they are left as they were unless something else in play
+  lights them.
+- **Marks.** Every picked card in the lists is marked, and every picked moment's pill keeps its
+  changed outline.
+- **A double click is one click**, in the map as in the lists. In the map the second click of a
+  double click used to pick the same thing again, which showed nothing; now it would let go of
+  what the first had just picked.
+- **Keyboard.** Enter on a target in the map is a click there: it adds or lets go. Adding
+  beside the map moves focus to the card in the list, as before, and letting go leaves focus
+  where it is. Escape pressed with focus on the card Enter sent it to sends focus back to the
+  map and lets go of nothing. It is the only way back to the map by keyboard, and if it let go
+  as well, a keyboard could never add a second pick beside the map. Pressed anywhere else,
+  Escape lets go of everything, as before. So beside the map a keyboard reader presses Escape
+  twice to let go where once did. Under the map nothing changes: Enter on the popup's X closes
+  it and leaves what is picked, and Escape closes it and lets go of everything. A held Enter
+  or Space is one press. A held key repeats, and each repeat used to pick the same thing again,
+  which showed nothing; counted as presses now, they would let go of it and pick it back by
+  turns.
+- **Touch.** A tap is a click.
+- **What picks outlast** is what one pick outlasted: a redraw for a resized window, a switch of
+  mode, zooming and dragging the map, and a click outside the map and the lists.
+- **Left out.** Nothing on the page says how many things are picked, clears them with a
+  button, or explains the gesture. A pick is not announced to a screen reader, as it never
+  was.
+- **The controller's calls**, not put to Daniel: that letting go of one in the map closes only
+  its own popup, while letting go of one from a list closes whichever is open; that a click on
+  a picked thing in the map lets go of it even where that click used to open its popup again,
+  so reading a card whose popup was closed with the X takes two clicks; the double click in
+  the map; the held key; and the two Escapes beside the map.
+- **How it is built.** The page script keeps a list of picks in place of one, and whose card
+  the popup is showing, so that letting go of a thing can tell whether the open card is its
+  own. `toggled` and `litBy` in `src/pick.ts` take the list, and `holds` says whether a thing
+  is in it, which is how a click knows whether it adds or lets go. The one function that sets
+  every lit, outlined and picked mark sets them from the list. Nothing in the stylesheet
+  changed: the picked mark was already set on each card and pill by itself.
 
 ### Member and guest treatment
 
@@ -1553,7 +1621,38 @@ map was moving between modes arrives fitted to the window as it is; and with red
 asked for, a fitted view arrives fitted in the other mode. Each was seen to fail against the
 script as it was.
 
-A hundred and ten checks, each named for what a visitor would
+Thirteen are about several picked at once, and one older check was restated for it. From the
+lists: a click on another card adds it, with every picked card and pill marked and everyone any
+of them lights lit; a second click on one of several lets go of that one, leaves the others and
+does not move the map; a click on empty map, and Escape, each let go of everything; and with
+two meetups picked, in either order, whoever either says nothing about is left as they were
+unless the other lights them. In the map, in Subway where the popup is: a click on a second moment adds it and
+the card that is open is its own; a click on a picked moment or face lets go of it alone and
+closes the card only when the card is its own; and a click on a picked card in a list lets go
+of it and closes the card that is open, whoever's it is. Beside the map a second click on a
+moment or a face lets go of it, and neither its list nor the map moves; a double click on a
+moment or a face in the map leaves it picked; several picks are still marked and lit after a
+switch of mode; the keyboard adds a second moment, Escape from its card coming back with both
+picked, Enter on one letting go of it alone with focus left on it, and Escape letting go of the
+other; a held Enter on a picked moment is one press; and on a touch screen a tap on a second
+moment adds it and a tap on a picked one lets go of it alone. The check of Enter beside the map
+now expects the first Escape to leave the pick and the second to let go of it.
+
+Each was seen to fail. Nine and the restated one failed against the script as it was. The rest
+guard against mistakes only the new behaviour can make, so they were run against scripts built
+wrong on purpose. One had no guard on the double click and centred the map on what was let go
+from a list. Another had six mistakes. Five were caught by the checks that name them: the list
+brought to the card of what was let go in the map, no guard on a face's double click, a repeat
+of a held key taken for a press, a person's popup not known to be theirs, and a card let go
+from a list leaving the open popup alone, which an older check of a moment's own card caught as
+well. The sixth, the rule for the unrecorded taken from the first picked moment only, that run
+did not show: the check of two meetups failed for want of data instead. It had been written to
+want a pair of meetups that differs from each alone, and the history has none, since a meetup
+either records everyone or nearly nobody. It picks one pair in both orders now, and a third
+script with that mistake alone failed that check and no other. One assertion was added without
+a run of its own: that Enter on a picked moment lets go of it and leaves focus where it is.
+
+A hundred and twenty-three checks, each named for what a visitor would
 notice and none naming a moment or a person, so the data can change under it as long as the
 picture stays about the size it is (see below). It needs the
 network, because Bulma and the fonts come from CDNs. It lives in `socal-nug-braid-js/browser/`
@@ -1775,6 +1874,18 @@ be reasonable if layout moved to build time.
   arrangement. The rail with JavaScript off was measured and takes no room. A card
   clicked with the layout engine blocked was read and not tried: it is picked and has nowhere
   to scroll to.
+- **Several picked at once, beyond what was tried.** Headless Chromium only, and Daniel has not
+  tried it. Five calls in it were the controller's, listed in its section. Nothing on the page
+  says how many things are picked or lets go of them all with a button, which every click
+  adding makes more likely to be wanted. Under the map the open popup can be over the moment
+  next to the one it belongs to, so adding a neighbour means closing the popup with its X
+  first, which leaves the pick; this was seen in Subway at 1400px. On a phone-sized screen the
+  popup is wider than the room beside a pill and is held on screen over it: at 390px by 844px
+  it covered its own pill for every moment whose card opened, in both modes. A tap therefore
+  cannot let go of a moment while its card is open; the X, the moment's card in the list and
+  empty map still can. It also means that a reader on a phone who opens one card after another,
+  closing each with its X, ends with all of them picked and lit, where a tap on the next moment
+  used to move the pick. A tap on empty map lets go of them.
 - **An id rule in the validator.** Nothing stops a `|` in a moment id, or a person slugged
   `spine`, and either would break placement: port ids are split on `|`, and the spine's edges
   are named `spine:<n>`, as a person's edges are named `<slug>:<n>`.
@@ -1832,6 +1943,10 @@ be reasonable if layout moved to build time.
   Chromium. A click on a card in either list brings its face or its pill to the middle of the
   map and leaves it lit until the same card is clicked again, empty map is clicked, or Escape
   is pressed. A click on a moment in the map marks its card in the list.
+- Several things can be picked at once, in headless Chromium: each click adds, a second click
+  on a thing lets go of that one, and a click on empty map or Escape lets go of all of them.
+  People and moments were picked together by mouse, from the lists and from the map. By
+  keyboard and by touch, two moments were.
 - Pressing the other mode's button moves the picture, the box and the cards of both lists to
   their places in the other mode in a little over a second. The picture and the box were seen
   to in Chromium and in Firefox; the lists, since the moments' list was added, in Chromium

@@ -1667,6 +1667,420 @@ async function run(): Promise<void> {
     );
   }
 
+  // --- several picked at once -------------------------------------------------------
+  // Every click adds. A second click on something picked lets go of that
+  // alone, and a click on empty map or Escape lets go of everything.
+
+  await load("river");
+  {
+    const story = await storyOf();
+    // Two moments that light different people, and someone neither lights.
+    // The second is the last such moment in the story and is clicked last,
+    // so the map is left a long way from the first: were letting go of the
+    // first to centre the map on it, the map would move.
+    const a = peopled(story)[0] ?? "";
+    const b = peopled(story).reverse().find((id) =>
+      JSON.stringify(cameTo(story, id)) !== JSON.stringify(cameTo(story, a))
+    ) ?? "";
+    const lone = story.threads.map((t) => t.person.slug).find((slug) =>
+      !cameTo(story, a).includes(slug) && !cameTo(story, b).includes(slug)
+    ) ?? "";
+    const cards = [MOMENT_CARD(a), PERSON_CARD(lone), MOMENT_CARD(b)];
+    const marks = `({
+      cards: [${cards.map((card) => has(card, "is-picked")).join(", ")}],
+      pills: [${[a, b].map((id) => has(PILL(id), "is-picked")).join(", ")}],
+      threads: ${LIT_PEOPLE},
+    })`;
+    type Marks = { cards: boolean[]; pills: boolean[]; threads: string[] };
+    let clicked = true;
+    for (const card of cards) {
+      clicked = (await clickCard(card)) && clicked;
+      await mapSettles();
+    }
+    await tab.move(5, 5);
+    await sleep(300);
+    const all = await tab.evaluate<Marks>(marks);
+    const wantAll = [...new Set([...cameTo(story, a), ...cameTo(story, b), lone])].sort();
+    check(
+      clicked && a !== "" && b !== "" && lone !== "" && all.cards.every(Boolean) &&
+        all.pills.every(Boolean) && JSON.stringify(all.threads) === JSON.stringify(wantAll),
+      "a click on another card adds it: every card and pill picked is marked, and everyone any of them lights is lit",
+      { picked: [a, lone, b], want: wantAll, ...all },
+    );
+
+    const before = await mapAt();
+    const again = await clickCard(MOMENT_CARD(a));
+    await mapSettles();
+    const after = await mapAt();
+    await tab.move(5, 5);
+    await sleep(300);
+    const rest = await tab.evaluate<Marks>(marks);
+    const wantRest = [...new Set([...cameTo(story, b), lone])].sort();
+    check(
+      again && !rest.cards[0] && rest.cards[1] && rest.cards[2] && !rest.pills[0] && rest.pills[1] &&
+        JSON.stringify(rest.threads) === JSON.stringify(wantRest) &&
+        before.top > 0 && after.left === before.left && after.top === before.top,
+      "a second click on one of several picked cards lets go of that one, leaves the others picked and does not move the map",
+      { letGo: a, want: wantRest, ...rest, before, after },
+    );
+  }
+
+  await load("river");
+  {
+    const story = await storyOf();
+    const cards = [
+      MOMENT_CARD(peopled(story)[0] ?? ""),
+      PERSON_CARD(story.threads[0]?.person.slug ?? ""),
+    ];
+    const ways: Array<[string, () => Promise<unknown>]> = [
+      ["a click on empty map", async () => {
+        await tab.evaluate(`${MAP}.scrollIntoView({ block: "start" })`);
+        const at = await emptyMap(20);
+        if (at === null) return false;
+        await tab.click(at.x, at.y);
+        return true;
+      }],
+      ["Escape", () => tab.key("Escape")],
+    ];
+    const seen: Record<string, unknown> = {};
+    let all = true;
+    for (const [way, letGo] of ways) {
+      let clicked = true;
+      for (const card of cards) {
+        clicked = (await clickCard(card)) && clicked;
+        await mapSettles();
+      }
+      const held = await tab.evaluate<number>(`${ROSTER}.querySelectorAll(".is-picked").length`);
+      const did = await letGo();
+      await tab.move(5, 5);
+      await sleep(300);
+      const left = await tab.evaluate<{ picked: number; lit: number }>(`({
+        picked: document.querySelectorAll(".is-picked").length,
+        lit: ${MAP}.querySelectorAll("path.origins-thread.is-lit").length,
+      })`);
+      seen[way] = { clicked, held, did, ...left };
+      all &&= clicked && held === 2 && did !== false && left.picked === 0 && left.lit === 0;
+    }
+    check(all, "a click on empty map, and Escape, each let go of everything picked", seen);
+  }
+
+  // In Subway, where the lists are under the map and a click in the map
+  // opens the popup. The two moments are the first and the last someone was
+  // at, far enough apart that the card of one is not over the other.
+  await load("subway");
+  {
+    const story = await storyOf();
+    const ids = peopled(story);
+    const a = ids[0] ?? "";
+    const b = ids[ids.length - 1] ?? "";
+    type State = {
+      open: boolean;
+      openA: boolean;
+      openB: boolean;
+      pillA: boolean;
+      pillB: boolean;
+      cardA: boolean;
+      cardB: boolean;
+      threads: string[];
+    };
+    const press = async (id: string): Promise<State> => {
+      const at = await centreOf(OVAL(id));
+      await tab.click(at.x, at.y);
+      await listSettles(MOMENTS);
+      await tab.move(5, 5);
+      await sleep(300);
+      return tab.evaluate<State>(`({
+        open: ${popupOpen},
+        openA: ${has(PILL(a), "is-open")},
+        openB: ${has(PILL(b), "is-open")},
+        pillA: ${has(PILL(a), "is-picked")},
+        pillB: ${has(PILL(b), "is-picked")},
+        cardA: ${has(MOMENT_CARD(a), "is-picked")},
+        cardB: ${has(MOMENT_CARD(b), "is-picked")},
+        threads: ${LIT_PEOPLE},
+      })`);
+    };
+    await press(a);
+    const both = await press(b);
+    const wantBoth = [...new Set([...cameTo(story, a), ...cameTo(story, b)])].sort();
+    check(
+      a !== b && both.open && both.openB && !both.openA && both.pillA && both.pillB &&
+        both.cardA && both.cardB && JSON.stringify(both.threads) === JSON.stringify(wantBoth),
+      "in the map, a click on a second moment adds it, and the card that is open is its own",
+      { moments: [a, b], want: wantBoth, ...both },
+    );
+
+    const onlyB = await press(a);
+
+    // A face added to it, which takes the card, and let go of again, which
+    // closes the card: it was the face's own. The first person's face is at
+    // the start of the map, as far from the second moment as the first is.
+    const slug = story.threads[0]?.person.slug ?? "";
+    type WithFace = { open: boolean; whose: string | null; face: boolean; pillB: boolean };
+    const pressFace = async (): Promise<WithFace> => {
+      const at = await centreOf(FACE(slug));
+      await tab.click(at.x, at.y);
+      await listSettles(PEOPLE);
+      await tab.move(5, 5);
+      await sleep(300);
+      return tab.evaluate<WithFace>(`({
+        open: ${popupOpen},
+        whose: ${POPUP}.querySelector(".origins-card")?.dataset.person ?? null,
+        face: ${has(PERSON_CARD(slug), "is-picked")},
+        pillB: ${has(PILL(b), "is-picked")},
+      })`);
+    };
+    const withFace = await pressFace();
+    const withoutFace = await pressFace();
+
+    const none = await press(b);
+    check(
+      a !== b && !onlyB.pillA && !onlyB.cardA && onlyB.pillB && onlyB.cardB && onlyB.open &&
+        onlyB.openB && JSON.stringify(onlyB.threads) === JSON.stringify(cameTo(story, b)) &&
+        slug !== "" && withFace.open && withFace.whose === slug && withFace.face &&
+        withFace.pillB && !withoutFace.open && !withoutFace.face && withoutFace.pillB &&
+        !none.pillB && !none.cardB && !none.open && none.threads.length === 0,
+      "in the map, a click on a picked moment or face lets go of it alone, and closes the card only when the card is its own",
+      {
+        moments: [a, b],
+        face: slug,
+        afterLettingGoOfTheFirst: onlyB,
+        afterAddingTheFace: withFace,
+        afterLettingGoOfTheFace: withoutFace,
+        afterLettingGoOfTheSecond: none,
+      },
+    );
+  }
+
+  // A card in a list is outside the map, and a click outside the map closes
+  // whatever card is open there, as it always has: also when the click lets
+  // go of something else and the open card is not that thing's.
+  await load("subway");
+  {
+    const story = await storyOf();
+    const ids = peopled(story);
+    const a = ids[0] ?? "";
+    const b = ids[ids.length - 1] ?? "";
+    const inList = await clickCard(MOMENT_CARD(b));
+    await mapSettles();
+    const at = await centreOf(OVAL(a));
+    await tab.click(at.x, at.y);
+    const opened = await tab.waitFor(popupOpen);
+    await listSettles(MOMENTS);
+    const both = await tab.evaluate<boolean>(
+      `${has(MOMENT_CARD(a), "is-picked")} && ${has(MOMENT_CARD(b), "is-picked")}`,
+    );
+    const again = await clickCard(MOMENT_CARD(b));
+    await sleep(600);
+    const after = await tab.evaluate<{ shut: boolean; a: boolean; b: boolean }>(`({
+      shut: ${popupShut},
+      a: ${has(PILL(a), "is-picked")},
+      b: ${has(PILL(b), "is-picked")},
+    })`);
+    check(
+      a !== b && inList && opened && both && again && after.shut && after.a && !after.b,
+      "under the map, a click on a picked card in a list lets go of it and closes the card that is open, whoever's it is",
+      { inTheList: b, inTheMap: a, opened, both, ...after },
+    );
+  }
+
+  // Things whose cards are out of sight in their lists, so the first click
+  // has somewhere to glide the list to. The list is then put back at its
+  // start: a script that glided it again on letting go would bring the card
+  // back.
+  await load("river");
+  {
+    const id = await momentPastItsList();
+    const slug = await tab.evaluate<string | null>(`(() => {
+      const list = ${PEOPLE};
+      list.scrollTop = 0;
+      list.scrollLeft = 0;
+      const l = list.getBoundingClientRect();
+      const out = [...list.querySelectorAll(".origins-card")].find((c) =>
+        c.getBoundingClientRect().top >= l.bottom &&
+        ${MAP}.querySelector('.origins-root[data-person="' + c.dataset.person + '"]') !== null
+      );
+      return out?.dataset.person ?? null;
+    })()`);
+    const seen: Record<string, unknown> = {};
+    let all = id !== null && slug !== null;
+    for (
+      const [what, thing, card, list] of [
+        ["a moment", OVAL(id ?? ""), MOMENT_CARD(id ?? ""), MOMENTS],
+        ["a face", FACE(slug ?? ""), PERSON_CARD(slug ?? ""), PEOPLE],
+      ] as const
+    ) {
+      if (!all) break;
+      const down = `[${list}.scrollLeft, ${list}.scrollTop].join()`;
+      const at = await centreOf(thing);
+      await tab.click(at.x, at.y);
+      await listSettles(list);
+      const held = await tab.evaluate<boolean>(has(card, "is-picked"));
+      const glided = await tab.evaluate<string>(down);
+      await tab.evaluate(`(${list}.scrollTop = 0, ${list}.scrollLeft = 0, true)`);
+      const map = await mapAt();
+      await tab.click(at.x, at.y);
+      await sleep(600);
+      const after = await tab.evaluate<string>(down);
+      const mapAfter = await mapAt();
+      await tab.move(5, 5);
+      await sleep(300);
+      const left = await tab.evaluate<{ picked: number; lit: number }>(`({
+        picked: document.querySelectorAll(".is-picked").length,
+        lit: ${MAP}.querySelectorAll("path.origins-thread.is-lit").length,
+      })`);
+      seen[what] = { held, glided, after, map, mapAfter, ...left };
+      all &&= held && glided !== "0,0" && after === "0,0" && mapAfter.left === map.left &&
+        mapAfter.top === map.top && left.picked === 0 && left.lit === 0;
+    }
+    check(
+      all,
+      "beside the map, a second click on a moment or a face lets go of it, and neither its list nor the map moves",
+      { moment: id, person: slug, ...seen },
+    );
+  }
+
+  await load("river");
+  {
+    const story = await storyOf();
+    const id = peopled(story)[0] ?? "";
+    const slug = story.threads[0]?.person.slug ?? "";
+    const seen: Record<string, unknown> = {};
+    let all = id !== "" && slug !== "";
+    for (
+      const [what, thing, card, list, want] of [
+        ["a moment", OVAL(id), MOMENT_CARD(id), MOMENTS, cameTo(story, id)],
+        ["a face", FACE(slug), PERSON_CARD(slug), PEOPLE, [slug]],
+      ] as const
+    ) {
+      const at = await centreOf(thing);
+      // Two presses at one place, the second counted as the second click,
+      // as a mouse sends a double click.
+      await tab.move(at.x, at.y);
+      for (const count of [1, 2]) {
+        for (const type of ["mousePressed", "mouseReleased"]) {
+          await tab.send("Input.dispatchMouseEvent", {
+            type,
+            x: at.x,
+            y: at.y,
+            button: "left",
+            buttons: type === "mousePressed" ? 1 : 0,
+            clickCount: count,
+          });
+        }
+      }
+      await listSettles(list);
+      await tab.move(5, 5);
+      await sleep(300);
+      const after = await tab.evaluate<{ card: boolean; threads: string[] }>(
+        `({ card: ${has(card, "is-picked")}, threads: ${LIT_PEOPLE} })`,
+      );
+      seen[what] = { want, ...after };
+      all &&= want.length > 0 && after.card &&
+        JSON.stringify(after.threads) === JSON.stringify(want);
+      // Nothing picked for the next one.
+      await tab.key("Escape");
+      await sleep(300);
+    }
+    check(all, "a double click on a moment or a face in the map leaves it picked", seen);
+  }
+
+  // The people a picked moment says nothing about are left as they were, and
+  // that goes for every moment picked. Two meetups chosen so that the second
+  // alone would give a different answer from the two together, and picked in
+  // both orders, so that the rule taken from the first picked alone, or from
+  // the last, is wrong in one of them. The history has no pair that differs
+  // from both alone: a meetup either records everyone or nearly nobody.
+  await load("river");
+  {
+    const story = await storyOf();
+    const unsaid = (id: string): string[] =>
+      (story.moments.find((g) => g.moment.id === id)?.through ?? [])
+        .filter((p) => !p.vouched && !p.away).map((p) => p.slug);
+    const meetups = story.moments.filter((g) => g.moment.trunk).map((g) => g.moment.id);
+    const want = (a: string, b: string) => {
+      const lit = [...new Set([...cameTo(story, a), ...cameTo(story, b)])].sort();
+      const dim = (ids: string[]) =>
+        [...new Set(ids)].filter((slug) => !lit.includes(slug)).sort();
+      return { lit, unsure: dim([...unsaid(a), ...unsaid(b)]), fromSecond: dim(unsaid(b)) };
+    };
+    let pair: [string, string] | null = null;
+    for (const a of meetups) {
+      for (const b of meetups) {
+        const w = want(a, b);
+        if (
+          pair === null && a !== b &&
+          JSON.stringify(w.unsure) !== JSON.stringify(w.fromSecond)
+        ) pair = [a, b];
+      }
+    }
+    const seen: Array<Record<string, unknown>> = [];
+    let ok = pair !== null;
+    if (pair !== null) {
+      const w = want(pair[0], pair[1]);
+      for (const order of [pair, [pair[1], pair[0]]]) {
+        let clicked = true;
+        for (const id of order) {
+          clicked = (await clickCard(MOMENT_CARD(id))) && clicked;
+          await mapSettles();
+        }
+        await tab.move(5, 5);
+        await sleep(300);
+        const unsure = await tab.evaluate<string[]>(
+          `[...new Set([...${MAP}.querySelectorAll("path.origins-thread.is-unsure")].map((p) => p.dataset.person))].sort()`,
+        );
+        const lit = await tab.evaluate<string[]>(LIT_PEOPLE);
+        seen.push({ order, clicked, lit, unsure });
+        ok &&= clicked && JSON.stringify(lit) === JSON.stringify(w.lit) &&
+          JSON.stringify(unsure) === JSON.stringify(w.unsure);
+        // Nothing picked for the other order.
+        await tab.key("Escape");
+        await sleep(300);
+      }
+      seen.push({ want: w });
+    }
+    check(
+      ok,
+      "with two meetups picked, in either order, whoever either says nothing about is left as they were, unless the other lights them",
+      { meetups: pair, seen },
+    );
+  }
+
+  await load("river");
+  {
+    const story = await storyOf();
+    const id = peopled(story)[0] ?? "";
+    const slug = story.threads.map((t) => t.person.slug).find((s) =>
+      !cameTo(story, id).includes(s)
+    ) ?? "";
+    const want = [...cameTo(story, id), slug].sort();
+    let clicked = true;
+    for (const card of [MOMENT_CARD(id), PERSON_CARD(slug)]) {
+      clicked = (await clickCard(card)) && clicked;
+      await mapSettles();
+    }
+    await watchForMorph();
+    await pressMode("subway");
+    const landed = await landedIn("subway");
+    const moved = await morphed();
+    await tab.move(5, 5);
+    await sleep(300);
+    const after = await tab.evaluate<
+      { momentCard: boolean; pill: boolean; personCard: boolean; threads: string[] }
+    >(`({
+      momentCard: ${has(MOMENT_CARD(id), "is-picked")},
+      pill: ${has(PILL(id), "is-picked")},
+      personCard: ${has(PERSON_CARD(slug), "is-picked")},
+      threads: ${LIT_PEOPLE},
+    })`);
+    check(
+      clicked && landed && moved && slug !== "" && after.momentCard && after.pill &&
+        after.personCard && JSON.stringify(after.threads) === JSON.stringify(want),
+      "several picks are still marked and lit after the mode is switched",
+      { moment: id, person: slug, clicked, landed, moved, want, ...after },
+    );
+  }
+
   // The window narrowed from 1000px to 960px, which redraws the picture, as
   // the check of a redraw under a resting pointer below shows.
   await load("river", 1000, 1000);
@@ -2529,12 +2943,18 @@ async function run(): Promise<void> {
         threads: ${LIT_PEOPLE},
         onCard: document.activeElement === document.querySelector(${JSON.stringify(MOMENT_CARD(id))}),
       })`);
-      await tab.key("Escape");
-      await sleep(300);
-      const released = await tab.evaluate<{ picked: number; back: boolean }>(`({
+      // From the card Enter sent focus to, Escape is the way back to the map
+      // and lets go of nothing. From the map it lets go.
+      const afterEscape = `({
         picked: document.querySelectorAll(".is-picked").length,
         back: document.activeElement === window.__opener,
-      })`);
+      })`;
+      await tab.key("Escape");
+      await sleep(300);
+      const afterOneEscape = await tab.evaluate<{ picked: number; back: boolean }>(afterEscape);
+      await tab.key("Escape");
+      await sleep(300);
+      const released = await tab.evaluate<{ picked: number; back: boolean }>(afterEscape);
       // Somewhere else the reader went after Enter keeps their focus.
       await tab.key("Enter");
       await sleep(300);
@@ -2599,9 +3019,10 @@ async function run(): Promise<void> {
           onLinkAfterBlank: await tab.evaluate<boolean>(`document.activeElement === window.__link`),
         };
       }
-      after = { want, ...marked, ...released, stayed, ...returned };
+      after = { want, ...marked, afterOneEscape, afterTwo: released, stayed, ...returned };
       ok = !marked.opened && marked.pill && marked.card && want.length > 0 &&
         JSON.stringify(marked.threads) === JSON.stringify(want) && marked.onCard &&
+        afterOneEscape.picked > 0 && afterOneEscape.back &&
         released.picked === 0 && released.back && stayed &&
         linked !== null && returned.sent === true && returned.onLink === true &&
         returned.sentAgain === true && returned.blank !== null && returned.leftCard === true &&
@@ -2609,8 +3030,108 @@ async function run(): Promise<void> {
     }
     check(
       inBraid && id !== null && ok,
-      "beside the map, Enter on a moment picks it, moves focus to its card in the list, and Escape sends focus back",
+      "beside the map, Enter on a moment picks it and moves focus to its card in the list, Escape sends focus back with it still picked, and Escape again lets go of it",
       { inBraid, moment: id, ...after },
+    );
+  }
+
+  // The keyboard adds a second pick the same way. Were the Escape that
+  // comes back from the card to let go as well, it never could.
+  await load("river");
+  {
+    await tab.move(5, 5);
+    let inBraid = false;
+    for (let presses = 0; presses < 60 && !inBraid; presses += 1) {
+      await tab.key("Tab");
+      inBraid = await tab.evaluate(
+        `/origins-(root|node)/.test(document.activeElement.getAttribute("class") || "")`,
+      );
+    }
+    const on = `(document.activeElement.matches("#origins-braid .origins-node") ? document.activeElement.dataset.moment : null)`;
+    const steps: Array<{ moment: string; onCard: boolean; back: boolean; picked: number }> = [];
+    for (let presses = 0; presses < 60 && inBraid && steps.length < 2; presses += 1) {
+      const at = await tab.evaluate<string | null>(on);
+      if (at !== null && !steps.some((s) => s.moment === at)) {
+        await tab.evaluate(`window.__opener = document.activeElement`);
+        await tab.key("Enter");
+        await sleep(300);
+        const onCard = await tab.evaluate<boolean>(
+          `document.activeElement === document.querySelector(${JSON.stringify(MOMENT_CARD(at))})`,
+        );
+        await tab.key("Escape");
+        await sleep(300);
+        steps.push({
+          moment: at,
+          onCard,
+          back: await tab.evaluate<boolean>(`document.activeElement === window.__opener`),
+          picked: await tab.evaluate<number>(`${MAP}.querySelectorAll(".origins-node.is-picked").length`),
+        });
+      }
+      // Not past the second: focus is left on it for what follows.
+      if (steps.length < 2) await tab.key("ArrowDown");
+    }
+    // Enter on a picked moment lets go of that one, and focus stays on it.
+    const pickedPills = `${MAP}.querySelectorAll(".origins-node.is-picked").length`;
+    await tab.evaluate(`window.__opener = document.activeElement`);
+    await tab.key("Enter");
+    await sleep(300);
+    const letGo = {
+      picked: await tab.evaluate<number>(pickedPills),
+      stayed: await tab.evaluate<boolean>(`document.activeElement === window.__opener`),
+    };
+    await tab.key("Escape");
+    await sleep(300);
+    const left = await tab.evaluate<number>(`document.querySelectorAll(".is-picked").length`);
+    check(
+      inBraid && steps.length === 2 && steps.every((s) => s.onCard && s.back) &&
+        steps[0].picked === 1 && steps[1].picked === 2 && letGo.picked === 1 && letGo.stayed &&
+        left === 0,
+      "beside the map, the keyboard adds a second moment: Escape from its card comes back with both picked, Enter on one lets go of it alone and leaves focus on it, and Escape lets go of the other",
+      { inBraid, steps, letGo, left },
+    );
+  }
+
+  // A held key repeats. Enter held on a picked moment is one press, which
+  // lets go of it. Were each repeat a press, the first would pick it back.
+  await load("river");
+  {
+    await tab.move(5, 5);
+    let inBraid = false;
+    for (let presses = 0; presses < 60 && !inBraid; presses += 1) {
+      await tab.key("Tab");
+      inBraid = await tab.evaluate(
+        `/origins-(root|node)/.test(document.activeElement.getAttribute("class") || "")`,
+      );
+    }
+    const onMoment = `document.activeElement.matches("#origins-braid .origins-node")`;
+    for (let presses = 0; presses < 60 && inBraid; presses += 1) {
+      if (await tab.evaluate<boolean>(onMoment)) break;
+      await tab.key("ArrowDown");
+    }
+    const found = inBraid && (await tab.evaluate<boolean>(onMoment));
+    const pickedPills = `${MAP}.querySelectorAll(".origins-node.is-picked").length`;
+    await tab.evaluate(`window.__opener = document.activeElement`);
+    await tab.key("Enter");
+    await sleep(300);
+    await tab.key("Escape");
+    await sleep(300);
+    const before = {
+      picked: await tab.evaluate<number>(pickedPills),
+      back: await tab.evaluate<boolean>(`document.activeElement === window.__opener`),
+    };
+    const enter = { key: "Enter", code: "Enter", windowsVirtualKeyCode: 13, text: "\r" };
+    await tab.send("Input.dispatchKeyEvent", { type: "keyDown", ...enter });
+    await tab.send("Input.dispatchKeyEvent", { type: "keyDown", ...enter, autoRepeat: true });
+    await tab.send("Input.dispatchKeyEvent", { type: "keyUp", ...enter });
+    await sleep(300);
+    const after = {
+      picked: await tab.evaluate<number>(pickedPills),
+      stayed: await tab.evaluate<boolean>(`document.activeElement === window.__opener`),
+    };
+    check(
+      found && before.picked === 1 && before.back && after.picked === 0 && after.stayed,
+      "a held Enter on a picked moment is one press: it lets go of it and does not pick it again",
+      { found, before, after },
     );
   }
 
@@ -3096,6 +3617,33 @@ async function run(): Promise<void> {
         JSON.stringify(people) === JSON.stringify(want) && empty !== null && left === 0,
       "touch: a tap opens the card and picks the moment, and nothing is left lit once it is let go",
       { moment: id, opened, picked, want, people, strays, tappedEmpty: empty !== null, left },
+    );
+  }
+
+  // The first and the last moment someone was at, far enough apart that the
+  // card of one is not over the other.
+  await load("river", 390, 844, true);
+  {
+    const story = await storyOf();
+    const ids = peopled(story);
+    const a = ids[0] ?? "";
+    const b = ids[ids.length - 1] ?? "";
+    const tapOn = async (id: string): Promise<{ a: boolean; b: boolean }> => {
+      const at = await centreOf(OVAL(id));
+      await tab.tap(at.x, at.y);
+      await sleep(500);
+      return tab.evaluate<{ a: boolean; b: boolean }>(`({
+        a: ${has(PILL(a), "is-picked")},
+        b: ${has(PILL(b), "is-picked")},
+      })`);
+    };
+    await tapOn(a);
+    const both = await tapOn(b);
+    const one = await tapOn(a);
+    check(
+      a !== b && both.a && both.b && !one.a && one.b,
+      "touch: a tap on a second moment adds it, and a tap on a picked one lets go of it alone",
+      { moments: [a, b], afterTwoTaps: both, afterATapOnTheFirstAgain: one },
     );
   }
 

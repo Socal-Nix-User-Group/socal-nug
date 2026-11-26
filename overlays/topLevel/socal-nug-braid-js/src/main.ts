@@ -7,7 +7,7 @@ import type { LoomPlaced } from "./loom-place.ts";
 import { ease, frameAt, MORPH_MS, morphBetween, OPENING, scrollFor, sharesOf } from "./morph.ts";
 import type { Shares } from "./morph.ts";
 import { parseData } from "./parse.ts";
-import { centred, framed, litBy, toggled, unsureAt } from "./pick.ts";
+import { centred, framed, holds, litBy, toggled, unsureAt } from "./pick.ts";
 import type { Pick } from "./pick.ts";
 import { placePopup } from "./popup.ts";
 import type { DocumentLike, ElementLike } from "./render.ts";
@@ -75,6 +75,8 @@ interface DomEvent {
   readonly currentTarget: PageElement;
   readonly target: PageElement | null;
   readonly key?: string;
+  /** On a keydown, whether the key was already down: a held key repeats. */
+  readonly repeat?: boolean;
   /** "mouse", "pen" or "touch", on pointer events. */
   readonly pointerType?: string;
   /** How many clicks this is. 0 for one made by the keyboard. */
@@ -228,6 +230,11 @@ function boot(): void {
   /** What opened the card, so focus can go back to it when the card closes. */
   let openedBy: PageElement | null = null;
   /**
+   * Whose card it is showing, while it is open, so letting go of a thing
+   * can tell whether the card that is open is its own.
+   */
+  let popupFor: Pick | null = null;
+  /**
    * The card in a list the keyboard last sent focus to, beside the map, so
    * Escape can send it back to the map while it is still there.
    */
@@ -291,7 +298,7 @@ function boot(): void {
     wireHover();
     wireKeyboard();
     // What would have said the pointer left went with the old picture, and
-    // the new one is lit by nothing yet. The pick outlives it.
+    // the new one is lit by nothing yet. What is picked outlives it.
     hovered.clear();
     over = null;
     relight();
@@ -626,8 +633,11 @@ function boot(): void {
   // picture, and their card in the roster, in both directions.
   const roster = document.getElementById("origins-roster");
 
-  /** What a click on a card or in the map picked, lit until it is let go. */
-  let picked: Pick | null = null;
+  /**
+   * What clicks on cards and in the map have picked, each lit until it is
+   * let go. Every click adds; a second click on a thing lets go of that one.
+   */
+  let picks: readonly Pick[] = [];
   /** Everyone lit by hover or focus. */
   const hovered = new Set<string>();
   /** The moment whose card in the list is under the pointer. */
@@ -642,14 +652,16 @@ function boot(): void {
    * other lit.
    */
   function relight(): void {
-    const lit = new Set([...hovered, ...litBy(story, picked)]);
-    const person = picked?.kind === "person" ? picked.id : undefined;
-    const moment = picked?.kind === "moment" ? picked.id : undefined;
+    const lit = new Set([...hovered, ...litBy(story, picks)]);
+    const idsOf = (kind: Pick["kind"]) =>
+      new Set(picks.filter((pick) => pick.kind === kind).map((pick) => pick.id));
+    const people = idsOf("person");
+    const moments = idsOf("moment");
     // Whoever the moments in play say nothing about is left as they were,
     // not stepping back with those the record puts elsewhere. Someone lit by
     // another moment in play is lit, not unsure.
     const unsure = new Set(
-      [over, hot, moment ?? null]
+      [over, hot, ...moments]
         .flatMap((id) => (id === null ? [] : [...unsureAt(story, id)]))
         .filter((slug) => !lit.has(slug)),
     );
@@ -659,17 +671,17 @@ function boot(): void {
     }
     for (const pill of mount!.querySelectorAll(".origins-node")) {
       pill.classList.toggle("is-hot", pill.dataset.moment === hot);
-      pill.classList.toggle("is-picked", pill.dataset.moment === moment);
+      pill.classList.toggle("is-picked", moments.has(pill.dataset.moment ?? ""));
     }
     if (roster === null) return;
     for (const card of roster.querySelectorAll("[data-person]")) {
       card.classList.toggle("is-lit", lit.has(card.dataset.person ?? ""));
-      card.classList.toggle("is-picked", card.dataset.person === person);
+      card.classList.toggle("is-picked", people.has(card.dataset.person ?? ""));
     }
     for (const card of roster.querySelectorAll(".origins-detail-card")) {
       const id = card.dataset.moment;
       card.classList.toggle("is-lit", id === over || id === hot);
-      card.classList.toggle("is-picked", id === moment);
+      card.classList.toggle("is-picked", moments.has(id ?? ""));
     }
   }
 
@@ -716,14 +728,15 @@ function boot(): void {
   }
 
   /**
-   * Pick what was clicked in the map and glide its list until its card is in
-   * the middle of the list's box, or as near as the list goes: a card
-   * brought only as far as the box's edge is easy to miss there. The list's
-   * own scrollTo, not scrollIntoView, which would scroll the page and the
-   * map as well. At once for a reader who asks for less motion.
+   * Add what was clicked in the map to the picks and glide its list until
+   * its card is in the middle of the list's box, or as near as the list
+   * goes: a card brought only as far as the box's edge is easy to miss
+   * there. The list's own scrollTo, not scrollIntoView, which would scroll
+   * the page and the map as well. At once for a reader who asks for less
+   * motion. Whoever calls has seen that it was not picked already.
    */
   function pickInMap(pick: Pick): PageElement | undefined {
-    picked = pick;
+    picks = [...picks, pick];
     relight();
     const card = roster?.querySelectorAll(
       pick.kind === "person"
@@ -854,8 +867,24 @@ function boot(): void {
       openedBy.focus({ preventScroll: true });
     }
     openedBy = null;
+    popupFor = null;
   }
 
+  /**
+   * Let go of something picked that was clicked again in the map. Nothing
+   * moves and nothing opens. The card that is open closes if it is this
+   * thing's, and stays if it is another's: the reader did not touch that one.
+   */
+  function letGoInMap(pick: Pick): void {
+    picks = toggled(picks, pick);
+    relight();
+    if (popupFor?.kind === pick.kind && popupFor.id === pick.id) closePopup();
+  }
+
+  /**
+   * A click, or Enter, on a moment in the map: add it to the picks and show
+   * its card, or let go of it if it was picked.
+   */
   function showMoment(
     id: string | undefined,
     anchor: PageElement,
@@ -864,15 +893,22 @@ function boot(): void {
     if (id === undefined) return;
     const gathering = story.moments.find((m) => m.moment.id === id);
     if (gathering === undefined) return;
+    const pick: Pick = { kind: "moment", id };
+    if (holds(picks, pick)) {
+      letGoInMap(pick);
+      return;
+    }
     if (beside()) {
-      showInList({ kind: "moment", id }, byKeyboard);
+      showInList(pick, byKeyboard);
       return;
     }
     openPopup(anchor, detailFor(gathering, cast, document), byKeyboard);
+    popupFor = pick;
     markOpen(id);
-    pickInMap({ kind: "moment", id });
+    pickInMap(pick);
   }
 
+  /** The same for a face. */
   function showPerson(
     slug: string | undefined,
     anchor: PageElement,
@@ -881,13 +917,19 @@ function boot(): void {
     if (slug === undefined) return;
     const thread = story.threads.find((t) => t.person.slug === slug);
     if (thread === undefined) return;
+    const pick: Pick = { kind: "person", id: slug };
+    if (holds(picks, pick)) {
+      letGoInMap(pick);
+      return;
+    }
     if (beside()) {
-      showInList({ kind: "person", id: slug }, byKeyboard);
+      showInList(pick, byKeyboard);
       return;
     }
     openPopup(anchor, personCardFor(thread, story, document), byKeyboard);
+    popupFor = pick;
     markOpen(undefined);
-    pickInMap({ kind: "person", id: slug });
+    pickInMap(pick);
   }
 
   // --- the roving tabindex ---------------------------------------------------
@@ -939,6 +981,10 @@ function boot(): void {
         if (event.key === undefined) return;
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
+          // A held key is one press. Each repeat used to pick the same thing
+          // again, which showed nothing; now it would let go of what the
+          // press had just picked, and the one after would pick it again.
+          if (event.repeat === true) return;
           // A card opened while a morph runs would open beside a picture
           // that is about to be replaced.
           if (!morphing) openAt(cursor, true);
@@ -974,7 +1020,9 @@ function boot(): void {
     // Hovering a moment lights the threads of everyone confirmed at it;
     // clicking it picks it, and opens its card where the lists are under the
     // map. Hover is for "who was in this", click is for "tell me about it",
-    // which is the part worth dwelling on.
+    // which is the part worth dwelling on. A second click lets go of it, so
+    // the second click of a double click is not one, as in the lists: it
+    // would let go of what the first had just picked.
     for (const node of mount!.querySelectorAll("[data-moment]")) {
       const id = node.dataset.moment;
       const gathering = story.moments.find((m) => m.moment.id === id);
@@ -996,7 +1044,10 @@ function boot(): void {
       // under the map the card opens beside the oval either way, not on top
       // of the moment's own name.
       const oval = mount!.querySelectorAll(`.origins-node[data-moment="${id}"]`)[0] ?? node;
-      node.addEventListener("click", () => showMoment(id, oval));
+      node.addEventListener("click", (e) => {
+        if ((e.detail ?? 0) > 1) return;
+        showMoment(id, oval);
+      });
     }
 
     // A face picks its person, and opens their card where the lists are
@@ -1004,27 +1055,29 @@ function boot(): void {
     // one it shows.
     for (const root of mount!.querySelectorAll(".origins-root")) {
       root.addEventListener("click", (e) => {
+        if ((e.detail ?? 0) > 1) return;
         showPerson(e.currentTarget.dataset.person, e.currentTarget);
       });
     }
   }
 
   // Anywhere that is not the card closes it. A click on a node or a face is
-  // a request to swap the card, which its own handler does, and the card's
-  // own buttons and links handle themselves. Only in the map: a moment's
-  // card in the list carries its moment's id too, and closes the card as a
-  // person's card there does.
+  // for its own handler, which swaps the card for the one clicked or, when
+  // that was picked already, lets go of it and closes the card only if it
+  // was its own. The card's own buttons and links handle themselves. Only in
+  // the map: a moment's card in the list carries its moment's id too, and
+  // closes the card as a person's card there does.
   //
-  // A click on empty map lets go of the pick, whether or not a card is open.
-  // The click that ends a drag of the map never gets here, so a drag lets go
-  // of nothing.
+  // A click on empty map lets go of everything picked, whether or not a card
+  // is open. The click that ends a drag of the map never gets here, so a
+  // drag lets go of nothing.
   document.addEventListener("click", (event) => {
     const target = event.target;
     if (
       target !== null && mount.contains(target) && !popup.contains(target) &&
       target.closest("[data-moment], .origins-root") === null
     ) {
-      picked = null;
+      picks = [];
       relight();
     }
     if (popup.hidden) return;
@@ -1034,16 +1087,22 @@ function boot(): void {
   });
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    closePopup();
-    picked = null;
-    relight();
-    // Back to the map from the card the keyboard sent focus to, to the target
-    // the map's cursor is on, which is the one Enter was pressed on or what a
-    // redraw put in its place. Only while focus is still on that card: a
-    // reader who has gone somewhere else since keeps the place they chose.
+    // From the card the keyboard sent focus to, Escape is the way back to
+    // the map, to the target the map's cursor is on, which is the one Enter
+    // was pressed on or what a redraw put in its place. It lets go of
+    // nothing there: it is the only way back by keyboard, and a second pick
+    // could never be added if coming back for it let go of the first. Only
+    // while focus is still on that card: a reader who has gone somewhere
+    // else since keeps the place they chose.
     if (sentTo !== null && sentTo.contains(document.activeElement)) {
       elementAt(cursor)?.focus({ preventScroll: true });
+      sentTo = null;
+      return;
     }
+    // Anywhere else it closes the card and lets go of everything picked.
+    closePopup();
+    picks = [];
+    relight();
     sentTo = null;
   });
   // Focus that has left the card the keyboard sent it to went where the
@@ -1074,15 +1133,18 @@ function boot(): void {
           highlight(event.currentTarget.dataset.person, on);
         });
       }
-      // A click picks the person, or lets go of them if they were picked
-      // already. Not a click on one of the card's links, which is for the
-      // link. The second click of a double click is not one either: it let
-      // go of what the first had just picked.
+      // A click adds the person to the picks and brings their face to the
+      // middle of the map, or lets go of them if they were picked already,
+      // which moves nothing. Not a click on one of the card's links, which is
+      // for the link. The second click of a double click is not one either:
+      // it let go of what the first had just picked.
       card.addEventListener("click", (event) => {
         if (morphing || (event.detail ?? 0) > 1 || event.target!.closest("a") !== null) return;
-        picked = toggled(picked, { kind: "person", id: card.dataset.person ?? "" });
+        const pick: Pick = { kind: "person", id: card.dataset.person ?? "" };
+        const adding = !holds(picks, pick);
+        picks = toggled(picks, pick);
         relight();
-        if (picked !== null) centreOn(picked);
+        if (adding) centreOn(pick);
       });
     }
 
@@ -1105,12 +1167,14 @@ function boot(): void {
         relight();
       });
       card.addEventListener("click", (event) => {
-        // As a person's card: a double click is one click, and a click on one
-        // of the card's links is for the link.
+        // As a person's card: a click adds or lets go, a double click is one
+        // click, and a click on one of the card's links is for the link.
         if (morphing || (event.detail ?? 0) > 1 || event.target!.closest("a") !== null) return;
-        picked = toggled(picked, { kind: "moment", id });
+        const pick: Pick = { kind: "moment", id };
+        const adding = !holds(picks, pick);
+        picks = toggled(picks, pick);
         relight();
-        if (picked !== null) centreOn(picked);
+        if (adding) centreOn(pick);
       });
     }
   }

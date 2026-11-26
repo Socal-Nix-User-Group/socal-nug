@@ -1,29 +1,62 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { centred, framed, litBy, toggled, unsureAt } from "../src/pick.ts";
+import { centred, framed, holds, litBy, toggled, unsureAt } from "../src/pick.ts";
 import { buildStory } from "../src/story.ts";
 import { at, MOMENTS, PEOPLE, story } from "./story-fixture.ts";
 
-test("a click on a card picks it, and a second click on the same card picks nothing", () => {
+test("a click adds what was clicked to the picks, and a second click on it takes that one out", () => {
   const rob = { kind: "person", id: "rob" } as const;
   const camp = { kind: "moment", id: "camp" } as const;
-  assert.deepEqual(toggled(null, rob), rob);
-  assert.deepEqual(toggled(camp, rob), rob);
-  assert.equal(toggled(rob, { kind: "person", id: "rob" }), null);
+  assert.deepEqual(toggled([], rob), [rob]);
+  // added after what was there, which stays
+  assert.deepEqual(toggled([camp], rob), [camp, rob]);
+  assert.deepEqual(toggled([camp, rob], { kind: "moment", id: "camp" }), [rob]);
+  assert.deepEqual(toggled([rob], { kind: "person", id: "rob" }), []);
   // a person and a moment with the same id are not the same pick
-  assert.deepEqual(toggled({ kind: "person", id: "x" }, { kind: "moment", id: "x" }), { kind: "moment", id: "x" });
+  const x = { kind: "person", id: "x" } as const;
+  assert.deepEqual(toggled([x], { kind: "moment", id: "x" }), [x, { kind: "moment", id: "x" }]);
+});
+
+test("the picks hold a pick of the same kind and id, and no other", () => {
+  const picks = [{ kind: "person", id: "rob" }, { kind: "moment", id: "camp" }] as const;
+  assert.equal(holds(picks, { kind: "person", id: "rob" }), true);
+  assert.equal(holds(picks, { kind: "moment", id: "camp" }), true);
+  assert.equal(holds(picks, { kind: "moment", id: "rob" }), false);
+  assert.equal(holds(picks, { kind: "person", id: "mica" }), false);
+  assert.equal(holds([], { kind: "person", id: "rob" }), false);
 });
 
 test("a picked person lights that person, a picked moment whoever is confirmed at it, and nothing lights nobody", () => {
-  assert.deepEqual([...litBy(story, null)], []);
-  assert.deepEqual([...litBy(story, { kind: "person", id: "mica" })], ["mica"]);
-  assert.deepEqual([...litBy(story, { kind: "moment", id: "camp" })].sort(), ["daniel", "rob"]);
+  assert.deepEqual([...litBy(story, [])], []);
+  assert.deepEqual([...litBy(story, [{ kind: "person", id: "mica" }])], ["mica"]);
+  assert.deepEqual([...litBy(story, [{ kind: "moment", id: "camp" }])].sort(), ["daniel", "rob"]);
   // nug3: daniel is recorded there, rob away, and nothing is recorded for david, jared and mica
-  assert.deepEqual([...litBy(story, { kind: "moment", id: "nug3" })], ["daniel"]);
+  assert.deepEqual([...litBy(story, [{ kind: "moment", id: "nug3" }])], ["daniel"]);
   // nug1: jared joined there, and nothing is recorded for anyone else
-  assert.deepEqual([...litBy(story, { kind: "moment", id: "nug1" })], ["jared"]);
+  assert.deepEqual([...litBy(story, [{ kind: "moment", id: "nug1" }])], ["jared"]);
   // a moment the story does not have lights nobody
-  assert.deepEqual([...litBy(story, { kind: "moment", id: "nowhere" })], []);
+  assert.deepEqual([...litBy(story, [{ kind: "moment", id: "nowhere" }])], []);
+});
+
+test("several picks light everyone any of them lights, each once", () => {
+  // nug1 lights jared, camp lights daniel and rob, and mica is picked
+  assert.deepEqual(
+    [...litBy(story, [
+      { kind: "moment", id: "nug1" },
+      { kind: "person", id: "mica" },
+      { kind: "moment", id: "camp" },
+    ])].sort(),
+    ["daniel", "jared", "mica", "rob"],
+  );
+  // daniel is confirmed at both and picked as well
+  assert.deepEqual(
+    [...litBy(story, [
+      { kind: "moment", id: "camp" },
+      { kind: "moment", id: "nug3" },
+      { kind: "person", id: "daniel" },
+    ])].sort(),
+    ["daniel", "rob"],
+  );
 });
 
 test("the people unsure at a moment are those through it neither confirmed nor away", () => {
@@ -38,7 +71,7 @@ test("a moment that is not a meetup lights the people it names and not someone a
     PEOPLE,
   );
   assert.ok(s.moments.find((m) => m.moment.id === "conf")!.through.some((p) => p.slug === "mica"));
-  assert.deepEqual([...litBy(s, { kind: "moment", id: "conf" })].sort(), ["daniel", "rob"]);
+  assert.deepEqual([...litBy(s, [{ kind: "moment", id: "conf" }])].sort(), ["daniel", "rob"]);
   assert.deepEqual([...unsureAt(s, "conf")], []);
 });
 

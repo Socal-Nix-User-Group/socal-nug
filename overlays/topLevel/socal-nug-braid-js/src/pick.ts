@@ -1,30 +1,42 @@
 import type { Box, Point } from "./loom-place.ts";
 import type { Story } from "./story.ts";
 
-/** What a reader has picked from a list or the map: one person or one moment. */
+/**
+ * One thing a reader has picked from a list or the map: a person or a
+ * moment. A reader can have any number picked at once, of both kinds.
+ */
 export type Pick =
   | { readonly kind: "person"; readonly id: string }
   | { readonly kind: "moment"; readonly id: string };
 
-/** What a click on a card leaves picked: that card, or nothing when it was the pick already. */
-export function toggled(current: Pick | null, clicked: Pick): Pick | null {
-  return current !== null && current.kind === clicked.kind && current.id === clicked.id
-    ? null
-    : clicked;
+const same = (a: Pick, b: Pick): boolean => a.kind === b.kind && a.id === b.id;
+
+/** Whether `pick` is among the picks. */
+export function holds(picks: readonly Pick[], pick: Pick): boolean {
+  return picks.some((held) => same(held, pick));
 }
 
 /**
- * The slugs of everyone lit while `pick` stands: the person, or whoever the
- * record confirms at the moment. Someone the record says nothing about is
- * not lit, since nothing says they were there.
+ * What a click leaves picked: the picks with what was clicked added after
+ * them, or without it when it was among them already.
  */
-export function litBy(story: Story, pick: Pick | null): ReadonlySet<string> {
-  if (pick === null) return new Set();
-  if (pick.kind === "person") return new Set([pick.id]);
-  const gathering = story.moments.find((g) => g.moment.id === pick.id);
-  return new Set(
-    (gathering?.through ?? []).filter((p) => p.vouched).map((p) => p.slug),
-  );
+export function toggled(picks: readonly Pick[], clicked: Pick): readonly Pick[] {
+  return holds(picks, clicked)
+    ? picks.filter((held) => !same(held, clicked))
+    : [...picks, clicked];
+}
+
+/**
+ * The slugs of everyone lit while `picks` stand: each person picked, and
+ * whoever the record confirms at each moment picked. Someone the record says
+ * nothing about is not lit, since nothing says they were there.
+ */
+export function litBy(story: Story, picks: readonly Pick[]): ReadonlySet<string> {
+  return new Set(picks.flatMap((pick) => {
+    if (pick.kind === "person") return [pick.id];
+    const gathering = story.moments.find((g) => g.moment.id === pick.id);
+    return (gathering?.through ?? []).filter((p) => p.vouched).map((p) => p.slug);
+  }));
 }
 
 /**
