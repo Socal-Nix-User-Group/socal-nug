@@ -469,6 +469,20 @@ test("a person's card missing a part simply lacks it, in the same order otherwis
     ["origins-card-avatar", "origins-card-who"],
   );
   assert.equal(byClassName(made, "origins-card-avatar").tag, "span");
+
+  // With a picture, the picture leads the top and the two lines follow it.
+  const pictured = stubDocument();
+  personCardFor(
+    { ...thread("daniel"), person: { ...everything, imageUrl: "/images/people/daniel.jpg" } },
+    small,
+    pictured.doc,
+    false,
+  );
+  const top = byClassName(pictured.made, "origins-card-top");
+  assert.deepEqual(
+    top.children.map((n) => [n.tag, n.attrs.class]),
+    [["img", "origins-card-avatar"], ["div", "origins-card-who"]],
+  );
 });
 
 test("a link in a card to another site opens a new tab, and the event page on this site stays in the tab", () => {

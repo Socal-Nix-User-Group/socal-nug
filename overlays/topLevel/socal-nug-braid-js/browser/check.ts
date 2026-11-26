@@ -1171,10 +1171,22 @@ async function run(): Promise<void> {
       origins[slug] === null || about[slug] === null ||
       JSON.stringify(origins[slug]) !== JSON.stringify(about[slug])
     );
+    // Every member has a name, a badge and a handle, so two pages that both
+    // find none of a part have lost it rather than agreed on it.
+    const unread = (parts: Record<string, Part[] | null>) =>
+      members.filter((slug) =>
+        !["name", "badge", "handle"].every((kind) => (parts[slug] ?? []).some((p) => p[0] === kind))
+      );
+    const lacking = { origins: unread(origins), about: unread(about) };
     check(
-      members.length > 0 && differ.length === 0,
+      members.length > 0 && differ.length === 0 && lacking.origins.length === 0 &&
+        lacking.about.length === 0,
       "the About page and the Origins page say the same about every member",
-      { members: members.length, differ: differ.map((slug) => ({ slug, origins: origins[slug], about: about[slug] })) },
+      {
+        members: members.length,
+        lacking,
+        differ: differ.map((slug) => ({ slug, origins: origins[slug], about: about[slug] })),
+      },
     );
   }
 
