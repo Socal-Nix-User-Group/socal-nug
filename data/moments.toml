@@ -35,6 +35,7 @@ id = "rob-finds-nix"
 date = "2018-07" # CONFIRM: "around the middle of 2018"
 title = "First contact"
 people = ["rob-hernandez"]
+blurb = "Rob Hernandez had heard of Nix here and there. A good friend from bar trivia recommended looking into it seriously, after Rob talked about wanting reproducible builds with pkgsrc, the NetBSD ports tree."
 
 # --- Daniel Baker ----------------------------------------------------------
 
@@ -57,6 +58,16 @@ date = "2022-03" # CONFIRM: "let's say March"
 title = "Paths cross"
 people = ["daniel-baker", "connor-baker"]
 blurb = "Daniel Baker and Connor Baker met working at Tweag."
+
+[[moment]]
+id = "meets-thomas"
+date = "2022-07-08"
+title = "Paths cross"
+people = ["daniel-baker", "thomas-bereknyei"]
+blurb = "Daniel Baker messaged Thomas Bereknyei after talking with Rok Garbas, wanting to help with the \"What's new in Nix\" videos on the NixOS YouTube channel. The two went on to make one together."
+links = [
+  { title = "What's new in Nix 2.8.0 - 2.12.0?", url = "https://www.youtube.com/watch?v=ypFLcMCSzNA" },
+]
 
 [[moment]]
 id = "code-and-coffee"
@@ -196,6 +207,24 @@ title = "Paths cross"
 people = ["daniel-baker", "morgan-jones"]
 blurb = "Daniel Baker and Morgan Jones met on Discord."
 
+[[moment]]
+id = "tristan-reviews-morgan"
+date = "2024-04-17"
+title = "Paths cross"
+people = ["tristan-ross", "morgan-jones"]
+blurb = "Tristan Ross reviewed a pull request Morgan Jones had opened to nixpkgs."
+links = [
+  { title = "NixOS/nixpkgs #304204", url = "https://github.com/NixOS/nixpkgs/pull/304204" },
+]
+
+# Thomas Bereknyei is a guest and has been to no meetup. Daniel has no more
+# about this one yet.
+[[moment]]
+id = "tristan-meets-thomas"
+date = "2024-07-07"
+title = "Paths cross"
+people = ["tristan-ross", "thomas-bereknyei"]
+
 # No `trunk` key on any of these: they are not meetups, so nobody joins at
 # them. Each is an oval that the threads of the people it names run through,
 # on the ribbon when everyone in the group then is named, beside it otherwise.
@@ -236,6 +265,7 @@ people = [
   "chris-tewfik",
   "joshua-campbell",
   "matthew-croughan",
+  "thomas-bereknyei",
 ]
 blurb = "NixCon North America ran alongside SCaLE 21x, 14 to 17 March."
 links = [
@@ -253,12 +283,13 @@ links = [{ title = "Nix Camp", url = "https://nix.camp/" }]
 
 # Nobody from the group is thought to have been at this one. It is here
 # because Matthew Croughan was: Matthew has been at every NixCon since.
+# Thomas Bereknyei, the other guest, was at it too.
 [[moment]]
 id = "nixcon-2024"
 date = "2024-10-25" # ran 25 to 27 October
 title = "NixCon"
 avatar = "/images/moments/nixcon-2024.png"
-people = ["matthew-croughan"]
+people = ["matthew-croughan", "thomas-bereknyei"]
 links = [{ title = "NixCon 2024", url = "https://2024.nixcon.org/" }]
 
 [[moment]]
@@ -280,6 +311,7 @@ people = [
   "mica",
   "chris-tewfik",
   "joshua-campbell",
+  "thomas-bereknyei",
 ]
 blurb = "PlanetNix ran alongside SCaLE 22x, 6 to 9 March."
 links = [
@@ -292,7 +324,13 @@ id = "nix-vegas-2025"
 date = "2025-08-07"
 title = "Nix Vegas"
 avatar = "/images/moments/nix-vegas-2025.png"
-people = ["morgan-jones", "tristan-ross", "rob-hernandez", "kyle-risse"]
+people = [
+  "morgan-jones",
+  "tristan-ross",
+  "rob-hernandez",
+  "kyle-risse",
+  "thomas-bereknyei",
+]
 links = [{ title = "Nix Vegas 2025", url = "https://nix.vegas/2025/" }]
 
 [[moment]]
@@ -342,6 +380,7 @@ people = [
   "mica",
   "chris-tewfik",
   "joshua-campbell",
+  "thomas-bereknyei",
 ]
 blurb = "PlanetNix ran alongside SCaLE 23x, 5 to 8 March."
 links = [

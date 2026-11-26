@@ -254,10 +254,13 @@ links = [{ title = "...", url = "https://..." }]  # their own sites
   host names, which is a habit and not a rule. `profiles.json` requires a title and a url on each
   entry, and the engine's parser rejects an entry without them.
 
-There is one guest in the data: Matthew Croughan, who organizes Nix Camp and is at every one, was
-at SCaLE 20x and 21x, and has been at every NixCon since 2024. NixCon 2024 is in the data for
-Matthew alone: nobody from the group is thought to have been there, so it is a moment that names
-only a guest, which the page draws like any other moment off the ribbon. That is what the
+There are two guests in the data. Matthew Croughan organizes Nix Camp and is at every one, was
+at SCaLE 20x and 21x, and has been at every NixCon since 2024. Thomas Bereknyei, added on
+2026-11-25, has been to no meetup: Thomas and Daniel Baker crossed paths in July 2022 over the
+"What's new in Nix" videos, Thomas and Tristan Ross in July 2024, and Thomas was at SCaLE 21x,
+22x and 23x, NixCon 2024 and Nix Vegas 2025. NixCon 2024 is in the data for the two guests
+alone: nobody from the group is thought to have been there, so it is a moment that names
+only guests, which the page draws like any other moment off the ribbon. That is what the
 mechanism is for: the page is meant to show people who are part of the story without listing
 them as members of the group. `test_site.py` checks
 that Matthew is on the Origins page and not in the About grid, and proves the About filter with
@@ -884,7 +887,8 @@ right.
   of the page, which is what the one tab stop for the map was for. A keyboard reaches every
   person and moment through the map, where Enter picks it and either opens its popup or, beside
   the map, moves focus to its card in the list. The links inside the cards are ordinary tab
-  stops, and since a moment's card became the full card there are 57 of them.
+  stops: 57 of them the day a moment's card became the full card, and 60 later that day with
+  one more person and three more moments.
 - **What a pick outlasts.** A redraw for a resized window and a switch of mode: the new
   picture is lit and marked the same. Zooming and dragging the map do not touch it, and nor
   does a click anywhere outside the map and the lists.
@@ -1019,7 +1023,8 @@ it. Member and guest remain distinguishable at any size, because that distinctio
 stroke, card and badge rather than on hue. This is a call made in the absence of a preference
 and is worth revisiting once the group passes a dozen. It has reached it: the twelve members
 take the twelve hues, and Matthew Croughan, the thirteenth thread and a guest, is the first in
-the muted colour. The next member added will be too.
+the muted colour. Thomas Bereknyei, the fourteenth and a guest too, is the second. The next
+member added will be as well.
 
 The badge carries no meeting number. The card instead shows where someone joined using the title
 and date of the meetup they joined at, which the engine already computes. Parsing a number out of
@@ -1073,8 +1078,8 @@ everything its card says: title, date, blurb, names and links. The cards in both
 click and are not buttons or tab stops: picking from a list is a pointer's convenience, as
 taking hold of the map is, and the keyboard's way to a person or a moment stays the picture,
 where Enter picks it and either opens its popup or moves focus to its card in the list. The
-links inside the cards are tab stops like any links, 57 of them after the map since a moment's
-card became the full card. That is the wall the map's single tab stop was made to avoid, come
+links inside the cards are tab stops like any links, 57 of them after the map when a moment's
+card became the full card and more with every person and moment added. That is the wall the map's single tab stop was made to avoid, come
 back in the rail, and it was accepted as the price of links that behave as links.
 
 ### Build and toolchain
@@ -1367,11 +1372,13 @@ be reasonable if layout moved to build time.
 - **The card.** The treatment was called out early as generic and never revisited beyond
   squaring the corners. There is one card surface now, used in the popup and the roster, so it
   is a single thing to design rather than two.
-- **Descriptions and quotes.** Joshua Campbell and Matthew Croughan have neither.
-  Everyone else has a description; only Daniel Baker, Jared Baur and Mica have a quote, and only
-  Daniel Baker, David Nuon, Samuel Raumin and Chris Tewfik have links.
-  Rob Hernandez's and Jared Baur's "First contact" have no blurb, though Daniel Baker's and
-  Connor Baker's have one, and several conference and camp moments have none.
+- **Descriptions and quotes.** Joshua Campbell and Thomas Bereknyei have neither a description
+  nor a quote, and Matthew Croughan has a quote and no description. Everyone else has a
+  description; Daniel Baker, Jared Baur, Mica, Connor Baker, Matthew Croughan and Morgan Jones
+  have a quote, and only Daniel Baker, David Nuon, Samuel Raumin and Chris Tewfik have links.
+  Jared Baur's "First contact" has no blurb, though the other three have one. Tristan Ross and
+  Thomas Bereknyei's "Paths cross" of July 2024 has none: Daniel has no details of it yet.
+  Several conference and camp moments have none.
 - **Seven `CONFIRM` markers** in `data/moments.toml`: two dates given as approximations, one
   meetup guessed at (Connor Baker's first, below), "I think everyone was there" on the three
   SCaLE moments, and "I believe David and I were at every single NUG event" over the attendance
@@ -1381,7 +1388,8 @@ be reasonable if layout moved to build time.
   through it whether or not they were at the booth. Joshua Campbell is on it for that reason;
   Daniel does not recall whether Joshua visited the booth. Its blurb still says only who was at
   the booth and that Daniel Baker and David Nuon met Rob Hernandez there. Daniel means to
-  expand it with who met whom.
+  expand it with who met whom, and on 2026-11-25 set it aside until more is gathered about that
+  year.
 - **Who was at each meetup** is recorded whole, everyone in the group either there or away, for
   nine meetups: the seven Daniel checked against pictures (NUG #1, #2, #3, #4, #6, the June 2025
   Mini NUG and NUG #17) and two Daniel gave on 2026-11-24, NUG #5 and NUG #10, the second from
@@ -1420,8 +1428,13 @@ be reasonable if layout moved to build time.
   pointer then; pressing Enter on a focused moment while it morphs is meant to open nothing;
   and a mouse already holding the map when a keyboard press switches modes is meant to be let
   go.
-- **River wider than its box.** River is 764px wide, 23px of that the room for the moments'
-  avatars. Beside the rail its box is 859px in a
+- **River wider than its box.** The picture's size moves with the data, and not always up.
+  With Thomas Bereknyei and three more moments off the ribbon, added on 2026-11-25, the layout
+  engine arranged River 544px wide and 3225px tall, where it had been 764px by 2968px, and
+  Subway 6572px by 467px, where its box had been 607px tall. So River now fits its box from a
+  1216px window up and scrolls sideways only from 1024px to 1215px and on a phone; what follows
+  was written when it was 764px wide. River is 764px wide, 23px of that the room for the
+  moments' avatars. Beside the rail its box is 859px in a
   window of 1408px or more, 667px from 1216px and 475px from 1024px, all measured, so in a
   window from 1024px to 1407px, and on a phone, River scrolls sideways. It opens centred (see
   "Toggle and responsive behaviour"). The cost is the year numbers: they are drawn 6px in from
