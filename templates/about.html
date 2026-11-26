@@ -110,10 +110,13 @@
           </figure>
           {%- endif %}
           <div class="about-who">
-            {#- Only members are listed here, so the badge always says so. -#}
+            {#- Only members are listed here, so the badge says so, or says
+                that this member organizes the group, as their card on the
+                Origins page does. -#}
+            {%- set organizes = profile.extra.organizer | default(value=false) %}
             <div class="about-head">
               <h4 class="title is-4">{{ profile.extra.name }}</h4>
-              <span class="about-badge">Member</span>
+              <span class="about-badge">{% if organizes %}Organizer{% else %}Member{% endif %}</span>
             </div>
             {#- The handle goes to their GitHub, and their own sites follow it
                 on the same line. -#}

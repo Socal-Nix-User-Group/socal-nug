@@ -85,7 +85,8 @@
       "imageUrl": {{ p.extra.image_url | default(value="") | json_encode | safe }},
       "profileUrl": {{ p.extra.profile_url | default(value="") | json_encode | safe }},
       "links": {{ p.extra.links | default(value=[]) | json_encode | safe }},
-      "member": {{ p.extra.member | json_encode | safe }}
+      "member": {{ p.extra.member | json_encode | safe }},
+      "organizer": {{ p.extra.organizer | default(value=false) | json_encode | safe }}
     }
     {%- set_global sep = "," -%}
   {%- endfor %}

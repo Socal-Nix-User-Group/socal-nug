@@ -51,6 +51,7 @@ function person(slug: string, member: boolean, imageUrl = ""): Person {
     profileUrl: "",
     links: [],
     member,
+    organizer: false,
   };
 }
 

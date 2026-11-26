@@ -3,6 +3,7 @@ weight = 3
 
 [extra]
 member = true
+organizer = true
 name = "Rob Hernandez"
 alias = "@sarcasticadmin"
 description = "SNUG Co-founder. Nixpkgs maintainer. SCaLE Volunteer. NixCon NA Organizer. PlanetNix Organizer."

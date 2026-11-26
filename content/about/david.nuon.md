@@ -3,6 +3,7 @@ weight = 2
 
 [extra]
 member = true
+organizer = true
 name = "David Nuon"
 alias = "@davidnuon"
 description = "SNUG Co-founder. Code and Coffee Head Organizer. SCaLE Volunteer. NixCon NA Organizer. PlanetNix Organizer."

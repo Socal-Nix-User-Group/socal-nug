@@ -230,6 +230,8 @@ export function personCardFor(
 
   const who = el(doc, "div", { class: "origins-card-who" });
   // The badge on the name's line: member or guest is part of who they are.
+  // A member who organizes the group is badged for that; it is still a
+  // member's badge, drawn as one.
   const head = el(doc, "div", { class: "origins-card-head" });
   head.appendChild(
     el(doc, "span", { class: "origins-card-name" }, person.name),
@@ -239,7 +241,7 @@ export function personCardFor(
       doc,
       "span",
       { class: `origins-badge ${kind}` },
-      person.member ? "Member" : "Guest",
+      person.member ? (person.organizer ? "Organizer" : "Member") : "Guest",
     ),
   );
   who.appendChild(head);

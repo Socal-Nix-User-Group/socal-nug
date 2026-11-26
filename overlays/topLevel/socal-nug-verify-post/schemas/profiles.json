@@ -15,6 +15,10 @@
                     "type": "boolean",
                     "description": "True for members of the group, who appear on the about page. False for guests, who appear only in the Origins braid."
                 },
+                "organizer": {
+                    "type": "boolean",
+                    "description": "True for a member who organizes the group. Their badge on the about page and on their Origins card says Organizer in place of Member."
+                },
                 "name": {
                     "type": "string",
                     "description": "The full name of the user."

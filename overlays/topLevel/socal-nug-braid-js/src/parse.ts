@@ -56,6 +56,7 @@ function toPerson(raw: unknown, index: number): Person {
       : "",
     links: toLinks(record.links, where) ?? [],
     member: record.member === true,
+    organizer: record.organizer === true,
   };
 }
 

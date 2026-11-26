@@ -13,6 +13,7 @@ export function person(slug: string, member = true): Person {
     profileUrl: "",
     links: [],
     member,
+    organizer: false,
   };
 }
 

@@ -27,6 +27,8 @@ export interface Person {
   /** Their own sites. `profileUrl` is their GitHub; these are anywhere else. */
   readonly links: readonly Link[];
   readonly member: boolean;
+  /** A member who organizes the group. Their badge says so in place of "Member". */
+  readonly organizer: boolean;
 }
 
 /** One thing that happened, with everyone who was part of it. */

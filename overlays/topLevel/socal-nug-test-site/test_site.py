@@ -273,11 +273,24 @@ class SiteBuild(unittest.TestCase):
         self.assertEqual(len(boxed), len(self.MEMBERS))
         self.assertEqual(list(self.about_profiles()), self.MEMBERS)
 
-    def test_every_member_on_about_carries_the_member_badge(self):
+    def test_every_member_on_about_carries_a_badge_saying_organizer_or_member(self):
+        _, data = self.origins_data()
         profiles = self.about_profiles()
         self.assertEqual(list(profiles), self.MEMBERS)
-        for name, profile in profiles.items():
-            self.assertEqual(profile.count('<span class="about-badge">Member</span>'), 1, name)
+        members = [p for p in data['people'] if p['member']]
+        self.assertTrue(any(p['organizer'] for p in members), 'no member organizes the group')
+        self.assertTrue(any(not p['organizer'] for p in members), 'every member organizes the group')
+        for person in members:
+            word = 'Organizer' if person['organizer'] else 'Member'
+            badges = re.findall(r'<span class="about-badge">(.*?)</span>', profiles[person['name']])
+            self.assertEqual(badges, [word], person['name'])
+
+    def test_origins_people_say_whether_they_organize_the_group(self):
+        _, data = self.origins_data()
+        for person in data['people']:
+            self.assertIsInstance(person['organizer'], bool, person['slug'])
+            if person['organizer']:
+                self.assertTrue(person['member'], f'{person["slug"]} organizes and is not a member')
 
     def test_a_member_on_about_says_where_they_joined_as_the_origins_card_does(self):
         _, data = self.origins_data()
@@ -306,7 +319,7 @@ class SiteBuild(unittest.TestCase):
             profile = profiles[person['name']]
             parts = [
                 f'<h4 class="title is-4">{person["name"]}</h4>',
-                '<span class="about-badge">Member</span>',
+                f'<span class="about-badge">{"Organizer" if person["organizer"] else "Member"}</span>',
                 f'<a class="about-handle" href="{person["profileUrl"]}"',
                 *(f'<a class="about-link" href="{link["url"]}"' for link in person['links']),
                 f'<p class="about-desc">{person["description"]}</p>',

@@ -12,6 +12,7 @@ const PAYLOAD = {
       imageUrl: "https://example.com/d.png",
       profileUrl: "https://github.com/djacu",
       member: true,
+      organizer: true,
     },
     {
       slug: "rok-garbas",
@@ -46,6 +47,12 @@ test("people come back keyed by slug", () => {
   assert.equal(people.size, 2);
   assert.equal(people.get("daniel-baker")!.name, "Daniel Baker");
   assert.equal(people.get("rok-garbas")!.member, false);
+});
+
+test("someone organizes the group only when their record says so", () => {
+  const { people } = parseData(PAYLOAD);
+  assert.equal(people.get("daniel-baker")!.organizer, true);
+  assert.equal(people.get("rok-garbas")!.organizer, false);
 });
 
 test("a date string becomes a fuzzy date", () => {

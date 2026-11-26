@@ -3,6 +3,7 @@ weight = 1
 
 [extra]
 member = true
+organizer = true
 name = "Daniel Baker"
 alias = "@djacu"
 description = "SNUG Co-founder. NixOS Marketing Team member. Nix Vegas Co-founder. SCaLE Volunteer. Code and Coffee Supporting Organizer. NixCon NA Organizer. PlanetNix Organizer. Nixpkgs maintainer."

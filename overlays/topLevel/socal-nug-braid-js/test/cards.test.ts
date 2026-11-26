@@ -60,6 +60,7 @@ function person(slug: string, member: boolean): Person {
     profileUrl: `https://example.com/${slug}`,
     links: [],
     member,
+    organizer: false,
   };
 }
 
@@ -430,6 +431,22 @@ const byClassName = (made: Node[], token: string) =>
   made.find((n) => (n.attrs.class ?? "").split(" ").includes(token))!;
 const firstClasses = (n: Node) => n.children.map((c) => (c.attrs.class ?? "").split(" ")[0]);
 const cardOrder = (made: Node[]) => firstClasses(cardOf(made));
+
+test("the badge says Organizer for a member who organizes the group, Member for any other member and Guest for a guest", () => {
+  const badge = (who: Person) => {
+    const { doc, made } = stubDocument();
+    personCardFor({ ...thread(who.slug), person: who }, small, doc, false);
+    const found = byClassName(made, "origins-badge");
+    return [found.attrs.class, found.text];
+  };
+  const daniel = CAST.get("daniel")!;
+  const rok = CAST.get("rok")!;
+  assert.deepEqual(badge({ ...daniel, organizer: true }), ["origins-badge is-member", "Organizer"]);
+  assert.deepEqual(badge(daniel), ["origins-badge is-member", "Member"]);
+  assert.deepEqual(badge(rok), ["origins-badge is-guest", "Guest"]);
+  // organizing is something a member does, so the flag says nothing of a guest
+  assert.deepEqual(badge({ ...rok, organizer: true }), ["origins-badge is-guest", "Guest"]);
+});
 
 test("a person's card has their picture beside who they are and where to find them, then what they do, their own words and where they joined", () => {
   for (const dismissable of [true, false]) {
